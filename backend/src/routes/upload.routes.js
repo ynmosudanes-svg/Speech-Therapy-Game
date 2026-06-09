@@ -14,6 +14,19 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024,
   },
+  fileFilter: (req, file, cb) => {
+    // Check mime type (allow images and audio/video)
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
+      'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a',
+      'video/mp4', 'video/webm', 'video/quicktime'
+    ];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images and audio/video are allowed.'));
+    }
+  }
 });
 
 router.post(

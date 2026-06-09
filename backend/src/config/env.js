@@ -21,6 +21,6 @@ module.exports = {
   pexelsApiKey: process.env.PEXELS_API_KEY || '',
   pixabayApiKey: process.env.PIXABAY_API_KEY || '',
   supabaseUrl: process.env.SUPABASE_URL || '',
-  supabaseKey: process.env.SUPABASE_KEY || '',
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '',
   supabaseBucket: process.env.SUPABASE_BUCKET_NAME || 'uploads',
 };

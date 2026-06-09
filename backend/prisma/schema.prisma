@@ -1,0 +1,125 @@
+generator client {
+  provider      = "prisma-client-js"
+  engineType    = "binary"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  THERAPIST
+}
+
+enum SessionType {
+  CLINIC
+  HOME
+  FREE_PLAY
+}
+
+enum PromptLevel {
+  FULL
+  PARTIAL
+  INDEPENDENT
+  VERBAL
+  VISUAL
+  GESTURAL
+  PHYSICAL
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  password        String
+  role            Role
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  students        Student[]
+  sessions        Session[]
+}
+
+model Student {
+  id              String        @id @default(cuid())
+  name            String
+  age             Int
+  diagnosis       String?
+  accessCode      String        @unique
+  currentLevel    Int           @default(1)
+  planName        String?
+  therapistId     String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  therapist       User          @relation(fields: [therapistId], references: [id], onDelete: Restrict)
+  sessions        Session[]
+  assignedGames   StudentGame[]
+}
+
+model Game {
+  id              String        @id @default(cuid())
+  gameCode        String?       @unique
+  name            String
+  title           String?
+  titleAr         String?
+  type            String
+  level           Int
+  config          Json?
+  isActive        Boolean       @default(true)
+  questionText    String?
+  questionTextAr  String?
+  questionAudio   String?
+  instructionText String?
+  instructionTextAr String?
+  instructionAudio String?
+  targetImage     String?
+  options         Json?
+  items           Json?
+  successSound    String?
+  failSound       String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  students        StudentGame[]
+  sessions        Session[]
+}
+
+model ImageLibrary {
+  id              String    @id @default(cuid())
+  url             String    @unique
+  thumbnail       String
+  category        String?
+  source          String?
+  createdAt       DateTime  @default(now())
+
+  @@index([category])
+  @@index([createdAt])
+}
+
+model StudentGame {
+  studentId       String
+  gameId          String
+  order           Int           @default(0)
+  assignedAt      DateTime      @default(now())
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  game            Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, gameId])
+}
+
+model Session {
+  id              String        @id @default(cuid())
+  studentId       String
+  therapistId     String
+  gameId          String
+  score           Float
+  attempts        Int
+  duration        Int
+  sessionType     SessionType
+  promptLevel     PromptLevel
+  createdAt       DateTime      @default(now())
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  therapist       User          @relation(fields: [therapistId], references: [id], onDelete: Restrict)
+  game            Game          @relation(fields: [gameId], references: [id], onDelete: Restrict)
+}

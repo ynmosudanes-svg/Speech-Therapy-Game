@@ -1,0 +1,175 @@
+import React, { useState } from 'react';
+import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  Users,
+  Gamepad2,
+  FileText,
+  ShieldCheck,
+  ArrowLeft,
+  LogOut,
+  Bell,
+} from 'lucide-react';
+import { useTherapyStore } from '../hooks/useTherapyStore';
+
+const PAGE_TITLES = {
+  '/admin/dashboard': 'لوحة التحكم',
+  '/admin/patients': 'المرضى',
+  '/admin/games': 'الألعاب',
+  '/admin/reports': 'التقارير',
+  '/admin/therapists': 'الأخصائيون',
+};
+
+const AdminLayout = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { adminSession, logoutAdmin } = useTherapyStore();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
+
+  if (!adminSession?.token) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  const activePath = Object.keys(PAGE_TITLES).find((path) => location.pathname.startsWith(path));
+  const currentTitle = activePath ? PAGE_TITLES[activePath] : 'لوحة الإدارة';
+
+  const menuItems = [
+    ...(adminSession?.user?.role === 'SUPER_ADMIN'
+      ? [{ path: '/admin/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' }]
+      : []),
+    { path: '/admin/patients', icon: Users, label: 'المرضى' },
+    { path: '/admin/games', icon: Gamepad2, label: 'الألعاب' },
+    { path: '/admin/reports', icon: FileText, label: 'التقارير' },
+    ...(adminSession?.user?.role === 'SUPER_ADMIN'
+      ? [{ path: '/admin/therapists', icon: ShieldCheck, label: 'الأخصائيون' }]
+      : []),
+  ];
+
+  return (
+    <div dir="rtl" className="h-screen w-full bg-[#f4f7f9] flex overflow-hidden font-arabic">
+      <div
+        className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300 ${
+          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
+      <aside
+        className={`fixed lg:static top-0 right-0 h-full bg-white border-l border-slate-200 z-50 flex-col shrink-0 transform transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          isSidebarOpen ? 'w-[280px] translate-x-0 flex' : 'w-[280px] lg:w-[88px] translate-x-full lg:translate-x-0 flex'
+        }`}
+      >
+        <div
+          className={`h-[80px] flex items-center border-b border-slate-100 ${
+            isSidebarOpen ? 'px-6 justify-between' : 'px-4 justify-center'
+          }`}
+        >
+          <Link
+            to="/admin/dashboard"
+            className={`flex items-center ${isSidebarOpen ? 'gap-3' : 'justify-center'}`}
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-blue-100 flex items-center justify-center border border-indigo-200">
+              <img src="/logo.png" alt="Clinic" className="w-8 h-8 object-contain" />
+            </div>
+            <div className={isSidebarOpen ? 'block' : 'hidden'}>
+              <div className="font-bold text-base text-slate-800">{adminSession?.name || 'لوحة الإدارة'}</div>
+              <div className="text-xs text-slate-500">مركز التأهيل والتخاطب</div>
+            </div>
+          </Link>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 transition-colors border border-slate-200"
+            aria-label="إغلاق القائمة"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 admin-sidebar-scroll">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname.startsWith(item.path);
+
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setIsSidebarOpen(false)}
+                className={`w-full flex items-center py-3.5 rounded-2xl font-bold text-[16px] transition-all duration-200 ${
+                  isSidebarOpen ? 'gap-4 px-5 justify-start' : 'justify-center px-0'
+                } ${
+                  isActive
+                    ? 'bg-[#158eb5] text-white shadow-md shadow-[#158eb5]/30'
+                    : 'text-[#3a4b66] hover:bg-slate-50 hover:text-[#158eb5]'
+                }`}
+              >
+                <Icon size={22} strokeWidth={2} className={isActive ? 'text-white' : 'text-slate-500'} />
+                <span className={isSidebarOpen ? 'block' : 'hidden'}>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="p-4 border-t border-slate-100 space-y-1.5 bg-white">
+          <Link
+            to="/student/login"
+            onClick={() => setIsSidebarOpen(false)}
+            className={`w-full flex items-center py-3.5 rounded-2xl font-bold text-[16px] text-[#3a4b66] hover:bg-slate-50 transition-colors ${
+              isSidebarOpen ? 'gap-4 px-5 justify-start' : 'justify-center px-0'
+            }`}
+          >
+            <ArrowLeft size={22} strokeWidth={2} className="text-slate-500" />
+            <span className={isSidebarOpen ? 'block' : 'hidden'}>وضع الأسرة</span>
+          </Link>
+
+          <button
+            onClick={() => {
+              logoutAdmin();
+              navigate('/admin/login');
+            }}
+            className={`w-full flex items-center py-3.5 rounded-2xl font-bold text-[16px] text-red-600 hover:bg-red-50 transition-colors ${
+              isSidebarOpen ? 'gap-4 px-5 justify-start' : 'justify-center px-0'
+            }`}
+          >
+            <LogOut size={22} strokeWidth={2} className="text-red-500" />
+            <span className={isSidebarOpen ? 'block' : 'hidden'}>تسجيل الخروج</span>
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 h-full min-w-0 overflow-y-auto page-scroll-left">
+        <header className="sticky top-0 z-30 h-[80px] bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3 md:gap-4">
+            <button
+              onClick={() => setIsSidebarOpen((prev) => !prev)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-50 transition-colors border border-slate-200"
+            >
+              {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+
+            <div className="flex items-center gap-2 rounded-xl border border-[#dbe7f3] bg-white px-4 py-2">
+              <span className="font-black text-slate-800">{currentTitle}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center overflow-hidden border border-indigo-200">
+              <img src="/logo.png" alt="Clinic" className="w-8 h-8 object-contain" />
+            </div>
+          </div>
+        </header>
+
+        <div className="p-4 md:p-8">
+          <div className="w-full">
+            <Outlet />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default AdminLayout;

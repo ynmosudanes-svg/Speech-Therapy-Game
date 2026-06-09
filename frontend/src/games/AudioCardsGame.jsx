@@ -54,7 +54,11 @@ const AudioCardsGame = ({
       });
     }
 
-    return () => registerAssistantActions({});
+    return () => {
+      if (registerAssistantActions) {
+        registerAssistantActions({});
+      }
+    };
   }, [currentCard, isFlipped, content.instructionAudio, registerAssistantActions]);
 
 

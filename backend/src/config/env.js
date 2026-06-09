@@ -20,4 +20,7 @@ module.exports = {
   imageSearchProvider: process.env.IMAGE_SEARCH_PROVIDER || 'pexels',
   pexelsApiKey: process.env.PEXELS_API_KEY || '',
   pixabayApiKey: process.env.PIXABAY_API_KEY || '',
+  supabaseUrl: process.env.SUPABASE_URL || '',
+  supabaseKey: process.env.SUPABASE_KEY || '',
+  supabaseBucket: process.env.SUPABASE_BUCKET_NAME || 'uploads',
 };

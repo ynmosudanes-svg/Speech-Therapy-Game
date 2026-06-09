@@ -7,14 +7,7 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, callback) => {
-    callback(null, env.uploadsDir);
-  },
-  filename: (_req, file, callback) => {
-    callback(null, `${Date.now()}${path.extname(file.originalname)}`);
-  },
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,

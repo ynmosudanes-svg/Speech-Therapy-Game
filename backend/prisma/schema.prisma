@@ -121,5 +121,5 @@ model Session {
   createdAt       DateTime      @default(now())
   student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   therapist       User          @relation(fields: [therapistId], references: [id], onDelete: Restrict)
-  game            Game          @relation(fields: [gameId], references: [id], onDelete: Restrict)
+  game            Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
 }

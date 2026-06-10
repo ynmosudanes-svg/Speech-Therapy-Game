@@ -39,9 +39,9 @@ const ControlButton = ({ icon: Icon, onClick, className = '' }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-[1.2rem] md:rounded-[1.5rem] bg-sky-500 text-white shadow-[0_6px_0_#0284c7] hover:bg-sky-400 active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center ${className}`}
+    className={`w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] bg-sky-500 text-white shadow-[0_5px_0_#0284c7] md:shadow-[0_6px_0_#0284c7] hover:bg-sky-400 active:translate-y-1 md:active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center ${className}`}
   >
-    <Icon size={28} className="md:w-8 md:h-8" />
+    <Icon size={24} className="md:w-8 md:h-8" />
   </button>
 );
 
@@ -436,8 +436,8 @@ const NavigationGame = ({
         </div>
       )}
 
-      <section className="bg-white rounded-xl md:rounded-[2rem] border border-[#dbe7f3] p-2 md:p-4 shadow-sm shrink-0">
-        <div className="grid grid-cols-3 gap-3 md:gap-5 max-w-[260px] mx-auto pb-4" dir="ltr">
+      <section className="bg-white rounded-xl md:rounded-[2rem] border border-[#dbe7f3] py-3 md:p-4 shadow-sm shrink-0">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-5 w-fit mx-auto" dir="ltr">
           <div />
           <ControlButton icon={ArrowUp} onClick={() => moveBy(0, -1)} />
           <div />

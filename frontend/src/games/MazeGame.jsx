@@ -24,9 +24,9 @@ const ControlButton = ({ icon: Icon, onClick, className = '' }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`w-16 h-16 md:w-20 md:h-20 rounded-[1.5rem] bg-sky-500 text-white shadow-[0_6px_0_#0284c7] hover:bg-sky-400 active:translate-y-2 active:shadow-none transition-all flex items-center justify-center ${className}`}
+    className={`w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] bg-sky-500 text-white shadow-[0_5px_0_#0284c7] md:shadow-[0_6px_0_#0284c7] hover:bg-sky-400 active:translate-y-1 md:active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center ${className}`}
   >
-    <Icon size={32} />
+    <Icon size={24} className="md:w-8 md:h-8" />
   </button>
 );
 
@@ -350,7 +350,7 @@ const MazeGame = ({
         </div>
 
         {/* Controls Area */}
-        <div className="grid grid-cols-3 gap-3 md:gap-5 max-w-[260px] mx-auto pb-4" dir="ltr">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-5 w-fit mx-auto pb-2 md:pb-4" dir="ltr">
           <div />
           <ControlButton icon={ArrowUp} onClick={() => moveBy(0, -1)} />
           <div />

@@ -1196,8 +1196,8 @@ const GameForm = ({ mode = 'create' }) => {
               </button>
               
               {tagMenuOpen && (
-                <div className="absolute z-50 top-full mt-2 right-0 w-full bg-white rounded-xl shadow-xl border border-slate-200 p-2">
-                  <div className="max-h-48 overflow-y-auto space-y-1 mb-2 pr-1">
+                <div className="absolute z-50 top-full mt-2 right-0 w-full sm:w-[280px] bg-white rounded-xl shadow-xl border border-slate-200 p-2">
+                  <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
                     {allAvailableTags.map(tag => (
                       <button
                         key={tag}
@@ -1209,23 +1209,6 @@ const GameForm = ({ mode = 'create' }) => {
                         {(builderState.config?.tags || []).includes(tag) && <Check size={16} className="text-blue-600" />}
                       </button>
                     ))}
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2 border-t border-slate-100 pt-3 px-2 pb-1">
-                    <input 
-                      type="text" 
-                      placeholder="تصنيف جديد..." 
-                      value={newTagInput}
-                      onChange={(e) => setNewTagInput(e.target.value)}
-                      onKeyDown={(e) => { if(e.key==='Enter') { e.preventDefault(); handleAddNewGameTag(); } }}
-                      className="flex-1 px-3 py-2 rounded-lg text-sm border border-slate-200 outline-none focus:border-blue-500 w-full"
-                    />
-                    <button 
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleAddNewGameTag(); }}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap font-bold"
-                    >
-                      إضافة
-                    </button>
                   </div>
                 </div>
               )}

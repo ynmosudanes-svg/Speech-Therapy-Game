@@ -29,6 +29,17 @@ const StudentForm = ({ mode = 'create' }) => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [gamesFilter, setGamesFilter] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
+
+  const allAvailableTags = useMemo(() => {
+    const tags = new Set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']);
+    availableGames.forEach(g => {
+      if (Array.isArray(g.config?.tags)) {
+        g.config.tags.forEach(t => tags.add(t));
+      }
+    });
+    return Array.from(tags).sort();
+  }, [availableGames]);
 
   const isEdit = mode === 'edit';
   const student = useMemo(
@@ -37,16 +48,22 @@ const StudentForm = ({ mode = 'create' }) => {
   );
 
   const filteredGames = useMemo(() => {
-    const query = gamesFilter.trim().toLowerCase();
-    if (!query) {
-      return availableGames;
+    let result = availableGames;
+
+    if (selectedTag) {
+      result = result.filter(game => (game.config?.tags || []).includes(selectedTag));
     }
 
-    return availableGames.filter((game) => {
-      const searchableText = `${game.titleAr || ''} ${game.title || ''} ${game.name || ''} ${game.level || ''}`.toLowerCase();
-      return searchableText.includes(query);
-    });
-  }, [availableGames, gamesFilter]);
+    const query = gamesFilter.trim().toLowerCase();
+    if (query) {
+      result = result.filter((game) => {
+        const searchableText = `${game.titleAr || ''} ${game.title || ''} ${game.name || ''} ${game.level || ''}`.toLowerCase();
+        return searchableText.includes(query);
+      });
+    }
+
+    return result;
+  }, [availableGames, gamesFilter, selectedTag]);
 
   useEffect(() => {
     const fetchFormDependencies = async () => {
@@ -358,18 +375,30 @@ const StudentForm = ({ mode = 'create' }) => {
               </span>
             </div>
 
-            <div className="relative mb-4">
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-gray-400" />
+            <div className="flex gap-2 mb-4">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <Search size={18} className="text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="ابحثي عن لعبة..."
+                  value={gamesFilter}
+                  onChange={(e) => setGamesFilter(e.target.value)}
+                  disabled={loadingGames}
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="ابحثي عن لعبة بالاسم أو المستوى..."
-                value={gamesFilter}
-                onChange={(e) => setGamesFilter(e.target.value)}
-                disabled={loadingGames}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
-              />
+              <select
+                value={selectedTag}
+                onChange={(e) => setSelectedTag(e.target.value)}
+                className="bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all w-24 sm:w-32 cursor-pointer"
+              >
+                <option value="">التصنيف</option>
+                {allAvailableTags.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
@@ -402,7 +431,14 @@ const StudentForm = ({ mode = 'create' }) => {
                       <p className={`font-medium text-sm ${isSelected ? 'text-[#126d8f]' : 'text-gray-700'}`}>
                         {gameTitle}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">المستوى {game.level}</p>
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                        <span>المستوى {game.level}</span>
+                        {(game.config?.tags || []).length > 0 && (
+                          <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-100">
+                            {game.config.tags[0]}
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
                       isSelected ? 'bg-[#178bb6] border-[#178bb6] text-white' : 'border-gray-300'

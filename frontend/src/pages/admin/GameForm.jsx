@@ -1174,7 +1174,7 @@ const GameForm = ({ mode = 'create' }) => {
               />
             </div>
 
-            <div className="relative">
+            <div className="relative lg:max-w-md">
               <label className="block text-slate-700 font-bold mb-2">تصنيفات اللعبة</label>
               <button
                 type="button"

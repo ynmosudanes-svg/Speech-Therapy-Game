@@ -1135,7 +1135,7 @@ const GameForm = ({ mode = 'create' }) => {
 
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-slate-700 font-bold mb-2">عنوان اللعبة بالعربية</label>
+              <label className="block text-slate-700 font-bold mb-2">اسم اللعبة (المعروض للطفل)</label>
               <input
                 type="text"
                 value={builderState.nameAr}
@@ -1157,7 +1157,7 @@ const GameForm = ({ mode = 'create' }) => {
             </div>
 
             <div>
-              <label className="block text-slate-700 font-bold mb-2">كود اللعبة</label>
+              <label className="block text-slate-700 font-bold mb-2">كود البند (مثال: C11)</label>
               <input
                 type="text"
                 dir="ltr"

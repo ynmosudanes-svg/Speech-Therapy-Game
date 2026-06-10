@@ -156,7 +156,7 @@ export default function PuzzleGame({
       onComplete({
         correctAnswers: 1,
         wrongAnswers: 0,
-        attempts: moves,
+        attempts: [Math.max(moves, 1)],
         timeSpent,
         prompts: []
       });

@@ -190,6 +190,7 @@ const GamesManager = () => {
               <tr className="bg-slate-50 border-b border-[#dbe7f3]">
                 <th className="px-6 py-4 text-sm font-black text-slate-500 whitespace-nowrap">اسم اللعبة</th>
                 <th className="px-6 py-4 text-sm font-black text-slate-500 whitespace-nowrap">الكود</th>
+                <th className="px-6 py-4 text-sm font-black text-slate-500 whitespace-nowrap">التصنيف</th>
                 <th className="px-6 py-4 text-sm font-black text-slate-500 whitespace-nowrap">الأنشطة</th>
                 <th className="px-6 py-4 text-sm font-black text-slate-500 whitespace-nowrap text-center">إجراءات</th>
               </tr>
@@ -207,6 +208,19 @@ const GamesManager = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-slate-600 text-right">{game.gameCode || '--'}</td>
+                    <td className="px-6 py-4">
+                      {(game.config?.tags || []).length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {game.config.tags.map(tag => (
+                            <span key={tag} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-sm">--</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center justify-center min-w-[2.5rem] h-7 px-2.5 bg-slate-100 text-slate-700 font-black text-sm rounded-lg border border-slate-200">
                         {getActivitiesCount(game)}
@@ -234,7 +248,7 @@ const GamesManager = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="px-6 py-12 text-center text-slate-500 font-bold">
+                  <td colSpan="5" className="px-6 py-12 text-center text-slate-500 font-bold">
                     لا توجد ألعاب مطابقة للبحث.
                   </td>
                 </tr>

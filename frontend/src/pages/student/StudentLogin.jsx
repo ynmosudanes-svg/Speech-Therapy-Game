@@ -47,8 +47,8 @@ const StudentLogin = () => {
           <section className="relative h-full flex flex-col justify-center bg-white/95 backdrop-blur-xl rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-10 border border-[#138fbc]/15 shadow-2xl">
             <div className="flex lg:hidden items-start justify-end gap-4 mb-6">
             <div className="flex items-center gap-3 rounded-[1.4rem] bg-[#f7fbff] border border-[#dbe7f3] px-4 py-3 shadow-sm">
-              <div className="w-10 h-10 rounded-[0.8rem] bg-white border border-[#dbe7f3] shadow-sm flex items-center justify-center overflow-hidden p-1 shrink-0">
-                <img src="/logo.png" alt="شعار العيادة" className="w-full h-full object-contain" />
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-white border border-[#dbe7f3] shadow-sm flex items-center justify-center overflow-hidden p-0.5 shrink-0 hover:scale-110 hover:rotate-6 transition-transform duration-500 cursor-pointer">
+                <img src="/logo.png" alt="شعار العيادة" className="w-full h-full object-contain hover:animate-pulse" />
               </div>
               <div className="text-right">
                 <h1 className="text-sm md:text-base font-extrabold text-[#138fbc] leading-tight">مركز التأهيل والتخاطب</h1>
@@ -132,8 +132,8 @@ const StudentLogin = () => {
           <div className="absolute bottom-10 right-0 h-44 w-44 rounded-full bg-[#fff0ba]/18 blur-3xl" />
 
           <div className="relative z-10 flex flex-col flex-1">
-            <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.2rem] bg-white/12 border border-white/15 flex items-center justify-center mb-4 overflow-hidden p-2">
-              <img src="/logo.png" alt="شعار العيادة" className="w-full h-full object-contain rounded-[1.2rem]" />
+            <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.2rem] bg-white/12 border border-white/15 flex items-center justify-center mb-4 overflow-hidden p-2 hover:scale-110 hover:-rotate-6 transition-transform duration-500 cursor-pointer">
+              <img src="/logo.png" alt="شعار العيادة" className="w-full h-full object-contain rounded-[1.2rem] hover:animate-pulse" />
             </div>
 
             <h3 className="text-[1.55rem] md:text-[1.72rem] font-extrabold leading-tight mb-3">واجهة بسيطة وسريعة</h3>

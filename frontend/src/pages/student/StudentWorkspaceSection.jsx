@@ -153,17 +153,17 @@ const StudentWorkspaceSection = ({ section }) => {
   if (section === 'sessions') {
     return (
       <div dir="rtl" className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#eff6ff] to-white rounded-[2rem] p-6 border border-blue-100 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 bg-gradient-to-r from-[#eff6ff] to-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 border border-blue-100 shadow-sm">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-slate-800 flex items-center gap-3">
-              <Trophy className="text-blue-500" size={36} /> إنجازاتي!
+            <h1 className="text-2xl md:text-4xl font-black text-slate-800 flex items-center gap-2 md:gap-3">
+              <Trophy className="text-blue-500" size={28} /> إنجازاتي!
             </h1>
-            <p className="mt-2 text-slate-500 font-bold">كل الألعاب اللي لعبتها والنجوم اللي جمعتها هتلاقيها هنا 🌟</p>
+            <p className="mt-1 md:mt-2 text-sm md:text-base text-slate-500 font-bold">كل الألعاب اللي لعبتها والنجوم اللي جمعتها هتلاقيها هنا 🌟</p>
           </div>
-          <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-3">
-            <Star className="text-amber-400" fill="currentColor" size={28} />
-            <div className="font-black text-2xl text-slate-800">
-              {studentSessions.reduce((total, session) => total + (Number(session.score || 0) >= 70 ? 3 : Number(session.score || 0) >= 30 ? 2 : 1), 0)} <span className="text-sm text-slate-500 font-bold">نجمة إجمالية</span>
+          <div className="bg-white px-4 py-2 md:px-6 md:py-3 rounded-xl md:rounded-2xl shadow-sm border border-blue-100 flex items-center justify-center gap-2.5">
+            <Star className="text-amber-400" fill="currentColor" size={24} />
+            <div className="font-black text-xl md:text-2xl text-slate-800">
+              {studentSessions.reduce((total, session) => total + (Number(session.score || 0) >= 70 ? 3 : Number(session.score || 0) >= 30 ? 2 : 1), 0)} <span className="text-xs md:text-sm text-slate-500 font-bold">نجمة إجمالية</span>
             </div>
           </div>
         </div>
@@ -183,24 +183,24 @@ const StudentWorkspaceSection = ({ section }) => {
                     </div>
                     
                     {/* Card */}
-                    <div className="bg-white rounded-[1.5rem] border border-[#dbe7f3] p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 group">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 group-hover:scale-110 transition-transform shrink-0">
-                          <Gamepad2 className="text-blue-500" size={28} />
+                    <div className="bg-white rounded-[1.2rem] border border-[#dbe7f3] p-3.5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 group-hover:scale-110 transition-transform shrink-0">
+                          <Gamepad2 className="text-blue-500" size={24} />
                         </div>
                         <div>
-                          <div className="font-black text-slate-800 text-xl">{getGameTitle(session)}</div>
-                          <div className="text-slate-400 text-sm font-bold mt-1 text-right" dir="rtl">
+                          <div className="font-bold text-slate-800 text-base md:text-lg leading-tight">{getGameTitle(session)}</div>
+                          <div className="text-slate-400 text-xs font-bold mt-1 text-right" dir="rtl">
                             {new Date(session.createdAt || Date.now()).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-1.5 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 shrink-0">
+                      <div className="flex items-center justify-center sm:justify-start gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shrink-0">
                         {[1, 2, 3].map((star) => (
                           <Star 
                             key={star} 
-                            size={22} 
+                            size={20} 
                             className={star <= starsCount ? "text-amber-400 drop-shadow-sm" : "text-slate-200"} 
                             fill={star <= starsCount ? "currentColor" : "none"} 
                             strokeWidth={star <= starsCount ? 0 : 2}

@@ -83,10 +83,12 @@ const GameAssistant = forwardRef(function GameAssistant(
     onGestureHint,
     onVerbalHint,
     onPhysicalPrompt,
+    autoEscalate = true,
   },
   ref
 ) {
   const [currentLevel, setCurrentLevel] = useState(0);
+  const currentLevelRef = useRef(0);
   const [visible, setVisible] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [isAnimatingState, setIsAnimating] = useState(false);
@@ -95,10 +97,27 @@ const GameAssistant = forwardRef(function GameAssistant(
   const { speak, cancel } = useSpeechSynthesis();
   
   const nodeRef = useRef(null);
-  const [hasDragged, setHasDragged] = useState(false);
+  const pointerDownPosRef = useRef(null);
 
-  const handleDrag = () => {
-    if (!hasDragged) setHasDragged(true);
+  const callbackMapRef = useRef({
+    visual: onVisualHint,
+    gesture: onGestureHint,
+    verbal: onVerbalHint,
+    physical: onPhysicalPrompt,
+  });
+
+  useEffect(() => {
+    callbackMapRef.current = {
+      visual: onVisualHint,
+      gesture: onGestureHint,
+      verbal: onVerbalHint,
+      physical: onPhysicalPrompt,
+    };
+  }, [onVisualHint, onGestureHint, onVerbalHint, onPhysicalPrompt]);
+
+  const triggerAnimation = () => {
+    setIsAnimating(true);
+    window.setTimeout(() => setIsAnimating(false), 600);
   };
 
   const clearIdleTimer = useCallback(() => {
@@ -108,20 +127,51 @@ const GameAssistant = forwardRef(function GameAssistant(
     }
   }, []);
 
+  const advanceHelp = useCallback(() => {
+    if (currentLevelRef.current >= HELP_LEVELS.length) return;
+    const nextLevel = currentLevelRef.current + 1;
+    currentLevelRef.current = nextLevel;
+    setCurrentLevel(nextLevel);
+    setPanelOpen(true);
+    triggerAnimation();
+
+    const helpDef = HELP_LEVELS[nextLevel - 1];
+    if (helpDef) {
+      helpsUsedRef.current.push(helpDef.key);
+      const callback = callbackMapRef.current[helpDef.key];
+      callback?.();
+      
+      if (helpDef.description) {
+        speak(helpDef.description);
+      }
+    }
+
+    if (autoEscalate && nextLevel < HELP_LEVELS.length) {
+      clearIdleTimer();
+      idleTimerRef.current = window.setTimeout(advanceHelp, 5000);
+    }
+  }, [autoEscalate, speak, clearIdleTimer]);
+
   const startIdleTimer = useCallback(() => {
     clearIdleTimer();
     if (idleTime <= 0) return;
 
     idleTimerRef.current = window.setTimeout(() => {
       setVisible(true);
-      setCurrentLevel(0);
-      setPanelOpen(false);
+      if (autoEscalate) {
+         advanceHelp();
+      } else {
+         setCurrentLevel(0);
+         currentLevelRef.current = 0;
+         setPanelOpen(false);
+      }
     }, idleTime);
-  }, [clearIdleTimer, idleTime]);
+  }, [clearIdleTimer, idleTime, autoEscalate, advanceHelp]);
 
   const resetAssistant = useCallback(() => {
     clearIdleTimer();
     setCurrentLevel(0);
+    currentLevelRef.current = 0;
     setVisible(false);
     setPanelOpen(false);
     setIsAnimating(false);
@@ -139,44 +189,23 @@ const GameAssistant = forwardRef(function GameAssistant(
   useEffect(() => {
     resetAssistant();
     return clearIdleTimer;
-  }, [idleTime, clearIdleTimer, resetAssistant]);
+  }, [idleTime, autoEscalate, clearIdleTimer, resetAssistant]);
 
-  const triggerAnimation = () => {
-    setIsAnimating(true);
-    window.setTimeout(() => setIsAnimating(false), 600);
+  const handlePointerDown = (e) => {
+    pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
   };
 
-  const callbackMap = {
-    visual: onVisualHint,
-    gesture: onGestureHint,
-    verbal: onVerbalHint,
-    physical: onPhysicalPrompt,
-  };
-
-  const advanceHelp = () => {
-    const nextLevel = Math.min(currentLevel + 1, HELP_LEVELS.length);
-    setCurrentLevel(nextLevel);
-    setPanelOpen(true);
-    triggerAnimation();
-
-    const helpDef = HELP_LEVELS[nextLevel - 1];
-    if (helpDef) {
-      helpsUsedRef.current.push(helpDef.key);
-      const callback = callbackMap[helpDef.key];
-      callback?.();
-      
-      if (helpDef.description) {
-        speak(helpDef.description);
-      }
-    }
-  };
-
-  const handleButtonClick = () => {
-    if (hasDragged) {
-      setHasDragged(false);
-      return;
+  const handleButtonClick = (e) => {
+    if (pointerDownPosRef.current) {
+      const dist = Math.sqrt(
+        Math.pow(e.clientX - pointerDownPosRef.current.x, 2) + 
+        Math.pow(e.clientY - pointerDownPosRef.current.y, 2)
+      );
+      if (dist > 5) return; // Prevent click if dragged more than 5px
     }
     
+    // If autoEscalate is true and it's already running, clicking could pause or just show/hide the panel
+    // We'll just let them toggle the panel or manually advance
     if (panelOpen) {
       if (currentLevel < HELP_LEVELS.length) {
         advanceHelp();
@@ -203,13 +232,13 @@ const GameAssistant = forwardRef(function GameAssistant(
   return (
     <Draggable
       nodeRef={nodeRef}
-      onDrag={handleDrag}
-      onStart={() => setHasDragged(false)}
+      bounds="body"
       cancel=".chat-bubble"
       defaultPosition={{ x: window.innerWidth < 768 ? 8 : 24, y: window.innerWidth < 768 ? 8 : 24 }}
     >
       <div 
         ref={nodeRef}
+        onPointerDown={handlePointerDown}
         className="fixed top-0 left-0 z-[100] flex flex-col items-start cursor-grab active:cursor-grabbing" 
         dir="ltr"
         style={{ touchAction: 'none' }}

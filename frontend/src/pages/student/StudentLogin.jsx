@@ -51,16 +51,16 @@ const StudentLogin = () => {
                 <img src="/logo.png" alt="شعار العيادة" className="w-full h-full object-contain" />
               </div>
               <div className="text-right">
-                <h1 className="text-base font-extrabold text-blue-700 leading-tight">مركز التأهيل والتخاطب</h1>
-                <p className="text-sm text-slate-500 leading-5">دخول المستفيد بالكود فقط</p>
+                <h1 className="text-sm md:text-base font-extrabold text-blue-700 leading-tight">مركز التأهيل والتخاطب</h1>
+                <p className="text-xs md:text-sm text-slate-500 leading-5">دخول المستفيد بالكود فقط</p>
               </div>
             </div>
           </div>
 
-          <h2 className="text-[2.15rem] lg:text-4xl font-extrabold lg:font-black text-slate-900 leading-[1.08] lg:leading-tight mb-3">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold lg:font-black text-slate-900 leading-tight mb-3">
             دخول المستفيد فقط
           </h2>
-          <p className="text-base lg:text-lg text-slate-600 mb-5 lg:mb-8 leading-7 lg:leading-8 max-w-2xl">
+          <p className="text-sm md:text-base lg:text-lg text-slate-600 mb-5 lg:mb-8 leading-relaxed lg:leading-8 max-w-2xl">
             لا نطلب كلمة مرور أو PIN. أدخل كود الدخول ثم ابدأ الأنشطة العلاجية والألعاب المخصصة مباشرة.
           </p>
 

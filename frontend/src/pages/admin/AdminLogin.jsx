@@ -59,8 +59,8 @@ const AdminLogin = () => {
         <div className="relative group h-full">
           <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-[2.8rem] blur-xl opacity-30 md:opacity-40 transition duration-1000 group-hover:opacity-50"></div>
           <section className="relative h-full flex flex-col justify-center bg-white/95 backdrop-blur-xl rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-10 border border-white shadow-2xl">
-            <h2 className="text-[2.15rem] lg:text-4xl font-extrabold lg:font-black text-slate-900 leading-[1.08] lg:leading-tight mb-3">دخول الدكتور</h2>
-          <p className="text-base lg:text-lg text-slate-600 mb-5 lg:mb-8 leading-7 lg:leading-8 max-w-2xl">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold lg:font-black text-slate-900 leading-tight mb-3">دخول الدكتور</h2>
+          <p className="text-sm md:text-base lg:text-lg text-slate-600 mb-5 lg:mb-8 leading-relaxed lg:leading-8 max-w-2xl">
             سجل الدخول لمتابعة المستفيدين، ضبط المستويات، وبدء الجلسة العلاجية مباشرة.
           </p>
 
@@ -77,7 +77,7 @@ const AdminLogin = () => {
                     setError('');
                   }}
                   placeholder="name@example.com"
-                  className="w-full rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 pr-12 pl-4 py-4 text-lg outline-none transition-all duration-300 hover:border-blue-400 hover:bg-white hover:shadow-md focus:border-blue-500 focus:ring-[4px] focus:ring-blue-500/20 focus:bg-white focus:shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                  className="w-full rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 pr-12 pl-4 py-3 md:py-4 text-base md:text-lg outline-none transition-all duration-300 hover:border-blue-400 hover:bg-white hover:shadow-md focus:border-blue-500 focus:ring-[4px] focus:ring-blue-500/20 focus:bg-white focus:shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                 />
               </div>
             </label>
@@ -102,7 +102,7 @@ const AdminLogin = () => {
                     setError('');
                   }}
                   placeholder="********"
-                  className="w-full rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 pr-12 pl-14 py-4 text-lg outline-none transition-all duration-300 hover:border-blue-400 hover:bg-white hover:shadow-md focus:border-blue-500 focus:ring-[4px] focus:ring-blue-500/20 focus:bg-white focus:shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                  className="w-full rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 pr-12 pl-14 py-3 md:py-4 text-base md:text-lg outline-none transition-all duration-300 hover:border-blue-400 hover:bg-white hover:shadow-md focus:border-blue-500 focus:ring-[4px] focus:ring-blue-500/20 focus:bg-white focus:shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                 />
               </div>
             </label>
@@ -117,7 +117,7 @@ const AdminLogin = () => {
               type="submit"
               variant="primary"
               disabled={submitting}
-              className="w-full !rounded-[1.6rem] !py-4 text-xl bg-blue-600 hover:bg-blue-700"
+              className="w-full !rounded-[1.6rem] !py-3 md:!py-4 text-lg md:text-xl bg-blue-600 hover:bg-blue-700"
             >
               دخول لوحة التحكم
             </Button>
@@ -125,7 +125,7 @@ const AdminLogin = () => {
             <button
               type="button"
               onClick={() => navigate('/student/login')}
-              className="mt-6 w-full rounded-[1.6rem] border border-slate-200 bg-slate-50 px-5 py-4 font-bold text-lg text-slate-700 hover:bg-slate-100 transition-colors flex items-center justify-center gap-2 lg:hidden"
+              className="mt-6 w-full rounded-[1.6rem] border border-slate-200 bg-slate-50 px-5 py-3 md:py-4 font-bold text-base md:text-lg text-slate-700 hover:bg-slate-100 transition-colors flex items-center justify-center gap-2 lg:hidden"
             >
               العودة لدخول المستفيد
             </button>

@@ -59,8 +59,8 @@ const AdminLogin = () => {
         <div className="relative group h-full">
           <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-[2.8rem] blur-2xl opacity-15 md:opacity-25 transition duration-1000 group-hover:opacity-35"></div>
           <section className="relative h-full flex flex-col justify-center bg-white/95 backdrop-blur-xl rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-10 border border-blue-400/15 shadow-2xl">
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-800 to-blue-500 leading-tight mb-3 flex items-center gap-2 pb-1">
-              <span className="bg-gradient-to-br from-blue-100 to-blue-50 text-blue-600 p-2 rounded-[1rem] shadow-sm border border-blue-100">
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#0f7ea6] to-[#45abd0] leading-tight mb-3 flex items-center gap-2 pb-1">
+              <span className="bg-gradient-to-br from-[#eef8fb] to-white text-[#138fbc] p-2 rounded-[1rem] shadow-sm border border-[#138fbc]/20">
                 <Stethoscope size={20} className="md:w-8 md:h-8" />
               </span>
               دخول الدكتور
@@ -122,7 +122,7 @@ const AdminLogin = () => {
               type="submit"
               variant="primary"
               disabled={submitting}
-              className="w-full !rounded-[1.6rem] !py-3 md:!py-4 text-lg md:text-xl bg-blue-600 hover:bg-blue-700"
+              className="w-full !rounded-[1.6rem] !py-3 md:!py-4 text-lg md:text-xl bg-[#138fbc] hover:bg-[#0f7ea6]"
             >
               دخول لوحة التحكم
             </Button>

@@ -47,18 +47,18 @@ const StudentLogin = () => {
           <section className="relative h-full flex flex-col justify-center bg-white/95 backdrop-blur-xl rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-10 border border-[#138fbc]/15 shadow-2xl">
             <div className="flex lg:hidden items-start justify-end gap-4 mb-6">
             <div className="flex items-center gap-3 rounded-[1.4rem] bg-[#f7fbff] border border-[#dbe7f3] px-4 py-3 shadow-sm">
-              <div className="w-12 h-12 rounded-[1rem] bg-white border border-[#dbe7f3] shadow-sm flex items-center justify-center overflow-hidden p-1">
+              <div className="w-10 h-10 rounded-[0.8rem] bg-white border border-[#dbe7f3] shadow-sm flex items-center justify-center overflow-hidden p-1 shrink-0">
                 <img src="/logo.png" alt="شعار العيادة" className="w-full h-full object-contain" />
               </div>
               <div className="text-right">
-                <h1 className="text-sm md:text-base font-extrabold text-blue-700 leading-tight">مركز التأهيل والتخاطب</h1>
+                <h1 className="text-sm md:text-base font-extrabold text-[#138fbc] leading-tight">مركز التأهيل والتخاطب</h1>
                 <p className="text-xs md:text-sm text-slate-500 leading-5">دخول المستفيد بالكود فقط</p>
               </div>
             </div>
           </div>
 
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-cyan-500 leading-tight mb-3 flex items-center gap-2 pb-1">
-            <span className="bg-gradient-to-br from-blue-100 to-cyan-50 text-blue-600 p-2 rounded-[1rem] shadow-sm border border-blue-100">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#0f7ea6] to-[#45abd0] leading-tight mb-3 flex items-center gap-2 pb-1">
+            <span className="bg-gradient-to-br from-[#eef8fb] to-white text-[#138fbc] p-2 rounded-[1rem] shadow-sm border border-[#138fbc]/20">
               <Gamepad2 size={20} className="md:w-8 md:h-8" />
             </span>
             دخول المستفيد
@@ -90,7 +90,7 @@ const StudentLogin = () => {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(event) => setRememberMe(event.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded border-slate-300 text-[#138fbc] focus:ring-[#138fbc]"
               />
               تذكرني
             </label>
@@ -105,7 +105,7 @@ const StudentLogin = () => {
               type="submit"
               variant="primary"
               disabled={submitting}
-              className="w-full !rounded-[1.5rem] !py-3 text-lg bg-blue-600 hover:bg-blue-700"
+              className="w-full !rounded-[1.5rem] !py-3 text-lg bg-[#138fbc] hover:bg-[#0f7ea6]"
             >
               دخول المستفيد
             </Button>

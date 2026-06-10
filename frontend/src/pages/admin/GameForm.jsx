@@ -1430,7 +1430,12 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
 
                     <FileUploadField
-                      label="صوت السؤال أو التعليمات"
+                      label={
+                        <div className="flex items-center gap-2">
+                          <Volume2 size={18} className="text-blue-500" />
+                          <span>صوت السؤال أو التعليمات</span>
+                        </div>
+                      }
                       value={currentActivity.instructionAudio || ''}
                       onUploaded={(value) => setActivityField('instructionAudio', value)}
                       uploadAsset={uploadAsset}
@@ -1535,13 +1540,13 @@ const GameForm = ({ mode = 'create' }) => {
 
 
                   {builderState.type === 'cards.audio_flashcards' && (
-                    <div className="bg-fuchsia-50/40 border border-fuchsia-100 rounded-[2rem] p-6 space-y-6 mt-6">
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2 text-fuchsia-700">
+                        <div className="flex items-center gap-2 text-emerald-700">
                           <ImagePlus size={24} />
-                          <h3 className="text-xl font-black">الكروت الصوتية</h3>
+                          <h3 className="text-xl font-black">الكروت الصوتية (الإجابات)</h3>
                         </div>
-                        <Button type="button" variant="outline" onClick={addCard} className="!py-2 !px-4 !border-fuchsia-200 !text-fuchsia-700 hover:!bg-fuchsia-100">
+                        <Button type="button" variant="outline" onClick={addCard} className="!py-2 !px-4 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-100">
                           <Plus size={18} />
                           <span>إضافة كارت</span>
                         </Button>
@@ -1588,7 +1593,12 @@ const GameForm = ({ mode = 'create' }) => {
                             />
 
                             <FileUploadField
-                              label="الملف الصوتي للكلمة"
+                              label={
+                                <div className="flex items-center gap-2">
+                                  <Volume2 size={18} className="text-emerald-600" />
+                                  <span>الملف الصوتي للكلمة</span>
+                                </div>
+                              }
                               value={card.audioUrl || ''}
                               onUploaded={(value) => updateCard(cardIndex, 'audioUrl', value)}
                               uploadAsset={uploadAsset}
@@ -1602,11 +1612,11 @@ const GameForm = ({ mode = 'create' }) => {
                   )}
 
                   {builderState.type === 'puzzle.jigsaw' && (
-                    <div className="bg-blue-50/40 border border-blue-100 rounded-[2rem] p-6 space-y-6 mt-6">
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2 text-blue-700">
+                        <div className="flex items-center gap-2 text-emerald-700">
                           <ImagePlus size={24} />
-                          <h3 className="text-xl font-black">إعدادات البازل</h3>
+                          <h3 className="text-xl font-black">إعدادات البازل (الإجابات)</h3>
                         </div>
                       </div>
 

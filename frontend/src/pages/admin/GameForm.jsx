@@ -439,9 +439,9 @@ const GameForm = ({ mode = 'create' }) => {
   const [allAvailableTags, setAllAvailableTags] = useState(() => {
     try {
       const local = JSON.parse(localStorage.getItem('allGameTags')) || [];
-      return Array.from(new Set(['A', 'B', 'C', 'D', ...local])).sort();
+      return Array.from(new Set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', ...local])).sort();
     } catch {
-      return ['A', 'B', 'C', 'D'];
+      return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
     }
   });
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
@@ -1174,7 +1174,7 @@ const GameForm = ({ mode = 'create' }) => {
               />
             </div>
 
-            <div className="relative lg:max-w-md">
+            <div className="relative max-w-[220px]">
               <label className="block text-slate-700 font-bold mb-2">تصنيفات اللعبة</label>
               <button
                 type="button"

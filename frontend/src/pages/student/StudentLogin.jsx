@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Shield, Gamepad2 } from 'lucide-react';
+import { Shield, Gamepad2, Check } from 'lucide-react';
 import Button from '../../components/Button';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 
@@ -86,11 +86,16 @@ const StudentLogin = () => {
             </label>
 
             <label className="inline-flex items-center gap-2 text-slate-600 font-bold cursor-pointer select-none">
+              <div 
+                className={`relative flex items-center justify-center w-5 h-5 rounded border-2 transition-colors ${rememberMe ? 'border-[#138fbc] bg-[#f2f9fb]' : 'border-slate-300 bg-white'}`}
+              >
+                {rememberMe && <Check size={14} className="text-[#138fbc] absolute" strokeWidth={4} />}
+              </div>
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(event) => setRememberMe(event.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-[#138fbc] focus:ring-[#138fbc]"
+                className="hidden"
               />
               تذكرني
             </label>

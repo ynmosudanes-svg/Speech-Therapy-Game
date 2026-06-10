@@ -72,8 +72,10 @@ const StudentLogin = () => {
               <span className="block text-[0.95rem] font-extrabold text-slate-700 mb-3">كود الدخول</span>
               <input
                 type="text"
+                name="student_access_token"
                 dir="ltr"
-                autoComplete="off"
+                autoComplete="one-time-code"
+                data-lpignore="true"
                 spellCheck="false"
                 value={accessCode}
                 onChange={(event) => {

@@ -75,16 +75,16 @@ const StudentLayout = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 md:gap-3 rounded-xl md:rounded-2xl border border-[#dbe7f3] bg-white px-2 py-1.5 md:px-4 md:py-2 shadow-sm shrink-0">
-              <div className="hidden sm:block text-right">
-                <div className="text-[10px] md:text-xs text-slate-500 font-bold">{activeMode === 'therapist' ? 'جلسة علاجية' : 'المستفيد'}</div>
-                <div className="text-sm md:text-base font-black text-slate-900 truncate max-w-[100px] md:max-w-none">{currentStudent?.name}</div>
+            <div className="flex items-center gap-2.5 md:gap-3 rounded-[1.1rem] md:rounded-2xl border border-blue-100/60 bg-white px-2.5 py-1.5 md:px-4 md:py-2 shadow-sm shrink-0 group hover:border-[#138fbc]/30 transition-colors cursor-default">
+              <div className="text-right flex flex-col justify-center">
+                <div className="hidden sm:block text-[10px] md:text-xs text-[#138fbc] font-bold mb-0.5">{activeMode === 'therapist' ? 'جلسة علاجية' : 'مرحباً بك،'}</div>
+                <div className="text-sm md:text-base font-black text-slate-800 truncate max-w-[100px] sm:max-w-[140px] md:max-w-[200px] leading-tight">{currentStudent?.name || 'المستفيد'}</div>
               </div>
-              <div className="w-8 h-8 md:w-11 md:h-11 rounded-lg md:rounded-xl overflow-hidden bg-blue-100 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 md:w-12 md:h-12 rounded-[0.8rem] md:rounded-[1.1rem] overflow-hidden bg-gradient-to-br from-[#f0f9fb] to-[#e1f4f9] border border-[#d3edf5] flex items-center justify-center shrink-0 shadow-inner group-hover:shadow-md transition-shadow">
                 {currentStudent?.avatarUrl ? (
                   <img src={currentStudent.avatarUrl} alt="صورة المستفيد" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-lg md:text-2xl">👦</span>
+                  <span className="text-xl md:text-2xl drop-shadow-sm">👦</span>
                 )}
               </div>
             </div>

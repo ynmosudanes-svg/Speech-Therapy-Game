@@ -450,11 +450,10 @@ const GameForm = ({ mode = 'create' }) => {
   const handleToggleGameTag = (tag) => {
     setBuilderState(current => {
       const currentTags = current.config?.tags || [];
-      const newTags = currentTags.includes(tag) 
-        ? currentTags.filter(t => t !== tag)
-        : [...currentTags, tag];
+      const newTags = currentTags.includes(tag) ? [] : [tag];
       return { ...current, config: { ...current.config, tags: newTags } };
     });
+    setTagMenuOpen(false);
   };
 
   const handleAddNewGameTag = () => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, Save, UserRoundPlus, Layers, User, Search, CheckCircle2, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
+import { ArrowRight, Save, UserRoundPlus, Layers, User, Search, CheckCircle2, ChevronUp, ChevronDown, GripVertical, Check } from 'lucide-react';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
@@ -30,6 +30,7 @@ const StudentForm = ({ mode = 'create' }) => {
   const [error, setError] = useState('');
   const [gamesFilter, setGamesFilter] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
+  const [tagMenuOpen, setTagMenuOpen] = useState(false);
 
   const allAvailableTags = useMemo(() => {
     const tags = new Set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']);
@@ -389,16 +390,53 @@ const StudentForm = ({ mode = 'create' }) => {
                   className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
                 />
               </div>
-              <select
-                value={selectedTag}
-                onChange={(e) => setSelectedTag(e.target.value)}
-                className="bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all w-24 sm:w-32 cursor-pointer"
-              >
-                <option value="">التصنيف</option>
-                {allAvailableTags.map(tag => (
-                  <option key={tag} value={tag}>{tag}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setTagMenuOpen(!tagMenuOpen)}
+                  className="bg-white border border-gray-200 text-gray-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all w-24 sm:w-32 flex items-center justify-between"
+                >
+                  {selectedTag ? (
+                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100">
+                      {selectedTag}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500 font-medium">التصنيف</span>
+                  )}
+                  <ChevronDown size={16} className="text-gray-400" />
+                </button>
+                {tagMenuOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setTagMenuOpen(false)} 
+                    />
+                    <div className="absolute z-50 top-full mt-2 left-0 w-32 bg-white rounded-xl shadow-xl border border-slate-200 p-2">
+                      <div className="max-h-64 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                        <button
+                          type="button"
+                          onClick={() => { setSelectedTag(''); setTagMenuOpen(false); }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-right text-slate-500"
+                        >
+                          <span>الكل</span>
+                          {!selectedTag && <Check size={16} className="text-[#178bb6]" />}
+                        </button>
+                        {allAvailableTags.map(tag => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => { setSelectedTag(tag); setTagMenuOpen(false); }}
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-right"
+                          >
+                            <span className="text-slate-700">{tag}</span>
+                            {selectedTag === tag && <Check size={16} className="text-[#178bb6]" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">

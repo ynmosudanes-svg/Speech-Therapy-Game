@@ -1,9 +1,10 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Outfit:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Outfit:wght@400;600;700;800&display=swap');
 
 @theme {
-  --font-arabic: 'Cairo', sans-serif;
+  --font-arabic: 'Tajawal', sans-serif;
   --font-en: 'Outfit', sans-serif;
+  --font-weight-black: 800;
   --color-primary: #138fbc;
   --color-primary-hover: #0f7ea6;
   --color-secondary: #ec4899; /* Pink */

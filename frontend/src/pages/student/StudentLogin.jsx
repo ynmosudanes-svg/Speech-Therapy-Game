@@ -43,8 +43,8 @@ const StudentLogin = () => {
     <div dir="rtl" className="min-h-[100dvh] bg-[linear-gradient(180deg,_#eef8fb,_#f7fcfd_46%,_#ffffff_100%)] overflow-y-auto px-4 py-8 md:p-6 flex flex-col">
       <div className="w-full max-w-[56rem] m-auto flex flex-col lg:grid lg:grid-cols-[1fr_0.9fr] gap-4 md:gap-6 lg:min-h-[600px]">
         <div className="relative group h-full">
-          <div className="absolute -inset-1.5 bg-gradient-to-r from-[#138fbc] to-[#45abd0] rounded-[2.2rem] blur-xl opacity-20 md:opacity-30 transition duration-1000 group-hover:opacity-40"></div>
-          <section className="relative h-full flex flex-col justify-center bg-white/95 backdrop-blur-xl rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-10 border border-white shadow-2xl">
+          <div className="absolute -inset-1.5 bg-gradient-to-r from-[#138fbc] to-[#45abd0] rounded-[2.2rem] blur-2xl opacity-15 md:opacity-25 transition duration-1000 group-hover:opacity-35"></div>
+          <section className="relative h-full flex flex-col justify-center bg-white/95 backdrop-blur-xl rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-10 border border-[#138fbc]/15 shadow-2xl">
             <div className="flex lg:hidden items-start justify-end gap-4 mb-6">
             <div className="flex items-center gap-3 rounded-[1.4rem] bg-[#f7fbff] border border-[#dbe7f3] px-4 py-3 shadow-sm">
               <div className="w-12 h-12 rounded-[1rem] bg-white border border-[#dbe7f3] shadow-sm flex items-center justify-center overflow-hidden p-1">
@@ -57,9 +57,9 @@ const StudentLogin = () => {
             </div>
           </div>
 
-          <h2 className="text-[1.35rem] sm:text-2xl md:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-cyan-500 leading-tight mb-3 flex items-center gap-2 pb-1">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-cyan-500 leading-tight mb-3 flex items-center gap-2 pb-1">
             <span className="bg-gradient-to-br from-blue-100 to-cyan-50 text-blue-600 p-2 rounded-[1rem] shadow-sm border border-blue-100">
-              <Gamepad2 size={22} className="md:w-8 md:h-8" />
+              <Gamepad2 size={20} className="md:w-8 md:h-8" />
             </span>
             دخول المستفيد
           </h2>

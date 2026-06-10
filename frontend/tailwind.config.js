@@ -14,7 +14,10 @@ export default {
         dark: "#2d3436"
       },
       fontFamily: {
-        arabic: ['"Cairo"', 'sans-serif'],
+        arabic: ['"Tajawal"', 'sans-serif'],
+      },
+      fontWeight: {
+        black: '800', // Override the default 900 to 800 to reduce chunkiness globally
       }
     },
   },

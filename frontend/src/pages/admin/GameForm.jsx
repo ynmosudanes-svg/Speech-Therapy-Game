@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   HelpCircle,
   CheckCircle2,
+  ChevronDown,
 } from 'lucide-react';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
@@ -434,56 +435,45 @@ const GameForm = ({ mode = 'create' }) => {
   const [mazeDrawTool, setMazeDrawTool] = useState('wall');
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTags, setActiveTags] = useState([]);
-  const [customTags, setCustomTags] = useState(() => {
+  
+  const [allAvailableTags, setAllAvailableTags] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('gameCustomTags')) || {};
+      const local = JSON.parse(localStorage.getItem('allGameTags')) || [];
+      return Array.from(new Set(['A', 'B', 'C', 'D', ...local])).sort();
     } catch {
-      return {};
+      return ['A', 'B', 'C', 'D'];
     }
   });
-  const [tagMenuOpen, setTagMenuOpen] = useState(null);
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [tagMenuOpen, setTagMenuOpen] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
 
-  const handleToggleTag = (gameValue, tag) => {
-    const updated = { ...customTags };
-    if (!updated[gameValue]) updated[gameValue] = [];
-    if (updated[gameValue].includes(tag)) {
-      updated[gameValue] = updated[gameValue].filter((t) => t !== tag);
-    } else {
-      updated[gameValue] = [...updated[gameValue], tag];
-    }
-    setCustomTags(updated);
-    localStorage.setItem('gameCustomTags', JSON.stringify(updated));
+  const handleToggleGameTag = (tag) => {
+    setBuilderState(current => {
+      const currentTags = current.config?.tags || [];
+      const newTags = currentTags.includes(tag) 
+        ? currentTags.filter(t => t !== tag)
+        : [...currentTags, tag];
+      return { ...current, config: { ...current.config, tags: newTags } };
+    });
   };
 
-  const handleAddNewTag = (gameValue) => {
+  const handleAddNewGameTag = () => {
     if (!newTagInput.trim()) return;
-    handleToggleTag(gameValue, newTagInput.trim());
+    const tag = newTagInput.trim();
+    setAllAvailableTags(prev => {
+      const updated = Array.from(new Set([...prev, tag])).sort();
+      localStorage.setItem('allGameTags', JSON.stringify(updated));
+      return updated;
+    });
+    handleToggleGameTag(tag);
     setNewTagInput('');
   };
 
-  const allAvailableTags = useMemo(() => {
-    const tags = new Set(Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i)));
-    Object.values(customTags).forEach(arr => arr.forEach(t => tags.add(t)));
-    return Array.from(tags).sort();
-  }, [customTags]);
-
   const filteredCards = useMemo(() => {
     return GAME_TYPE_CARDS.filter((card) => {
-      const matchesSearch =
-        card.title.includes(searchQuery) || card.description.includes(searchQuery);
-      if (!matchesSearch) return false;
-      
-      if (activeTags.length > 0) {
-        const cardTags = customTags[card.value] || [];
-        const hasAllActiveTags = activeTags.every(tag => cardTags.includes(tag));
-        if (!hasAllActiveTags) return false;
-      }
-      return true;
+      return card.title.includes(searchQuery) || card.description.includes(searchQuery);
     });
-  }, [searchQuery, activeTags, customTags]);
+  }, [searchQuery]);
 
   const uploadAsset = async (file) => {
     const form = new FormData();
@@ -1098,32 +1088,18 @@ const GameForm = ({ mode = 'create' }) => {
           <SectionTitle>1. اختيار نوع اللعبة</SectionTitle>
 
           <div className="flex flex-col gap-4">
-            {/* Search and Filters Bar */}
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-[2]">
-                <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            {/* Template Filtering */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <Search size={20} className="text-slate-400" />
                 <input
                   type="text"
-                  placeholder="ابحث عن اسم لعبة أو وصف..."
+                  placeholder="ابحث عن نوع اللعبة (مثال: المطابقة، المتاهة...)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-4 pr-10 py-2 rounded-xl border border-slate-200 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all text-sm"
+                  className="flex-1 bg-transparent outline-none text-slate-800 font-bold"
                 />
               </div>
-              <div className="relative flex-1">
-                <button
-                  type="button"
-                  onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-                  className="w-full px-4 py-2 flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-sm font-bold text-slate-700 h-full"
-                >
-                  <div className="flex items-center gap-2">
-                    <Tag size={16} className="text-slate-400" />
-                    <span>الفلاتر {activeTags.length > 0 ? `(${activeTags.length})` : ''}</span>
-                  </div>
-                  <Check size={16} className={`text-blue-600 transition-opacity ${activeTags.length > 0 ? 'opacity-100' : 'opacity-0'}`} />
-                </button>
-                
-                {filterMenuOpen && (
                   <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-50 max-h-64 overflow-y-auto">
                     <div className="flex justify-between items-center mb-2 px-2 pb-2 border-b border-slate-100">
                       <span className="text-xs font-bold text-slate-400">اختر الفلاتر</span>
@@ -1189,52 +1165,6 @@ const GameForm = ({ mode = 'create' }) => {
                     <div className="text-xs leading-5 text-slate-500 opacity-80 group-hover:opacity-100 transition-opacity">{typeCard.description}</div>
                   </button>
 
-                  {/* 3 dots menu for tags */}
-                  <div className="absolute top-2 left-2 z-10">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setTagMenuOpen(tagMenuOpen === typeCard.value ? null : typeCard.value); }}
-                      className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-slate-400 hover:text-slate-700 shadow-sm border border-slate-100 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                    {tagMenuOpen === typeCard.value && (
-                      <div className="absolute top-[110%] left-0 w-48 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-[60]">
-                        <div className="text-xs font-bold text-slate-400 mb-2 px-1">تصنيفات اللعبة</div>
-                        <div className="max-h-32 overflow-y-auto space-y-1 mb-2">
-                          {allAvailableTags.map(tag => (
-                            <button
-                              key={tag}
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleToggleTag(typeCard.value, tag); }}
-                              className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-50 text-right"
-                            >
-                              <span className="text-slate-700">{tag}</span>
-                              {customTags[typeCard.value]?.includes(tag) && <Check size={14} className="text-blue-600" />}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="flex gap-1 border-t border-slate-100 pt-2">
-                          <input 
-                            type="text" 
-                            placeholder="جديد..." 
-                            value={newTagInput}
-                            onChange={(e) => setNewTagInput(e.target.value)}
-                            onKeyDown={(e) => { if(e.key==='Enter') { e.preventDefault(); handleAddNewTag(typeCard.value); } }}
-                            className="w-full px-2 py-1 rounded text-xs border border-slate-200 outline-none focus:border-blue-500"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleAddNewTag(typeCard.value); }}
-                            className="bg-blue-600 text-white p-1 rounded hover:bg-blue-700"
-                          >
-                            <Plus size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               ))}
             </div>
@@ -1278,6 +1208,63 @@ const GameForm = ({ mode = 'create' }) => {
                 className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
                 placeholder="MAT-SIM-001"
               />
+            </div>
+
+            <div className="relative">
+              <label className="block text-slate-700 font-bold mb-2">تصنيفات اللعبة</label>
+              <button
+                type="button"
+                onClick={() => setTagMenuOpen(!tagMenuOpen)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-2xl border border-gray-300 bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+              >
+                <div className="flex flex-wrap gap-1 items-center">
+                  {(builderState.config?.tags || []).length > 0 ? (
+                    (builderState.config.tags).map(tag => (
+                      <span key={tag} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100">
+                        {tag}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-400">اختر تصنيفات (مثال: A, B...)</span>
+                  )}
+                </div>
+                <ChevronDown size={18} className="text-slate-400" />
+              </button>
+              
+              {tagMenuOpen && (
+                <div className="absolute z-50 top-full mt-2 right-0 w-full bg-white rounded-xl shadow-xl border border-slate-200 p-2">
+                  <div className="max-h-48 overflow-y-auto space-y-1 mb-2 pr-1">
+                    {allAvailableTags.map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleToggleGameTag(tag); }}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-right"
+                      >
+                        <span className="text-slate-700">{tag}</span>
+                        {(builderState.config?.tags || []).includes(tag) && <Check size={16} className="text-blue-600" />}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 border-t border-slate-100 pt-2 px-1">
+                    <input 
+                      type="text" 
+                      placeholder="تصنيف جديد..." 
+                      value={newTagInput}
+                      onChange={(e) => setNewTagInput(e.target.value)}
+                      onKeyDown={(e) => { if(e.key==='Enter') { e.preventDefault(); handleAddNewGameTag(); } }}
+                      className="flex-1 px-3 py-2 rounded-lg text-sm border border-slate-200 outline-none focus:border-blue-500"
+                    />
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleAddNewGameTag(); }}
+                      className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      إضافة
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="hidden">

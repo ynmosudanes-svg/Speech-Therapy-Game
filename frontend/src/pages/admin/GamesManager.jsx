@@ -26,19 +26,19 @@ const GamesManager = () => {
   const [activeTags, setActiveTags] = useState([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
-  const customTags = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem('gameCustomTags')) || {};
-    } catch {
-      return {};
-    }
-  }, []);
-
   const allAvailableTags = useMemo(() => {
-    const tags = new Set(Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i)));
-    Object.values(customTags).forEach(arr => arr.forEach(t => tags.add(t)));
+    const tags = new Set(['A', 'B', 'C', 'D']); // default starter tags
+    games.forEach(g => {
+      if (Array.isArray(g.config?.tags)) {
+        g.config.tags.forEach(t => tags.add(t));
+      }
+    });
+    try {
+      const local = JSON.parse(localStorage.getItem('allGameTags')) || [];
+      local.forEach(t => tags.add(t));
+    } catch {}
     return Array.from(tags).sort();
-  }, [customTags]);
+  }, [games]);
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -67,12 +67,12 @@ const GamesManager = () => {
         game?.name,
       ].some((value) => normalizeSearchValue(value).includes(query));
 
-      const gameTags = customTags[game.type] || [];
+      const gameTags = game.config?.tags || [];
       const matchesTags = activeTags.length === 0 || activeTags.every(tag => gameTags.includes(tag));
 
       return matchesSearch && matchesTags;
     });
-  }, [games, searchTerm, activeTags, customTags]);
+  }, [games, searchTerm, activeTags]);
 
   const handleDelete = async (gameId) => {
     if (!window.confirm('هل أنت متأكد من حذف هذه اللعبة؟')) {

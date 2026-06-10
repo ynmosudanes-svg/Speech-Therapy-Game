@@ -1174,7 +1174,7 @@ const GameForm = ({ mode = 'create' }) => {
               />
             </div>
 
-            <div className="relative max-w-[220px]">
+            <div className="relative w-full sm:max-w-[280px]">
               <label className="block text-slate-700 font-bold mb-2">تصنيفات اللعبة</label>
               <button
                 type="button"
@@ -1189,7 +1189,7 @@ const GameForm = ({ mode = 'create' }) => {
                       </span>
                     ))
                   ) : (
-                    <span className="text-slate-400">اختر تصنيفات (مثال: A, B...)</span>
+                    <span className="text-slate-400 truncate">اختر تصنيفات...</span>
                   )}
                 </div>
                 <ChevronDown size={18} className="text-slate-400" />
@@ -1210,19 +1210,19 @@ const GameForm = ({ mode = 'create' }) => {
                       </button>
                     ))}
                   </div>
-                  <div className="flex gap-2 border-t border-slate-100 pt-2 px-1">
+                  <div className="flex flex-col sm:flex-row gap-2 border-t border-slate-100 pt-3 px-2 pb-1">
                     <input 
                       type="text" 
                       placeholder="تصنيف جديد..." 
                       value={newTagInput}
                       onChange={(e) => setNewTagInput(e.target.value)}
                       onKeyDown={(e) => { if(e.key==='Enter') { e.preventDefault(); handleAddNewGameTag(); } }}
-                      className="flex-1 px-3 py-2 rounded-lg text-sm border border-slate-200 outline-none focus:border-blue-500"
+                      className="flex-1 px-3 py-2 rounded-lg text-sm border border-slate-200 outline-none focus:border-blue-500 w-full"
                     />
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleAddNewGameTag(); }}
-                      className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap font-bold"
                     >
                       إضافة
                     </button>

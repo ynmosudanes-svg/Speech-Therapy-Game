@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { RotateCcw, Volume2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw, Volume2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
 import {
   playAudioUrl,
@@ -35,13 +35,13 @@ const PlaceholderTile = ({ label, className = '' }) => (
   </div>
 );
 
-const ControlButton = ({ label, onClick }) => (
+const ControlButton = ({ icon: Icon, onClick, className = '' }) => (
   <button
     type="button"
     onClick={onClick}
-    className="w-11 h-11 sm:w-14 sm:h-14 md:w-20 md:h-20 rounded-lg md:rounded-[1.4rem] bg-blue-600 text-white text-xl md:text-3xl font-black shadow-lg hover:bg-blue-700 active:scale-95 transition-all"
+    className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-[1.2rem] md:rounded-[1.5rem] bg-sky-500 text-white shadow-[0_6px_0_#0284c7] hover:bg-sky-400 active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center ${className}`}
   >
-    {label}
+    <Icon size={28} className="md:w-8 md:h-8" />
   </button>
 );
 
@@ -437,13 +437,13 @@ const NavigationGame = ({
       )}
 
       <section className="bg-white rounded-xl md:rounded-[2rem] border border-[#dbe7f3] p-2 md:p-4 shadow-sm shrink-0">
-        <div className="grid grid-cols-3 gap-2 md:gap-3 w-fit mx-auto" dir="ltr">
+        <div className="grid grid-cols-3 gap-3 md:gap-5 max-w-[260px] mx-auto pb-4" dir="ltr">
           <div />
-          <ControlButton label="↑" onClick={() => moveBy(0, -1)} />
+          <ControlButton icon={ArrowUp} onClick={() => moveBy(0, -1)} />
           <div />
-          <ControlButton label="←" onClick={() => moveBy(-1, 0)} />
-          <ControlButton label="↓" onClick={() => moveBy(0, 1)} />
-          <ControlButton label="→" onClick={() => moveBy(1, 0)} />
+          <ControlButton icon={ArrowLeft} onClick={() => moveBy(-1, 0)} />
+          <ControlButton icon={ArrowDown} onClick={() => moveBy(0, 1)} />
+          <ControlButton icon={ArrowRight} onClick={() => moveBy(1, 0)} />
         </div>
       </section>
 

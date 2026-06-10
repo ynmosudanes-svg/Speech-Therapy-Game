@@ -97,13 +97,14 @@ const StudentLayout = () => {
           type="button"
           aria-label="إغلاق القائمة"
           onClick={() => setMobileNavOpen(false)}
-          className="lg:hidden fixed inset-0 top-[86px] bg-slate-900/35 backdrop-blur-[1px] z-30"
+          className="lg:hidden fixed inset-0 top-0 bg-slate-900/35 backdrop-blur-[1px] z-30"
         />
       )}
 
       <aside
-        className={`fixed right-0 top-[86px] z-30 border-l border-b border-[#dbe7f3] bg-white/92 backdrop-blur-md transition-all
-          lg:top-0 lg:bottom-4 lg:w-[74px] lg:rounded-bl-2xl
+        className={`fixed right-0 top-0 z-30 border-l border-b border-[#dbe7f3] bg-white/92 backdrop-blur-md transition-all
+          pt-[70px] md:pt-[86px] lg:pt-0
+          lg:bottom-4 lg:w-[74px] lg:rounded-bl-2xl
           ${mobileNavOpen ? 'bottom-0 w-[78vw] max-w-[320px] opacity-100 translate-x-0' : 'bottom-0 w-[78vw] max-w-[320px] opacity-0 translate-x-full pointer-events-none'}
           lg:opacity-100 lg:translate-x-0 lg:pointer-events-auto`}
       >

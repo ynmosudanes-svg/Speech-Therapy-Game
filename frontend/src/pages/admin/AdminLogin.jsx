@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole, Mail, Stethoscope } from 'lucide-react';
 import Button from '../../components/Button';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 
@@ -59,7 +59,12 @@ const AdminLogin = () => {
         <div className="relative group h-full">
           <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-[2.8rem] blur-xl opacity-30 md:opacity-40 transition duration-1000 group-hover:opacity-50"></div>
           <section className="relative h-full flex flex-col justify-center bg-white/95 backdrop-blur-xl rounded-[2rem] lg:rounded-[2.5rem] p-5 lg:p-10 border border-white shadow-2xl">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold lg:font-black text-slate-900 leading-tight mb-3">دخول الدكتور</h2>
+            <h2 className="text-[1.5rem] sm:text-2xl md:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-800 to-blue-500 leading-tight mb-3 flex items-center gap-2 pb-1">
+              <span className="bg-gradient-to-br from-blue-100 to-blue-50 text-blue-600 p-2 rounded-[1rem] shadow-sm border border-blue-100">
+                <Stethoscope size={22} className="md:w-8 md:h-8" />
+              </span>
+              دخول الدكتور
+            </h2>
           <p className="text-sm md:text-base lg:text-lg text-slate-600 mb-5 lg:mb-8 leading-relaxed lg:leading-8 max-w-2xl">
             سجل الدخول لمتابعة المستفيدين، ضبط المستويات، وبدء الجلسة العلاجية مباشرة.
           </p>

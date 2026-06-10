@@ -204,7 +204,12 @@ const GamesManager = () => {
                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                           <Gamepad2 size={20} />
                         </div>
-                        <span className="font-black text-slate-800 text-base">{getDisplayName(game)}</span>
+                        <div className="flex flex-col">
+                          <span className="font-black text-slate-800 text-base">{getDisplayName(game)}</span>
+                          {game.config?.itemDescription && (
+                            <span className="text-xs text-slate-500 font-medium mt-0.5">{game.config.itemDescription}</span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-slate-600 text-right">{game.gameCode || '--'}</td>

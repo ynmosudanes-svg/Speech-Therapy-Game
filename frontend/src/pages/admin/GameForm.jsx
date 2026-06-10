@@ -1169,7 +1169,26 @@ const GameForm = ({ mode = 'create' }) => {
                   }))
                 }
                 className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
-                placeholder="MAT-SIM-001"
+                placeholder="C11"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-slate-700 font-bold mb-2">نص البند / الهدف (يظهر للأخصائي فقط)</label>
+              <input
+                type="text"
+                value={builderState.config?.itemDescription || ''}
+                onChange={(event) =>
+                  setBuilderState((current) => ({
+                    ...current,
+                    config: {
+                      ...current.config,
+                      itemDescription: event.target.value,
+                    },
+                  }))
+                }
+                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                placeholder="مثال: إتباع التعليمات لاختيار شيء واحد معزز من مجموعة من شيئين"
               />
             </div>
 

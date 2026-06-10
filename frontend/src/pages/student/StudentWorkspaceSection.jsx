@@ -267,26 +267,31 @@ const StudentWorkspaceSection = ({ section }) => {
               {studentSessions.slice(0, 8).map((session, index) => {
                 const score = Math.min(100, Math.max(0, Number(session.score || 0)));
                 return (
-                  <article key={session.id || `${session.gameId}-${index}`} className="flex items-center gap-4 rounded-[1.2rem] border border-slate-100 bg-white p-4 hover:shadow-md transition-shadow group">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${score === 100 ? 'bg-emerald-100 text-emerald-600' : score >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'}`}>
-                      {score === 100 ? <Trophy size={28} /> : score >= 60 ? <Target size={28} /> : <AlertCircle size={28} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-slate-800 truncate">{getGameTitle(session)}</h3>
-                      <div className="flex items-center gap-4 mt-1 text-sm font-bold text-slate-500">
-                        <span className="flex items-center gap-1.5"><Clock size={16} /> {formatDuration(session.duration || session.timeSpent)}</span>
-                        <span className="flex items-center gap-1.5"><BarChart3 size={16} /> {session.attempts || 1} محاولات</span>
+                  <article key={session.id || `${session.gameId}-${index}`} className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-[1.2rem] border border-slate-100 bg-white p-4 hover:shadow-md transition-shadow group">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 ${score === 100 ? 'bg-emerald-100 text-emerald-600' : score >= 60 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'}`}>
+                        {score === 100 ? <Trophy size={24} className="sm:w-7 sm:h-7" /> : score >= 60 ? <Target size={24} className="sm:w-7 sm:h-7" /> : <AlertCircle size={24} className="sm:w-7 sm:h-7" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-800 truncate">{getGameTitle(session)}</h3>
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-1 text-xs sm:text-sm font-bold text-slate-500">
+                          <span className="flex items-center gap-1.5 shrink-0"><Clock size={14} className="sm:w-4 sm:h-4" /> {formatDuration(session.duration || session.timeSpent)}</span>
+                          <span className="flex items-center gap-1.5 shrink-0"><BarChart3 size={14} className="sm:w-4 sm:h-4" /> {session.attempts || 1} محاولات</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className={`text-2xl font-black ${score === 100 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
-                        {score}%
-                      </span>
-                      <div className="w-24 h-2.5 rounded-full bg-slate-100 overflow-hidden shadow-inner">
-                        <div
-                          className={`h-full rounded-full ${score === 100 ? 'bg-emerald-500' : score >= 60 ? 'bg-amber-500' : 'bg-red-500'}`}
-                          style={{ width: `${score}%` }}
-                        />
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between gap-3 shrink-0 bg-slate-50 sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-slate-100 sm:border-none mt-1 sm:mt-0">
+                      <div className="font-black text-slate-600 text-sm sm:hidden">نتيجة المحاولة:</div>
+                      <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-2 flex-1 sm:flex-none justify-end">
+                        <span className={`text-xl sm:text-2xl font-black ${score === 100 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                          {score}%
+                        </span>
+                        <div className="w-24 h-2.5 rounded-full bg-slate-200 sm:bg-slate-100 overflow-hidden shadow-inner shrink-0 hidden sm:block">
+                          <div
+                            className={`h-full rounded-full ${score === 100 ? 'bg-emerald-500' : score >= 60 ? 'bg-amber-500' : 'bg-red-500'}`}
+                            style={{ width: `${score}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </article>

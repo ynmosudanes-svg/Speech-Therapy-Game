@@ -9,6 +9,7 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'text.missing_word',
   'cards.audio_flashcards',
   'puzzle.jigsaw',
+  'matching.connect',
 ];
 
 function createEmptyLevel(levelNumber) {
@@ -50,6 +51,16 @@ function normalizeOption(option, index) {
     image: option?.image || '',
     textAr: option?.textAr || option?.text || '',
     isCorrect: Boolean(option?.isCorrect),
+  };
+}
+
+function normalizePair(pair, index) {
+  return {
+    id: String(pair?.id || `pair_${index + 1}`),
+    sourceImage: pair?.sourceImage || '',
+    sourceLabel: pair?.sourceLabel || '',
+    targetImage: pair?.targetImage || '',
+    targetLabel: pair?.targetLabel || '',
   };
 }
 
@@ -195,6 +206,13 @@ function normalizeActivity(activity, type, index) {
       ...baseActivity,
       image: activity?.image || '',
       gridSize: Number(activity?.gridSize || 3),
+    };
+  }
+
+  if (type === 'matching.connect') {
+    return {
+      ...baseActivity,
+      pairs: Array.isArray(activity?.pairs) ? activity.pairs.map(normalizePair) : [],
     };
   }
 

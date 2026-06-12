@@ -7,7 +7,21 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-const storage = multer.memoryStorage();
+const fs = require('fs');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (!fs.existsSync(env.uploadsDir)) {
+      fs.mkdirSync(env.uploadsDir, { recursive: true });
+    }
+    cb(null, env.uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const originalExt = path.extname(file.originalname);
+    const filename = `${Date.now()}_${Math.random().toString(36).substring(7)}${originalExt}`;
+    cb(null, filename);
+  }
+});
 
 const upload = multer({
   storage,

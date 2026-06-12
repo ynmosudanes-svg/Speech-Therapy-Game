@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { X, Search, Image as ImageIcon, Music, Video, LoaderCircle } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { X, Search, Image as ImageIcon, Music, Video, LoaderCircle, UploadCloud } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 
@@ -8,6 +8,9 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState(initialType);
+  const [isUploading, setIsUploading] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const fileInputRef = useRef(null);
   const { adminSession } = useTherapyStore();
 
   useEffect(() => {
@@ -27,13 +30,34 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
 
     const debounce = setTimeout(fetchFiles, 300);
     return () => clearTimeout(debounce);
-  }, [isOpen, adminSession?.token, selectedType, searchQuery]);
+  }, [isOpen, adminSession?.token, selectedType, searchQuery, refreshTrigger]);
 
   if (!isOpen) return null;
 
   const handleSelect = (url) => {
     onSelect(url);
     onClose();
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      await gameService.uploadAsset(adminSession?.token, formData);
+      setRefreshTrigger(prev => prev + 1); // Refresh the list
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      alert('فشل رفع الملف، يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsUploading(false);
+      // Reset input so the same file can be uploaded again if needed
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -86,6 +110,28 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
             >
               <Music size={18} />
               صوتيات
+            </button>
+          </div>
+
+          <div className="w-full md:w-auto mt-4 md:mt-0 flex gap-2">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              className="hidden" 
+              accept="image/*,audio/*,video/*"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUploading ? (
+                <LoaderCircle size={20} className="animate-spin" />
+              ) : (
+                <UploadCloud size={20} />
+              )}
+              {isUploading ? 'جاري الرفع...' : 'رفع ملف جديد'}
             </button>
           </div>
         </div>

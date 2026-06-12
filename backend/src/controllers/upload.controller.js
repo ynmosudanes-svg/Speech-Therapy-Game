@@ -1,15 +1,11 @@
 const path = require('path');
+const fs = require('fs');
 const env = require('../config/env');
-const supabase = require('../config/supabase');
 
-const IMAGE_FILE_REGEX = /\.(png|jpe?g|webp|gif|svg)$/i;
-
-function getSupabasePublicUrl(filename) {
-  if (!supabase) return '';
-  const { data } = supabase.storage
-    .from(env.supabaseBucket)
-    .getPublicUrl(filename);
-  return data.publicUrl;
+// Helper to construct the public URL for local files
+function getLocalPublicUrl(req, filename) {
+  const baseUrl = env.publicApiUrl || `${req.protocol}://${req.get('host')}`;
+  return `${baseUrl}/uploads/${filename}`;
 }
 
 async function uploadFile(req, res) {
@@ -20,30 +16,10 @@ async function uploadFile(req, res) {
     });
   }
 
-  if (!supabase) {
-    return res.status(500).json({
-      success: false,
-      message: 'Supabase storage is not configured. Please add SUPABASE_URL and SUPABASE_KEY to your environment variables.',
-    });
-  }
-
   try {
-    const originalExt = path.extname(req.file.originalname);
-    const filename = `${Date.now()}_${Math.random().toString(36).substring(7)}${originalExt}`;
-
-    const { data, error } = await supabase.storage
-      .from(env.supabaseBucket)
-      .upload(filename, req.file.buffer, {
-        contentType: req.file.mimetype,
-        upsert: false,
-      });
-
-    if (error) {
-      console.error('Supabase upload error:', error);
-      throw error;
-    }
-
-    const publicUrl = getSupabasePublicUrl(filename);
+    // Multer diskStorage has already saved the file to env.uploadsDir
+    const filename = req.file.filename;
+    const publicUrl = getLocalPublicUrl(req, filename);
 
     return res.status(201).json({
       success: true,
@@ -54,7 +30,7 @@ async function uploadFile(req, res) {
     console.error('Upload Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to upload file to storage.',
+      message: 'Failed to upload file to local storage.',
       error: error.message,
     });
   }
@@ -64,35 +40,39 @@ async function listUploadedFiles(req, res) {
   const query = String(req.query.query || '').trim().toLowerCase();
   const type = String(req.query.type || '').trim().toLowerCase();
 
-  if (!supabase) {
-    return res.json({
-      success: true,
-      count: 0,
-      data: [],
-      message: 'Supabase storage not configured',
-    });
-  }
-
   try {
-    const { data: filesList, error } = await supabase.storage
-      .from(env.supabaseBucket)
-      .list('', {
-        limit: 100,
-        offset: 0,
-        sortBy: { column: 'created_at', order: 'desc' },
+    // Ensure uploads directory exists
+    if (!fs.existsSync(env.uploadsDir)) {
+      return res.json({
+        success: true,
+        count: 0,
+        data: [],
       });
-
-    if (error) {
-      console.error('Supabase list error:', error);
-      throw error;
     }
 
-    // Filter and map files
-    const files = filesList
-      .filter((entry) => {
-        // Skip hidden files like .emptyFolderPlaceholder
-        if (entry.name.startsWith('.')) return false;
+    const fileNames = await fs.promises.readdir(env.uploadsDir);
+    
+    // Get stats for all files to sort by creation time
+    const filesWithStats = await Promise.all(
+      fileNames.map(async (name) => {
+        // Skip hidden files
+        if (name.startsWith('.')) return null;
+        
+        const filePath = path.join(env.uploadsDir, name);
+        const stats = await fs.promises.stat(filePath);
+        
+        // Skip directories
+        if (stats.isDirectory()) return null;
+        
+        return { name, stats };
+      })
+    );
 
+    // Filter and map files
+    const files = filesWithStats
+      .filter((entry) => {
+        if (!entry) return false;
+        
         const isImage = /\.(png|jpe?g|webp|gif|svg)$/i.test(entry.name);
         const isAudio = /\.(mp3|wav|ogg|m4a)$/i.test(entry.name);
         const isVideo = /\.(mp4|webm|mov)$/i.test(entry.name);
@@ -109,19 +89,20 @@ async function listUploadedFiles(req, res) {
         if (/\.(mp3|wav|ogg|m4a)$/i.test(entry.name)) mediaType = 'audio';
         if (/\.(mp4|webm|mov)$/i.test(entry.name)) mediaType = 'video';
 
-        const publicUrl = getSupabasePublicUrl(entry.name);
+        const publicUrl = getLocalPublicUrl(req, entry.name);
 
         return {
-          id: entry.id || entry.name,
+          id: entry.name,
           filename: entry.name,
           url: publicUrl,
           thumbnail: publicUrl,
           source: 'upload',
           type: mediaType,
-          createdAt: new Date(entry.created_at).getTime() || 0,
+          createdAt: entry.stats.birthtimeMs || entry.stats.mtimeMs || 0,
         };
       })
-      .filter((file) => !query || file.filename.toLowerCase().includes(query));
+      .filter((file) => !query || file.filename.toLowerCase().includes(query))
+      .sort((a, b) => b.createdAt - a.createdAt); // Descending order (newest first)
 
     return res.json({
       success: true,
@@ -132,7 +113,7 @@ async function listUploadedFiles(req, res) {
     console.error('List Files Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to list files from storage.',
+      message: 'Failed to list files from local storage.',
       error: error.message,
     });
   }

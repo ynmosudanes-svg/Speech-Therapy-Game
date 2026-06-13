@@ -4,6 +4,7 @@ import { Edit2, Plus, Search, Trash2, Tag, ChevronDown, Check, Gamepad2, Sparkle
 import Button from '../../components/Button';
 import gameService from '../../services/gameService';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const getActivitiesCount = (game) =>
   Array.isArray(game?.config?.levels)
@@ -25,6 +26,7 @@ const GamesManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTags, setActiveTags] = useState([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [deleteGameId, setDeleteGameId] = useState(null);
 
   const allAvailableTags = useMemo(() => {
     const tags = new Set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']); // default starter tags
@@ -74,17 +76,21 @@ const GamesManager = () => {
     });
   }, [games, searchTerm, activeTags]);
 
-  const handleDelete = async (gameId) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذه اللعبة؟')) {
-      return;
-    }
+  const handleDelete = (gameId) => {
+    setDeleteGameId(gameId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteGameId) return;
 
     try {
-      await gameService.deleteGame(adminSession?.token, gameId);
-      setGames((current) => current.filter((game) => game.id !== gameId));
+      await gameService.deleteGame(adminSession?.token, deleteGameId);
+      setGames((current) => current.filter((game) => game.id !== deleteGameId));
+      setDeleteGameId(null);
     } catch (error) {
       console.error('Error deleting game:', error);
       window.alert('حدث خطأ أثناء حذف اللعبة.');
+      setDeleteGameId(null);
     }
   };
 
@@ -262,6 +268,17 @@ const GamesManager = () => {
           </table>
         </div>
       </div>
+      
+      <ConfirmModal
+        isOpen={!!deleteGameId}
+        onClose={() => setDeleteGameId(null)}
+        onConfirm={confirmDelete}
+        title="حذف اللعبة"
+        message="هل أنت متأكد من حذف هذه اللعبة؟ لا يمكن التراجع عن هذه الخطوة."
+        confirmText="نعم، احذف اللعبة"
+        cancelText="إلغاء"
+        isDestructive={true}
+      />
     </div>
   );
 };

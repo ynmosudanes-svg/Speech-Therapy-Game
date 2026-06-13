@@ -12,11 +12,13 @@ import {
   Calendar
 } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const PatientsList = () => {
   const navigate = useNavigate();
   const { students, deleteStudent } = useTherapyStore();
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [deletePatientId, setDeletePatientId] = useState(null);
   const menuRef = useRef();
 
   useEffect(() => {
@@ -35,10 +37,15 @@ const PatientsList = () => {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا المريض؟')) {
-      deleteStudent(id).catch(() => alert('حدث خطأ أثناء الحذف'));
-    }
+    setDeletePatientId(id);
     setActiveMenuId(null);
+  };
+
+  const confirmDelete = () => {
+    if (deletePatientId) {
+      deleteStudent(deletePatientId).catch(() => alert('حدث خطأ أثناء الحذف'));
+      setDeletePatientId(null);
+    }
   };
 
   const handleEdit = (id) => {
@@ -176,6 +183,17 @@ const PatientsList = () => {
 
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={!!deletePatientId}
+        onClose={() => setDeletePatientId(null)}
+        onConfirm={confirmDelete}
+        title="حذف المريض"
+        message="هل أنت متأكد من حذف هذا المريض؟ لا يمكن التراجع عن هذه الخطوة."
+        confirmText="نعم، احذف المريض"
+        cancelText="إلغاء"
+        isDestructive={true}
+      />
 
       <style dangerouslySetInnerHTML={{__html: `
         .animate-fade-in { 

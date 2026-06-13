@@ -521,18 +521,20 @@ const GameForm = ({ mode = 'create' }) => {
   const currentActivities = Array.isArray(currentLevel?.activities) ? currentLevel.activities : [];
   const currentActivity = currentActivities[selectedActivity] || null;
 
+  const currentActivityType = currentActivity?.type || builderState.type;
+
   const previewGame = useMemo(() => {
-    if (!builderState.type || !currentActivity) {
+    if (!currentActivityType || !currentActivity) {
       return null;
     }
 
     return buildActivityRuntimeGame({
       nameAr: builderState.nameAr,
-      templateType: builderState.type,
+      templateType: currentActivityType,
       activity: currentActivity,
       sharedMedia: builderState.config.media,
     });
-  }, [builderState.config.media, builderState.nameAr, builderState.type, currentActivity]);
+  }, [builderState.config.media, builderState.nameAr, currentActivityType, currentActivity]);
 
   const updateConfig = (updater) => {
     setBuilderState((current) => ({
@@ -559,14 +561,13 @@ const GameForm = ({ mode = 'create' }) => {
         name: autoName,
         nameAr: autoNameAr,
         config: {
-          ...createEmptyBuilderConfig(type),
+          ...current.config,
+          templateType: type,
           name: autoName,
           nameAr: autoNameAr,
         },
       };
     });
-    setSelectedLevel(0);
-    setSelectedActivity(0);
     setFormError('');
   };
 
@@ -650,7 +651,7 @@ const GameForm = ({ mode = 'create' }) => {
 
   // Auto-initialize missing_word options if empty
   useEffect(() => {
-    if (builderState.type === 'text.missing_word' && currentActivity) {
+    if (currentActivityType === 'text.missing_word' && currentActivity) {
       if (!currentActivity.options || currentActivity.options.length === 0) {
         updateCurrentActivity((activity) => ({
           ...activity,
@@ -661,7 +662,7 @@ const GameForm = ({ mode = 'create' }) => {
         }));
       }
     }
-  }, [builderState.type, currentActivity?.id]); // Only run when activity changes or type changes
+  }, [currentActivityType, currentActivity?.id]); // Only run when activity changes or type changes
 
   const removeOption = (optionIndex) => {
     updateCurrentActivity((activity) => ({
@@ -922,12 +923,13 @@ const GameForm = ({ mode = 'create' }) => {
 
     for (const level of builderState.config.levels) {
       for (const activity of level.activities || []) {
+        const activityType = activity.type || builderState.type;
+        
         if (!activity.questionAr?.trim()) {
           return `أدخل نص السؤال في المستوى ${level.levelNumber}.`;
         }
 
-
-        if (builderState.type === 'matching.similar') {
+        if (activityType === 'matching.similar') {
           if (!activity.heroImage?.trim()) {
             return `أضف الصورة الرئيسية في المستوى ${level.levelNumber}.`;
           }
@@ -942,7 +944,7 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
-        if (builderState.type === 'matching.find') {
+        if (activityType === 'matching.find') {
           if ((activity.options || []).length < 2) {
             return `لعبة أوجد الصورة تحتاج صورتين على الأقل في المستوى ${level.levelNumber}.`;
           }
@@ -954,7 +956,7 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
-        if (builderState.type === 'matching.different') {
+        if (activityType === 'matching.different') {
           if (!activity.heroImage?.trim()) {
             return `أضف الصورة الرئيسية في المستوى ${level.levelNumber}.`;
           }
@@ -969,7 +971,7 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
-        if (builderState.type === 'sequence.order') {
+        if (activityType === 'sequence.order') {
           if ((activity.steps || []).length < 2) {
             return `أضف خطوتين على الأقل في المستوى ${level.levelNumber}.`;
           }
@@ -978,7 +980,7 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
-        if (builderState.type === 'action.drag_to_target') {
+        if (activityType === 'action.drag_to_target') {
           if (!activity.sceneImage?.trim()) {
             return `أضف صورة المشهد في المستوى ${level.levelNumber}.`;
           }
@@ -996,7 +998,7 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
-        if (builderState.type === 'navigation.move_to_target') {
+        if (activityType === 'navigation.move_to_target') {
           if (!activity.movable?.image?.trim()) {
             return `أضف صورة العنصر المتحرك في المستوى ${level.levelNumber}.`;
           }
@@ -1014,7 +1016,7 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
-        if (builderState.type === 'navigation.maze') {
+        if (activityType === 'navigation.maze') {
           if (!activity.maze?.playerImage?.trim()) {
             return `أضف صورة اللاعب في المستوى ${level.levelNumber}.`;
           }
@@ -1026,25 +1028,25 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
           if (
-            builderState.type === 'navigation.move_to_target' &&
+            activityType === 'navigation.move_to_target' &&
             Number(activity.movable?.startX || 0) > Number(activity.grid?.cols || 0)
           ) {
             return `Start position لازم تكون داخل الـ Grid في المستوى ${level.levelNumber}.`;
           }
           if (
-            builderState.type === 'navigation.move_to_target' &&
+            activityType === 'navigation.move_to_target' &&
             Number(activity.movable?.startY || 0) > Number(activity.grid?.rows || 0)
           ) {
             return `Start position لازم تكون داخل الـ Grid في المستوى ${level.levelNumber}.`;
           }
           if (
-            builderState.type === 'navigation.move_to_target' &&
+            activityType === 'navigation.move_to_target' &&
             Number(activity.target?.x || 0) > Number(activity.grid?.cols || 0)
           ) {
             return `Target position لازم تكون داخل الـ Grid في المستوى ${level.levelNumber}.`;
           }
           if (
-            builderState.type === 'navigation.move_to_target' &&
+            activityType === 'navigation.move_to_target' &&
             Number(activity.target?.y || 0) > Number(activity.grid?.rows || 0)
           ) {
             return `Target position لازم تكون داخل الـ Grid في المستوى ${level.levelNumber}.`;
@@ -1370,6 +1372,27 @@ const GameForm = ({ mode = 'create' }) => {
                           placeholder={getActivityAutoTitle(selectedActivity)}
                         />
                       </div>
+                      
+                      <div>
+                        <label className="block text-slate-600 font-bold mb-2">نوع اللعبة لهذا النشاط</label>
+                        <select
+                          value={currentActivityType}
+                          onChange={(e) => {
+                            const newType = e.target.value;
+                            // Update activity type and merge default properties for the new type
+                            updateCurrentActivity((activity) => ({
+                              ...activity,
+                              type: newType,
+                              ...getDefaultActivityForType(newType, selectedActivity)
+                            }));
+                          }}
+                          className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none bg-white"
+                        >
+                          {GAME_TYPE_CARDS.map(card => (
+                            <option key={card.value} value={card.value}>{card.title}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
 
@@ -1405,7 +1428,7 @@ const GameForm = ({ mode = 'create' }) => {
                       previewType="audio"
                     />
 
-                    {builderState.type === 'matching.similar' && (
+                    {currentActivityType === 'matching.similar' && (
                       <div className="pt-2">
                         <ImageAssetField
                           label="الصورة الرئيسية الكبيرة"
@@ -1417,7 +1440,7 @@ const GameForm = ({ mode = 'create' }) => {
                       </div>
                     )}
 
-                    {builderState.type === 'matching.different' && (
+                    {currentActivityType === 'matching.different' && (
                       <div className="pt-2">
                         <ImageAssetField
                           label="الصورة الرئيسية في السؤال"
@@ -1432,7 +1455,7 @@ const GameForm = ({ mode = 'create' }) => {
                   </div>
 
                   {/* 3. الإجابات والاختيارات */}
-                  {builderState.type === 'matching.similar' && (
+                  {currentActivityType === 'matching.similar' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -1501,7 +1524,7 @@ const GameForm = ({ mode = 'create' }) => {
 
 
 
-                  {builderState.type === 'cards.audio_flashcards' && (
+                  {currentActivityType === 'cards.audio_flashcards' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -1573,7 +1596,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {builderState.type === 'puzzle.jigsaw' && (
+                  {currentActivityType === 'puzzle.jigsaw' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -1614,7 +1637,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {builderState.type === 'matching.connect' && (
+                  {currentActivityType === 'matching.connect' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -1696,7 +1719,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {builderState.type === 'matching.find' && (
+                  {currentActivityType === 'matching.find' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -1763,7 +1786,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {builderState.type === 'matching.different' && (
+                  {currentActivityType === 'matching.different' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -1830,7 +1853,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {builderState.type === 'text.missing_word' && (
+                  {currentActivityType === 'text.missing_word' && (
                     <div className="space-y-6">
                       {/* Section 1: Missing Word Input */}
                       <div className="bg-[#f0fdf4] border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
@@ -1906,7 +1929,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {builderState.type === 'action.drag_to_target' && (
+                  {currentActivityType === 'action.drag_to_target' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -2038,7 +2061,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {builderState.type === 'navigation.move_to_target' && (
+                  {currentActivityType === 'navigation.move_to_target' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center gap-2 mb-4 text-emerald-700">
                         <CheckCircle2 size={24} />
@@ -2187,7 +2210,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {builderState.type === 'navigation.maze' && (
+                  {currentActivityType === 'navigation.maze' && (
                     <div className="space-y-4 rounded-3xl border border-sky-100 bg-sky-50/70 p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
@@ -2317,7 +2340,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {builderState.type === 'sequence.order' && (
+                  {currentActivityType === 'sequence.order' && (
                     <div className="space-y-6">
                       <SectionTitle
                         action={

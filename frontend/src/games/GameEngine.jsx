@@ -75,7 +75,7 @@ const GameEngine = ({
 
   const runtimeGame = buildActivityRuntimeGame({
     nameAr: config?.nameAr || game?.titleAr || game?.name,
-    templateType: game?.type,
+    templateType: currentActivity.type || game?.type,
     activity: currentActivity,
     sharedMedia: config?.media || {},
     gameId: `${game.id}-${activeLevel.levelNumber}-${currentActivity.id}`,
@@ -165,26 +165,19 @@ const GameEngine = ({
           </span>
         </div>
         
-        <div className="flex-1 text-center px-2 md:px-4">
-          <h1 className="text-lg md:text-3xl lg:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500 tracking-tight leading-relaxed">
+        <div className="flex-1 text-center px-1 md:px-4">
+          <h1 className="text-xs sm:text-sm md:text-2xl lg:text-3xl font-extrabold text-indigo-700 leading-tight md:leading-9 line-clamp-2">
             {game?.config?.nameAr || game?.titleAr || game?.name || 'لعبة تخاطب'}
           </h1>
-        </div>
-
-        <div className="text-center px-3 py-1.5 md:px-4 md:py-2 bg-sky-100 rounded-xl md:rounded-2xl min-w-[4rem] md:min-w-[5rem]">
-          <span className="block text-[10px] md:text-sm text-sky-600 font-bold mb-0.5 md:mb-1">المستوى</span>
-          <span className="text-base md:text-xl font-extrabold text-sky-900">
-            {activeLevel.levelNumber}
-          </span>
         </div>
 
         {onExit && (
           <button
             onClick={onExit}
-            className="w-10 h-10 md:w-12 md:h-12 mr-2 bg-rose-100 hover:bg-rose-500 hover:text-white text-rose-600 rounded-full flex items-center justify-center transition-all flex-shrink-0"
+            className="w-8 h-8 md:w-12 md:h-12 mr-1.5 md:mr-2 bg-rose-100 hover:bg-rose-500 hover:text-white text-rose-600 rounded-full flex items-center justify-center transition-all flex-shrink-0"
             title="خروج من اللعبة"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 md:w-6 md:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         )}
       </div>

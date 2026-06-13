@@ -19,6 +19,7 @@ const createDragItem = (id, startPosition = 'bottom', isCorrect = false) => ({
 export const getDefaultActivityForType = (type, activityIndex = 0) => {
   if (type === 'cards.audio_flashcards') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: 'تعرف على الكلمات',
@@ -32,6 +33,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
   }
   if (type === 'matching.similar') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: '',
@@ -44,6 +46,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
 
   if (type === 'matching.different') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: '',
@@ -56,6 +59,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
 
   if (type === 'matching.find') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: '',
@@ -68,6 +72,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
 
   if (type === 'action.drag_to_target') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: '',
@@ -82,6 +87,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
 
   if (type === 'navigation.move_to_target') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: '',
@@ -111,6 +117,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
 
   if (type === 'navigation.maze') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: '',
@@ -140,6 +147,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
 
   if (type === 'puzzle.jigsaw') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: 'ركب الصورة',
@@ -152,6 +160,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
 
   if (type === 'matching.connect') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: 'قم بتوصيل كل صورة بما يطابقها',
@@ -178,6 +187,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
 
   if (type === 'text.missing_word') {
     return {
+      type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
       questionAr: '',
@@ -193,6 +203,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
   }
 
   return {
+    type,
     id: `activity_${Date.now()}`,
     titleAr: getDefaultActivityTitle(activityIndex),
     questionAr: '',

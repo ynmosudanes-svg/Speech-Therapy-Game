@@ -105,10 +105,10 @@ const NavigationGame = ({
 
   /* ── Auto-play audio from the game ── */
   useEffect(() => {
-    if (instructionAudio) {
+    if (!previewMode && instructionAudio) {
       playAudioUrl(instructionAudio);
     }
-  }, [instructionAudio]);
+  }, [instructionAudio, previewMode]);
 
   const boardContainerRef = useRef(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });

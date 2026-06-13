@@ -55,10 +55,10 @@ const MissingWordGame = ({
 
   // Play audio when loaded
   useEffect(() => {
-    if (questionAudio) {
+    if (!previewMode && questionAudio) {
       playAudioUrl(questionAudio);
     }
-  }, [questionAudio]);
+  }, [questionAudio, previewMode]);
 
   const playInstruction = () => {
     if (questionAudio) {

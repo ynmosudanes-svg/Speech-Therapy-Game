@@ -12,6 +12,7 @@ const AudioCardsGame = ({
   onAssistantInteraction = () => {},
   registerAssistantActions,
   helpVoiceEnabled = false,
+  previewMode = false,
 }) => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -50,8 +51,10 @@ const AudioCardsGame = ({
   }, [currentCardIndex]);
 
   useEffect(() => {
-    playInstruction();
-  }, [game?.id, playInstruction]);
+    if (!previewMode) {
+      playInstruction();
+    }
+  }, [game?.id, playInstruction, previewMode]);
 
   const handleFlip = useCallback(() => {
     onAssistantInteraction?.();

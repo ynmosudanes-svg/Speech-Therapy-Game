@@ -178,8 +178,8 @@ const SequenceGame = ({
     setPlacedItems(new Array(steps.length).fill(null));
     setAvailableItems([...steps].sort(() => Math.random() - 0.5));
 
-    if (instructionAudio) playAudioUrl(instructionAudio);
-  }, [steps, instructionAudio]);
+    if (!previewMode && instructionAudio) playAudioUrl(instructionAudio);
+  }, [steps, instructionAudio, previewMode]);
 
   const resetBoard = useCallback(() => {
     setCompleted(false);

@@ -12,6 +12,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Volume2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
+import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl, playErrorSound, playSuccessSound } from '../utils/soundEffects';
 
 const speakArabic = (text) => {
@@ -132,6 +133,7 @@ const SequenceGame = ({
   previewMode = false,
   onAssistantInteraction,
   registerAssistantActions,
+  helpVoiceEnabled = false,
 }) => {
   const [availableItems, setAvailableItems] = useState([]);
   const [placedItems, setPlacedItems] = useState([]);
@@ -220,19 +222,21 @@ const SequenceGame = ({
         const hint = nextStep?.labelAr
           ? `الخطوة التالية هي "${nextStep.labelAr}"`
           : `دور على الخطوة رقم ${nextOrder}`;
-        speakArabic(hint);
+        if (helpVoiceEnabled) speakArabic(hint);
       },
 
       /* Physical: show all order numbers on steps */
       onPhysicalPrompt: () => {
         setPhysicalMode(true);
         window.setTimeout(() => setPhysicalMode(false), 4000);
-        speakArabic('هوريك ترتيب الخطوات كلها! بص على الأرقام.');
+        if (helpVoiceEnabled) {
+          speakArabic('هوريك ترتيب الخطوات كلها! بص على الأرقام.');
+        }
       },
     });
 
     return () => registerAssistantActions({});
-  }, [instructionAudio, placedItems, registerAssistantActions, steps]);
+  }, [helpVoiceEnabled, instructionAudio, placedItems, registerAssistantActions, steps]);
 
   const checkCompletion = useCallback(
     (placed) => {
@@ -329,22 +333,14 @@ const SequenceGame = ({
 
   return (
     <div className="max-w-5xl mx-auto space-y-6" dir="rtl">
-      <div className="bg-white rounded-[2rem] p-5 md:p-6 shadow-sm border border-[#dbe7f3] flex flex-col md:flex-row items-center justify-between gap-4">
-        <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center md:text-right flex-grow leading-relaxed">
-          {instructionAr}
-        </h2>
-        <button
-          type="button"
-          onClick={() => {
-            if (instructionAudio) playAudioUrl(instructionAudio);
-          }}
-          onKeyDown={preventKeyboardAudioTrigger}
-          onKeyUp={preventKeyboardAudioTrigger}
-          className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg"
-        >
-          <Volume2 size={24} className="text-white" />
-        </button>
-      </div>
+      <GameHeader
+        instruction={instructionAr}
+        onPlayAudio={() => {
+          if (instructionAudio) playAudioUrl(instructionAudio);
+          else speakArabic(instructionAr);
+        }}
+        onRestart={resetBoard}
+      />
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="bg-white rounded-[2rem] p-4 md:p-6 border-2 border-[#dbe7f3] shadow-sm">

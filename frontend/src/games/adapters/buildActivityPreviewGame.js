@@ -150,6 +150,32 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
     };
   }
 
+  if (type === 'matching.connect') {
+    return {
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: 'قم بتوصيل كل صورة بما يطابقها',
+      instructionAudio: '',
+      difficulty: 'easy',
+      pairs: [
+        {
+          id: `pair_${Date.now()}_1`,
+          sourceImage: '',
+          sourceLabel: '',
+          targetImage: '',
+          targetLabel: '',
+        },
+        {
+          id: `pair_${Date.now()}_2`,
+          sourceImage: '',
+          sourceLabel: '',
+          targetImage: '',
+          targetLabel: '',
+        },
+      ],
+    };
+  }
+
   if (type === 'text.missing_word') {
     return {
       id: `activity_${Date.now()}`,
@@ -405,8 +431,30 @@ export const buildActivityRuntimeGame = ({
       config: {
         gameType: templateType,
         titleAr,
+        instructionAr: activity?.questionAr || 'قم بتركيب قطع البازل لتكوين الصورة الصحيحة',
         image: activity?.image || '',
         gridSize: activity?.gridSize || 3,
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'matching.connect') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || 'قم بتوصيل كل صورة بما يطابقها',
+          instructionAudio: activity?.instructionAudio || '',
+          pairs: Array.isArray(activity?.pairs) ? activity.pairs : [],
+        },
         feedback: {
           successSound: sharedMedia?.successSound || '',
           failSound: sharedMedia?.failSound || '',

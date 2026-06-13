@@ -1,4 +1,40 @@
 let audioContext;
+let activeGameAudio = null;
+let gameAudioPlaying = false;
+
+export const isGameAudioPlaying = () => gameAudioPlaying;
+
+export const stopGameAudio = () => {
+  if (activeGameAudio) {
+    activeGameAudio.pause();
+    activeGameAudio.currentTime = 0;
+    activeGameAudio = null;
+  }
+  gameAudioPlaying = false;
+
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+};
+
+const trackGameAudio = (audio) => {
+  activeGameAudio = audio;
+  gameAudioPlaying = true;
+
+  const release = () => {
+    if (activeGameAudio === audio) {
+      activeGameAudio = null;
+    }
+    gameAudioPlaying = false;
+  };
+
+  audio.addEventListener('ended', release, { once: true });
+  audio.addEventListener('pause', () => {
+    if (audio.ended || audio.currentTime === 0) {
+      release();
+    }
+  });
+};
 
 export const SOUND_PRESET_OPTIONS = {
   success: [
@@ -64,8 +100,19 @@ const speakArabicText = (text) => {
   utterance.pitch = 1.05;
 
   window.speechSynthesis.cancel();
+  gameAudioPlaying = true;
+  utterance.onend = () => {
+    gameAudioPlaying = false;
+  };
+  utterance.onerror = () => {
+    gameAudioPlaying = false;
+  };
   window.speechSynthesis.speak(utterance);
   return true;
+};
+
+export const playSpokenArabic = (text) => {
+  speakArabicText(text);
 };
 
 export const playSuccessSound = () => {
@@ -154,8 +201,16 @@ export const playAudioUrl = (url) => {
     return;
   }
 
+  if (activeGameAudio) {
+    activeGameAudio.pause();
+    activeGameAudio = null;
+  }
+
   const audio = new Audio(url);
+  trackGameAudio(audio);
   audio.play().catch((error) => {
     console.log('Audio playback error:', error);
+    gameAudioPlaying = false;
+    activeGameAudio = null;
   });
 };

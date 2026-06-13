@@ -7,6 +7,7 @@ import SequenceGame from './SequenceGame';
 import MissingWordGame from './MissingWordGame';
 import AudioCardsGame from './AudioCardsGame';
 import PuzzleGame from './PuzzleGame';
+import MatchingConnectGame from './MatchingConnectGame';
 
 const renderGameActivity = ({
   game,
@@ -16,6 +17,7 @@ const renderGameActivity = ({
   previewMode = false,
   onAssistantInteraction,
   registerAssistantActions,
+  helpVoiceEnabled = false,
 }) => {
   const sharedProps = {
     game,
@@ -26,6 +28,7 @@ const renderGameActivity = ({
     previewMode,
     onAssistantInteraction,
     registerAssistantActions,
+    helpVoiceEnabled,
   };
 
   if (game?.type === 'matching.similar' || game?.type === 'matching.different' || game?.type === 'matching.find') {
@@ -58,6 +61,10 @@ const renderGameActivity = ({
 
   if (game?.type === 'puzzle.jigsaw') {
     return <PuzzleGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'matching.connect') {
+    return <MatchingConnectGame {...sharedProps} />;
   }
 
   return null;

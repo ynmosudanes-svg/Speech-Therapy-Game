@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import useSpeechSynthesis from '../../hooks/useSpeechSynthesis';
+import { isGameAudioPlaying } from '../../utils/soundEffects';
 
 /* ──────────────────────────────────────────────
    Help level definitions
@@ -84,6 +85,7 @@ const GameAssistant = forwardRef(function GameAssistant(
     onVerbalHint,
     onPhysicalPrompt,
     autoEscalate = true,
+    voiceEnabled = false,
   },
   ref
 ) {
@@ -94,6 +96,7 @@ const GameAssistant = forwardRef(function GameAssistant(
   const [isAnimatingState, setIsAnimating] = useState(false);
   const helpsUsedRef = useRef([]);
   const idleTimerRef = useRef(null);
+  const disabledRef = useRef(false);
   const { speak, cancel } = useSpeechSynthesis();
   
   const nodeRef = useRef(null);
@@ -128,6 +131,14 @@ const GameAssistant = forwardRef(function GameAssistant(
   }, []);
 
   const advanceHelp = useCallback(() => {
+    if (disabledRef.current) return;
+
+    if (isGameAudioPlaying()) {
+      clearIdleTimer();
+      idleTimerRef.current = window.setTimeout(advanceHelp, 500);
+      return;
+    }
+
     if (currentLevelRef.current >= HELP_LEVELS.length) return;
     const nextLevel = currentLevelRef.current + 1;
     currentLevelRef.current = nextLevel;
@@ -141,16 +152,16 @@ const GameAssistant = forwardRef(function GameAssistant(
       const callback = callbackMapRef.current[helpDef.key];
       callback?.();
       
-      if (helpDef.description) {
+      if (voiceEnabled && helpDef.description) {
         speak(helpDef.description);
       }
     }
 
     if (autoEscalate && nextLevel < HELP_LEVELS.length) {
       clearIdleTimer();
-      idleTimerRef.current = window.setTimeout(advanceHelp, 5000);
+      idleTimerRef.current = window.setTimeout(advanceHelp, 15000);
     }
-  }, [autoEscalate, speak, clearIdleTimer]);
+  }, [autoEscalate, speak, clearIdleTimer, voiceEnabled]);
 
   const startIdleTimer = useCallback(() => {
     clearIdleTimer();
@@ -168,7 +179,28 @@ const GameAssistant = forwardRef(function GameAssistant(
     }, idleTime);
   }, [clearIdleTimer, idleTime, autoEscalate, advanceHelp]);
 
+  const stopAssistant = useCallback(() => {
+    disabledRef.current = true;
+    clearIdleTimer();
+    setCurrentLevel(0);
+    currentLevelRef.current = 0;
+    setVisible(false);
+    setPanelOpen(false);
+    setIsAnimating(false);
+    helpsUsedRef.current = [];
+    cancel();
+  }, [clearIdleTimer, cancel]);
+
+  const pauseAssistant = useCallback(() => {
+    if (disabledRef.current) return;
+    clearIdleTimer();
+    cancel();
+    setPanelOpen(false);
+    startIdleTimer();
+  }, [clearIdleTimer, cancel, startIdleTimer]);
+
   const resetAssistant = useCallback(() => {
+    disabledRef.current = false;
     clearIdleTimer();
     setCurrentLevel(0);
     currentLevelRef.current = 0;
@@ -182,14 +214,31 @@ const GameAssistant = forwardRef(function GameAssistant(
 
   useImperativeHandle(ref, () => ({
     resetAssistant,
+    pauseAssistant,
+    stopAssistant,
     getHelpsUsed: () => [...helpsUsedRef.current],
     getHelpCount: () => helpsUsedRef.current.length,
   }));
 
   useEffect(() => {
     resetAssistant();
-    return clearIdleTimer;
-  }, [idleTime, autoEscalate, clearIdleTimer, resetAssistant]);
+
+    const handleHide = () => {
+      pauseAssistant();
+    };
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) handleHide();
+      else if (!disabledRef.current) startIdleTimer();
+    });
+    window.addEventListener("blur", handleHide);
+
+    return () => {
+      stopAssistant();
+      document.removeEventListener("visibilitychange", handleHide);
+      window.removeEventListener("blur", handleHide);
+    };
+  }, [idleTime, autoEscalate, clearIdleTimer, resetAssistant, pauseAssistant, stopAssistant, startIdleTimer]);
 
   const handlePointerDown = (e) => {
     pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
@@ -218,7 +267,7 @@ const GameAssistant = forwardRef(function GameAssistant(
     } else {
       setPanelOpen(true);
       const currentDef = HELP_LEVELS[currentLevel - 1];
-      if (currentDef && currentDef.description) {
+      if (voiceEnabled && currentDef?.description) {
         speak(currentDef.description);
       }
     }

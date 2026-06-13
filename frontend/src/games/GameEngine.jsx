@@ -12,6 +12,7 @@ const GameEngine = ({
   onUnsupported,
   startLevel = 1,
   assistantOptions = {},
+  onExit,
 }) => {
   const [activityIndex, setActivityIndex] = useState(0);
   const [aggregateStats, setAggregateStats] = useState({
@@ -19,6 +20,7 @@ const GameEngine = ({
     wrongAnswers: 0,
     attempts: [],
     prompts: [],
+    helpsPerActivity: [],
     timeSpent: 0,
   });
   const assistantRef = useRef(null);
@@ -40,6 +42,7 @@ const GameEngine = ({
       wrongAnswers: 0,
       attempts: [],
       prompts: [],
+      helpsPerActivity: [],
       timeSpent: 0,
     });
   }, [game?.id, startLevel]);
@@ -78,15 +81,28 @@ const GameEngine = ({
     gameId: `${game.id}-${activeLevel.levelNumber}-${currentActivity.id}`,
   });
 
-  const idleTime = assistantOptions?.idleTime || 7000;
+  const idleTime = assistantOptions?.idleTime || 15000;
+  const helpVoiceEnabled = assistantOptions?.helpVoiceEnabled ?? false;
 
-  const registerAssistantActions = (actions = {}) => {
+  const registerAssistantActions = useCallback((actions = {}) => {
     assistantActionsRef.current = actions;
-  };
+  }, []);
 
-  const resetAssistant = () => {
+  const pauseAssistant = useCallback(() => {
+    assistantRef.current?.pauseAssistant?.();
+  }, []);
+
+  const stopAssistant = useCallback(() => {
+    assistantRef.current?.stopAssistant?.();
+  }, []);
+
+  useEffect(() => {
     assistantRef.current?.resetAssistant?.();
-  };
+  }, [activityIndex, game?.id]);
+
+  useEffect(() => () => {
+    assistantRef.current?.stopAssistant?.();
+  }, []);
 
   /* ── 4 hint callbacks: delegate to the game via assistantActionsRef ── */
   const handleVisualHint = () => {
@@ -106,9 +122,10 @@ const GameEngine = ({
   };
 
   const handleActivityComplete = (stats) => {
-    // Gather help data from assistant
     const helpsUsed = assistantRef.current?.getHelpsUsed?.() || [];
     const helpCount = assistantRef.current?.getHelpCount?.() || 0;
+
+    assistantRef.current?.stopAssistant?.();
 
     const enrichedStats = {
       ...stats,
@@ -122,6 +139,7 @@ const GameEngine = ({
       wrongAnswers: aggregateStats.wrongAnswers + (enrichedStats?.wrongAnswers || 0),
       attempts: [...aggregateStats.attempts, ...(Array.isArray(enrichedStats?.attempts) ? enrichedStats.attempts : [])],
       prompts: [...aggregateStats.prompts, ...(Array.isArray(enrichedStats?.prompts) ? enrichedStats.prompts : [])],
+      helpsPerActivity: [...(aggregateStats.helpsPerActivity || []), helpsUsed],
       timeSpent: aggregateStats.timeSpent + (enrichedStats?.timeSpent || 0),
       helpsUsed: [...(aggregateStats.helpsUsed || []), ...helpsUsed],
       helpCount: (aggregateStats.helpCount || 0) + helpCount,
@@ -159,6 +177,16 @@ const GameEngine = ({
             {activeLevel.levelNumber}
           </span>
         </div>
+
+        {onExit && (
+          <button
+            onClick={onExit}
+            className="w-10 h-10 md:w-12 md:h-12 mr-2 bg-rose-100 hover:bg-rose-500 hover:text-white text-rose-600 rounded-full flex items-center justify-center transition-all flex-shrink-0"
+            title="خروج من اللعبة"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        )}
       </div>
 
       {renderGameActivity({
@@ -166,13 +194,15 @@ const GameEngine = ({
         onComplete: handleActivityComplete,
         therapistControlsEnabled,
         therapistPromptLevel,
-        onAssistantInteraction: resetAssistant,
+        onAssistantInteraction: pauseAssistant,
         registerAssistantActions,
+        helpVoiceEnabled,
       })}
 
       <GameAssistant
         ref={assistantRef}
         idleTime={idleTime}
+        voiceEnabled={helpVoiceEnabled}
         onVisualHint={handleVisualHint}
         onGestureHint={handleGestureHint}
         onVerbalHint={handleVerbalHint}

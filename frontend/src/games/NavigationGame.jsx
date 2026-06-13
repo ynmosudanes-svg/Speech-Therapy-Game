@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw, Volume2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
+import GameHeader from '../components/game/GameHeader';
 import {
   playAudioUrl,
   playBoundarySound,
@@ -54,6 +55,7 @@ const NavigationGame = ({
   previewMode = false,
   onAssistantInteraction,
   registerAssistantActions,
+  helpVoiceEnabled = false,
 }) => {
   const content = config?.content || {};
   const feedbackConfig = config?.feedback || {};
@@ -220,19 +222,23 @@ const NavigationGame = ({
       onVerbalHint: () => {
         const dir = computeDirectionHint();
         const dirNames = { up: 'فوق', down: 'تحت', left: 'شمال', right: 'يمين' };
-        speakArabic(`حرّك العنصر ${dirNames[dir] || ''} عشان تقرب من الهدف.`);
+        if (helpVoiceEnabled) {
+          speakArabic(`حرّك العنصر ${dirNames[dir] || ''} عشان تقرب من الهدف.`);
+        }
       },
       onPhysicalPrompt: () => {
         setPhysicalPath(true);
         window.setTimeout(() => setPhysicalPath(false), 4000);
-        const dir = computeDirectionHint();
-        const dirNames = { up: 'فوق', down: 'تحت', left: 'شمال', right: 'يمين' };
-        speakArabic(`اتجه ${dirNames[dir] || ''}! الهدف بيلمع… روح عليه!`);
+        if (helpVoiceEnabled) {
+          const dir = computeDirectionHint();
+          const dirNames = { up: 'فوق', down: 'تحت', left: 'شمال', right: 'يمين' };
+          speakArabic(`اتجه ${dirNames[dir] || ''}! الهدف بيلمع… روح عليه!`);
+        }
       },
     });
 
     return () => registerAssistantActions({});
-  }, [instructionAr, instructionAudio, position, targetX, targetY, registerAssistantActions]);
+  }, [helpVoiceEnabled, instructionAr, instructionAudio, position, targetX, targetY, registerAssistantActions]);
 
   const resetGame = () => {
     setPosition({ x: startX, y: startY });
@@ -334,32 +340,11 @@ const NavigationGame = ({
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col gap-1 md:gap-4 h-[calc(100vh-80px)] overflow-hidden" dir="rtl">
-      <section className="bg-white rounded-xl md:rounded-[2rem] p-1.5 md:p-4 shadow-sm border border-[#dbe7f3] flex items-center justify-between gap-2 shrink-0">
-        <div className="flex-grow text-right">
-          <h2 className="text-base md:text-3xl font-black text-slate-900 leading-tight md:leading-relaxed truncate">
-            {instructionAr || 'حرّك العنصر حتى يصل إلى الهدف'}
-          </h2>
-          <p className="hidden md:block mt-1 text-sm font-bold text-slate-500">تحرك بحرية داخل الشبكة حتى تصل إلى الهدف.</p>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={playInstruction}
-            onKeyDown={preventKeyboardAudioTrigger}
-            onKeyUp={preventKeyboardAudioTrigger}
-            className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg"
-          >
-            <Volume2 size={16} className="text-white md:w-6 md:h-6" />
-          </button>
-          <button
-            type="button"
-            onClick={resetGame}
-            className="w-8 h-8 md:w-14 md:h-14 bg-white border border-[#dbe7f3] rounded-full flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm"
-          >
-            <RotateCcw size={16} className="text-slate-700 md:w-[22px] md:h-[22px]" />
-          </button>
-        </div>
-      </section>
+      <GameHeader
+        instruction={instructionAr || 'حرّك العنصر حتى يصل إلى الهدف'}
+        onPlayAudio={playInstruction}
+        onRestart={resetGame}
+      />
 
       <section 
         ref={boardContainerRef}

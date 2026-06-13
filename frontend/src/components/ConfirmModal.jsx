@@ -41,12 +41,14 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText,
             >
               {confirmText}
             </button>
-            <button 
-              onClick={onClose}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all active:scale-95"
-            >
-              {cancelText}
-            </button>
+            {cancelText && (
+              <button 
+                onClick={onClose}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all active:scale-95"
+              >
+                {cancelText}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
+import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl } from '../utils/soundEffects';
 
 /**
@@ -67,18 +68,23 @@ const FindDifferentGame = ({
     setSelectedOption(null);
   };
 
+  const handleRestart = () => {
+    setSelectedOption(null);
+    setShowFeedback(false);
+    setAttempts(0);
+  };
+
   if (!game) return null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="text-center">
-        <div className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-[2rem] px-8 py-5 shadow-sm">
-          <span className="text-4xl">🔍</span>
-          <h2 className="text-2xl md:text-3xl font-black text-slate-800">
-            {game.questionTextAr || 'وريني الصورة المختلفة'}
-          </h2>
-        </div>
-      </div>
+      <GameHeader
+        instruction={game.questionTextAr || 'وريني الصورة المختلفة'}
+        onPlayAudio={() => {
+          if (game?.questionAudio) playAudioUrl(game.questionAudio);
+        }}
+        onRestart={handleRestart}
+      />
 
       <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-2xl mx-auto">
         {shuffledOptions.map((option) => {

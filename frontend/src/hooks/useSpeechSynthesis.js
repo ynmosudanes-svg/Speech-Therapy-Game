@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { isGameAudioPlaying } from '../utils/soundEffects';
 
 // تحويل بيانات الصوت (PCM) القادمة من Gemini إلى ملف صوتي قابل للتشغيل (WAV)
 const pcmToWav = (pcmData, sampleRate = 24000) => {
@@ -40,7 +41,8 @@ const pcmToWav = (pcmData, sampleRate = 24000) => {
 export const useSpeechSynthesis = () => {
   const [supported, setSupported] = useState(false);
   const [voices, setVoices] = useState([]);
-  const [currentAudio, setCurrentAudio] = useState(null);
+  const currentAudioRef = useRef(null);
+  const speakGenerationRef = useRef(0);
   
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -57,57 +59,69 @@ export const useSpeechSynthesis = () => {
   }, []);
 
   const speak = useCallback(async (text, options = {}) => {
-    if (!supported) return;
-    
-    // Stop previous Gemini audio if playing
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
+    if (!supported || !text) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    if (options.respectGameAudio !== false && isGameAudioPlaying()) return;
+
+    const generation = speakGenerationRef.current + 1;
+    speakGenerationRef.current = generation;
+
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current = null;
     }
 
-    // Cancel any ongoing browser speech
     window.speechSynthesis.cancel();
 
-    // Try Gemini TTS first
+    // Try ElevenLabs TTS first
     try {
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        if (!apiKey) throw new Error("No Gemini API Key found in env");
+        const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+        if (!apiKey) throw new Error("No ElevenLabs API Key found in env");
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-        const payload = {
-            contents: [{ parts: [{ text: text }] }],
-            generationConfig: {
-                responseModalities: ["AUDIO"],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName: "Aoede" }
-                    }
-                }
-            }
-        };
-
-        const response = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
-        if (!response.ok) throw new Error("Gemini TTS Failed");
-        const data = await response.json();
+        // We use a simple fetch instead of installing new packages to keep the app fast
+        // Voice ID 'JBFqnCBsd6RMkjVDRZzb' is used here, you can change it to any Arabic voice ID from ElevenLabs
+        const url = `https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb`;
         
-        const pcmBase64 = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (!pcmBase64) throw new Error("No Audio Data");
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'audio/mpeg',
+                'xi-api-key': apiKey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                text: text,
+                model_id: 'eleven_multilingual_v2',
+                voice_settings: {
+                    stability: 0.5,
+                    similarity_boost: 0.75
+                }
+            })
+        });
 
-        const binaryString = window.atob(pcmBase64);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`ElevenLabs TTS Failed: ${errorText}`);
         }
 
-        const wavBlob = pcmToWav(bytes.buffer, 24000);
-        const audioUrl = URL.createObjectURL(wavBlob);
+        const audioBlob = await response.blob();
+        if (speakGenerationRef.current !== generation) return;
+        if (options.respectGameAudio !== false && isGameAudioPlaying()) return;
+
+        const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
-        setCurrentAudio(audio);
-        audio.play();
-        return; // Success, don't use fallback
+        currentAudioRef.current = audio;
+        audio.onended = () => {
+          if (currentAudioRef.current === audio) {
+            currentAudioRef.current = null;
+          }
+          URL.revokeObjectURL(audioUrl);
+        };
+        await audio.play();
+        return;
     } catch (error) {
-        console.warn("Gemini TTS Error, falling back to browser API:", error.message);
+        console.warn("ElevenLabs TTS Error, falling back to browser API:", error.message);
     }
 
     // Fallback to Browser Speech Synthesis
@@ -136,17 +150,45 @@ export const useSpeechSynthesis = () => {
       utterance.voice = selectedVoice;
     }
 
+    if (speakGenerationRef.current !== generation) return;
+    if (options.respectGameAudio !== false && isGameAudioPlaying()) return;
+
     window.speechSynthesis.speak(utterance);
-  }, [supported, voices, currentAudio]);
+  }, [supported, voices]);
 
   const cancel = useCallback(() => {
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
+    speakGenerationRef.current += 1;
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current = null;
     }
     if (!supported) return;
     window.speechSynthesis.cancel();
-  }, [supported, currentAudio]);
+  }, [supported]);
+
+  // Clean up on unmount and handle visibility change (pause when leaving tab)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        cancel();
+      }
+    };
+    const handleBlurAndHide = () => {
+      cancel();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("blur", handleBlurAndHide);
+    window.addEventListener("pagehide", handleBlurAndHide);
+    
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("blur", handleBlurAndHide);
+      window.removeEventListener("pagehide", handleBlurAndHide);
+      cancel();
+    };
+  }, [cancel]);
 
   return { speak, cancel, supported, voices };
 };

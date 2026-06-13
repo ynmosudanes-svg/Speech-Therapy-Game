@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Volume2 } from 'lucide-react';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
+import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl } from '../utils/soundEffects';
 
 const preventKeyboardAudioTrigger = (event) => {
@@ -54,12 +55,18 @@ const ListenChooseGame = ({
     setSelectedOption(null);
   };
 
+  const handleRestart = () => {
+    setSelectedOption(null);
+    setShowFeedback(false);
+    setAttempts(0);
+  };
+
   return (
     <div className="flex flex-col items-center">
-      <Card className="w-full mb-4 md:mb-5 p-4 md:p-6 text-center bg-[#f7fbff] border-[#dbe7f3] rounded-[1.4rem] md:rounded-[2rem]">
-        <button
-          type="button"
-          onClick={() => {
+      <div className="w-full mb-4 md:mb-5 max-w-3xl">
+        <GameHeader
+          instruction={game.questionTextAr}
+          onPlayAudio={() => {
             if (game.questionAudio) {
               playAudioUrl(game.questionAudio);
             } else if (game.questionTextAr) {
@@ -68,16 +75,9 @@ const ListenChooseGame = ({
               window.speechSynthesis.speak(utterance);
             }
           }}
-          onKeyDown={preventKeyboardAudioTrigger}
-          onKeyUp={preventKeyboardAudioTrigger}
-          className="w-16 h-16 md:w-20 md:h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 hover:scale-105 transition-transform shadow-lg shadow-blue-200"
-        >
-          <Volume2 size={32} className="text-white" />
-        </button>
-        <h2 className="text-xl md:text-3xl font-black text-slate-900 leading-relaxed">
-          {game.questionTextAr}
-        </h2>
-      </Card>
+          onRestart={handleRestart}
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-3 md:gap-5 w-full max-w-3xl">
         {game.options.map((option) => (

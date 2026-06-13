@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, Home, Sparkles, Trophy } from 'lucide-react';
 import Button from '../../components/Button';
-import { useTherapyStore } from '../../hooks/useTherapyStore';
+import { stopGameAudio } from '../../utils/soundEffects';
 
 const Result = () => {
   const location = useLocation();
@@ -11,26 +11,31 @@ const Result = () => {
   const { game, sessionData } = location.state || {};
 
   useEffect(() => {
-    const endTime = Date.now() + 2200;
+    stopGameAudio();
+  }, []);
 
-    const frame = () => {
-      confetti({
-        particleCount: 4,
-        angle: 60,
-        spread: 60,
-        origin: { x: 0 },
-      });
-      confetti({
-        particleCount: 4,
-        angle: 120,
-        spread: 60,
-        origin: { x: 1 },
-      });
+  useEffect(() => {
+    const burst = { particleCount: 42, spread: 58, ticks: 95, gravity: 1.1, startVelocity: 30, zIndex: 50 };
 
-      if (Date.now() < endTime) requestAnimationFrame(frame);
+    confetti({ ...burst, angle: 60, origin: { x: 0.1, y: 0.7 } });
+    confetti({ ...burst, angle: 120, origin: { x: 0.9, y: 0.7 } });
+
+    const followUp = window.setTimeout(() => {
+      confetti({
+        particleCount: 35,
+        spread: 80,
+        ticks: 90,
+        gravity: 1.1,
+        startVelocity: 26,
+        origin: { y: 0.55 },
+        zIndex: 50,
+      });
+    }, 350);
+
+    return () => {
+      window.clearTimeout(followUp);
+      confetti.reset();
     };
-
-    frame();
   }, []);
 
   return (
@@ -45,24 +50,40 @@ const Result = () => {
           أنهيت لعبة <span className="font-black text-slate-900">{game?.titleAr || 'اللعبة'}</span> بنجاح.
         </p>
 
-        {sessionData && (
-          <div className="grid md:grid-cols-3 gap-4 mb-8 text-right">
-            <div className="rounded-[2rem] bg-[#eff6ff] p-5 border border-blue-100">
-              <div className="text-sm font-bold text-blue-700 mb-2">التقييم</div>
-              <div className="text-4xl font-black text-slate-900">{sessionData.score}%</div>
-            </div>
-            <div className="rounded-[2rem] bg-[#f0fdf4] p-5 border border-emerald-100">
-              <div className="text-sm font-bold text-emerald-700 mb-2">الاستقلالية</div>
-              <div className="text-4xl font-black text-slate-900">{sessionData.independenceRate}%</div>
-            </div>
+        {sessionData?.isFreePlay ? (
+          <div className="rounded-[2rem] bg-amber-50 border border-amber-200 p-6 mb-8 text-right">
+            <p className="text-lg font-bold text-amber-900 leading-8">
+              هذا لعب حر من مكتبة الألعاب — لا يُحسب في الخطة العلاجية ولا يظهر في تقرير المعالج.
+            </p>
           </div>
-        )}
+        ) : sessionData ? (
+          <>
+            <div className="grid md:grid-cols-3 gap-4 mb-4 text-right">
+              <div className="rounded-[2rem] bg-[#eff6ff] p-5 border border-blue-100">
+                <div className="text-sm font-bold text-blue-700 mb-2">الدقة من أول محاولة</div>
+                <div className="text-4xl font-black text-slate-900">{sessionData.accuracyScore ?? sessionData.score}%</div>
+              </div>
+              <div className="rounded-[2rem] bg-[#f0fdf4] p-5 border border-emerald-100">
+                <div className="text-sm font-bold text-emerald-700 mb-2">الاستقلالية</div>
+                <div className="text-4xl font-black text-slate-900">{sessionData.independenceRate}%</div>
+              </div>
+              <div className="rounded-[2rem] bg-[#fff7ed] p-5 border border-orange-100">
+                <div className="text-sm font-bold text-orange-700 mb-2">إتمام الأنشطة</div>
+                <div className="text-4xl font-black text-slate-900">{sessionData.completionScore ?? 100}%</div>
+              </div>
+            </div>
+            <p className="text-sm font-bold text-slate-500 mb-8 leading-7">
+              إجمالي المحاولات: {sessionData.totalAttempts || 0}
+              {sessionData.activityCount ? ` — عدد الأنشطة: ${sessionData.activityCount}` : ''}
+            </p>
+          </>
+        ) : null}
 
-        {sessionData?.promptSummary?.length > 0 && (
+        {!sessionData?.isFreePlay && sessionData?.promptSummary?.length > 0 && (
           <div className="rounded-[2rem] bg-slate-50 border border-slate-200 p-5 mb-8 text-right">
             <div className="flex items-center gap-2 font-black text-slate-900 mb-3">
               <Sparkles size={18} className="text-amber-500" />
-              <span>مستوى المساعدة المسجل</span>
+              <span>مستوى المساعدة المستخدم</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {sessionData.promptSummary.map((prompt, index) => (

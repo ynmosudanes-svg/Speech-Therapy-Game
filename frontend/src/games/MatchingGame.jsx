@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Volume2 } from 'lucide-react';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
+import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl } from '../utils/soundEffects';
 
 const speakArabic = (text) => {
@@ -30,6 +31,7 @@ const MatchingGame = ({
   previewMode = false,
   onAssistantInteraction,
   registerAssistantActions,
+  helpVoiceEnabled = false,
 }) => {
   const [selectedOption, setSelectedOption] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -108,23 +110,25 @@ const MatchingGame = ({
         const hint = correctOption?.textAr
           ? `ركّز كويس… الإجابة قريبة من "${correctOption.textAr}"`
           : 'ركّز كويس وبص على الصور تاني.';
-        speakArabic(hint);
+        if (helpVoiceEnabled) speakArabic(hint);
       },
 
       /* Level 4: Physical — full obvious highlight + speak answer */
       onPhysicalPrompt: () => {
         setPhysicalHighlight(true);
         window.setTimeout(() => setPhysicalHighlight(false), 4000);
-        const correctOption = options.find((o) => o.isCorrect);
-        const hint = correctOption?.textAr
-          ? `الإجابة الصحيحة هي "${correctOption.textAr}"!`
-          : 'بص على الصورة اللي بتلمع دي!';
-        speakArabic(hint);
+        if (helpVoiceEnabled) {
+          const correctOption = options.find((o) => o.isCorrect);
+          const hint = correctOption?.textAr
+            ? `الإجابة الصحيحة هي "${correctOption.textAr}"!`
+            : 'بص على الصورة اللي بتلمع دي!';
+          speakArabic(hint);
+        }
       },
     });
 
     return () => registerAssistantActions({});
-  }, [instructionAr, questionAudio, options, registerAssistantActions]);
+  }, [helpVoiceEnabled, instructionAr, questionAudio, options, registerAssistantActions]);
 
   const handleOptionSelect = (option) => {
     onAssistantInteraction?.();
@@ -184,44 +188,38 @@ const MatchingGame = ({
     return 'border-slate-200 shadow-lg';
   };
 
+  const handleRestart = () => {
+    setSelectedOption(null);
+    setFeedback(null);
+    setShowModal(false);
+    setAttempts(0);
+  };
+
   return (
     <div className="space-y-8 md:space-y-12 pb-4" dir="rtl">
-      {/* ── منطقة الكلمة / السؤال (الصندوق العلوي) ── */}
-      <div className="relative group w-full max-w-3xl mx-auto mt-6 md:mt-8">
-        <button
-          type="button"
-          onClick={playInstruction}
-          onKeyDown={preventKeyboardAudioTrigger}
-          onKeyUp={preventKeyboardAudioTrigger}
-          className="absolute -top-6 -right-4 md:-top-8 md:-right-6 z-10 w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-cyan-400 to-blue-500 text-white rounded-full flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.15)] border-4 border-white transition-transform hover:scale-110 active:scale-95"
-        >
-          <Volume2 className="w-8 h-8 md:w-10 md:h-10" />
-        </button>
+      <GameHeader
+        instruction={instructionAr}
+        onPlayAudio={playInstruction}
+        onRestart={handleRestart}
+      />
 
-        <div className="bg-[#FEFBFB] backdrop-blur-sm rounded-[2.5rem] p-6 md:p-10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] border-8 border-white relative flex flex-col items-center justify-center">
-          <div className="absolute inset-0 opacity-5 bg-gradient-to-br from-blue-400 to-transparent pointer-events-none rounded-[2rem]"></div>
-          
-          <h2 className="text-3xl md:text-5xl font-black text-slate-800 tracking-wide mb-2 leading-tight text-center relative z-10">
-            {instructionAr}
-          </h2>
-
-          {!isFindMode && (
-            <div className="mt-6 w-full max-w-sm relative z-10">
-              {heroImage ? (
-                <img
-                  src={heroImage}
-                  alt={game?.titleAr || game?.name || 'Hero'}
-                  className="w-full h-40 md:h-56 object-contain rounded-[1.5rem] drop-shadow-md mix-blend-multiply"
-                />
-              ) : (
-                <div className="w-full h-40 md:h-56 rounded-[1.5rem] bg-slate-100/60 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 font-black text-center px-4 leading-7">
-                  الصورة الرئيسية
-                </div>
-              )}
-            </div>
-          )}
+      {!isFindMode && (
+        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-[#dbe7f3] flex flex-col items-center justify-center w-full max-w-2xl mx-auto">
+          <div className="w-full max-w-sm relative z-10">
+            {heroImage ? (
+              <img
+                src={heroImage}
+                alt={game?.titleAr || game?.name || 'Hero'}
+                className="w-full h-40 md:h-56 object-contain rounded-[1.5rem] drop-shadow-md mix-blend-multiply"
+              />
+            ) : (
+              <div className="w-full h-40 md:h-56 rounded-[1.5rem] bg-slate-100/60 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 font-black text-center px-4 leading-7">
+                الصورة الرئيسية
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── منطقة الخيارات (البطاقات ثلاثية الأبعاد) ── */}
       <div className={`grid gap-6 md:gap-8 w-full ${gridClassName}`}>

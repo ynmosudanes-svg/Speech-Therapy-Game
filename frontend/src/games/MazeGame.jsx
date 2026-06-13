@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw, Volume2 } from 'lucide-react';
 import { playAudioUrl, playBoundarySound, playMoveSound, playSuccessSound } from '../utils/soundEffects';
 import FeedbackModal from '../components/FeedbackModal';
+import GameHeader from '../components/game/GameHeader';
 
 const CELL_SIZE = 52;
 const PREVIEW_CELL_SIZE = 26;
@@ -20,13 +21,18 @@ const speakArabic = (text) => {
   window.speechSynthesis.speak(utterance);
 };
 
-const ControlButton = ({ icon: Icon, onClick, className = '' }) => (
+const ControlButton = ({ icon: Icon, onClick, className = '', highlighted = false }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] bg-sky-500 text-white shadow-[0_5px_0_#0284c7] md:shadow-[0_6px_0_#0284c7] hover:bg-sky-400 active:translate-y-1 md:active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center ${className}`}
+    className={`relative w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] bg-sky-500 text-white shadow-[0_5px_0_#0284c7] md:shadow-[0_6px_0_#0284c7] hover:bg-sky-400 active:translate-y-1 md:active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center ${
+      highlighted ? 'ring-4 ring-amber-400 scale-110 animate-pulse shadow-[0_0_24px_rgba(251,191,36,0.8)] z-10' : ''
+    } ${className}`}
   >
     <Icon size={24} className="md:w-8 md:h-8" />
+    {highlighted && (
+      <span className="absolute -top-8 text-3xl animate-bounce pointer-events-none">👇</span>
+    )}
   </button>
 );
 
@@ -39,6 +45,7 @@ const MazeGame = ({
   previewMode = false,
   onAssistantInteraction,
   registerAssistantActions,
+  helpVoiceEnabled = false,
 }) => {
   const content = config?.content || {};
   const feedback = config?.feedback || {};
@@ -61,6 +68,8 @@ const MazeGame = ({
   const [visualPulse, setVisualPulse] = useState(false);
   const [gestureDirection, setGestureDirection] = useState(null);
   const [physicalPath, setPhysicalPath] = useState(false);
+  const [hintNextCell, setHintNextCell] = useState(null);
+  const [hintPathCells, setHintPathCells] = useState([]);
 
   /* ── Modal states ── */
   const [showModal, setShowModal] = useState(false);
@@ -95,30 +104,54 @@ const MazeGame = ({
     return grid[y - 1][x - 1] === 0;
   };
 
-  /* ── Compute best direction toward goal (simple BFS-like hint) ── */
-  const computeDirectionHint = () => {
-    const dx = goalX - position.x;
-    const dy = goalY - position.y;
-
-    // Try horizontal first, then vertical
-    const candidates = [];
-    if (dx > 0 && isValidCell(position.x + 1, position.y)) candidates.push('right');
-    if (dx < 0 && isValidCell(position.x - 1, position.y)) candidates.push('left');
-    if (dy > 0 && isValidCell(position.x, position.y + 1)) candidates.push('down');
-    if (dy < 0 && isValidCell(position.x, position.y - 1)) candidates.push('up');
-
-    // Fallback to any valid direction
-    if (!candidates.length) {
-      if (isValidCell(position.x, position.y - 1)) candidates.push('up');
-      if (isValidCell(position.x, position.y + 1)) candidates.push('down');
-      if (isValidCell(position.x - 1, position.y)) candidates.push('left');
-      if (isValidCell(position.x + 1, position.y)) candidates.push('right');
-    }
-
-    return candidates[0] || 'up';
+  const clearHints = () => {
+    setVisualPulse(false);
+    setGestureDirection(null);
+    setPhysicalPath(false);
+    setHintNextCell(null);
+    setHintPathCells([]);
   };
 
+  /* ── BFS path from player to goal ── */
+  const computeHintPath = () => {
+    const queue = [{ x: position.x, y: position.y, path: [] }];
+    const visited = new Set([`${position.x},${position.y}`]);
+    const directions = [
+      { dx: 0, dy: -1, dir: 'up' },
+      { dx: 0, dy: 1, dir: 'down' },
+      { dx: -1, dy: 0, dir: 'left' },
+      { dx: 1, dy: 0, dir: 'right' },
+    ];
+
+    while (queue.length) {
+      const current = queue.shift();
+      if (current.x === goalX && current.y === goalY) {
+        return current.path;
+      }
+
+      for (const { dx, dy, dir } of directions) {
+        const nextX = current.x + dx;
+        const nextY = current.y + dy;
+        const key = `${nextX},${nextY}`;
+        if (!isValidCell(nextX, nextY) || visited.has(key)) continue;
+        visited.add(key);
+        queue.push({
+          x: nextX,
+          y: nextY,
+          path: [...current.path, { x: nextX, y: nextY, dir }],
+        });
+      }
+    }
+
+    return [];
+  };
+
+  const getFirstHintStep = () => computeHintPath()[0] || null;
+
   const directionArrow = { up: '↑', down: '↓', left: '←', right: '→' };
+  const dirNames = { up: 'فوق', down: 'تحت', left: 'شمال', right: 'يمين' };
+
+  const moveByRef = useRef(null);
 
   /* ── Register 4 assistant callbacks ── */
   useEffect(() => {
@@ -128,35 +161,62 @@ const MazeGame = ({
 
     registerAssistantActions({
       onVisualHint: () => {
+        const firstStep = getFirstHintStep();
+        setHintNextCell(firstStep ? { x: firstStep.x, y: firstStep.y } : null);
         setVisualPulse(true);
-        window.setTimeout(() => setVisualPulse(false), 2500);
+        window.setTimeout(() => {
+          setVisualPulse(false);
+          setHintNextCell(null);
+        }, 2500);
       },
       onGestureHint: () => {
-        const dir = computeDirectionHint();
-        setGestureDirection(dir);
-        window.setTimeout(() => setGestureDirection(null), 3000);
+        const firstStep = getFirstHintStep();
+        if (!firstStep) return;
+        setGestureDirection(firstStep.dir);
+        setHintNextCell({ x: firstStep.x, y: firstStep.y });
+        window.setTimeout(() => {
+          setGestureDirection(null);
+          setHintNextCell(null);
+        }, 3000);
       },
       onVerbalHint: () => {
-        const dir = computeDirectionHint();
-        const dirNames = { up: 'فوق', down: 'تحت', left: 'شمال', right: 'يمين' };
-        speakArabic(`جرّب تمشي ${dirNames[dir] || ''} عشان تقرب من الهدف.`);
+        const firstStep = getFirstHintStep();
+        const dir = firstStep?.dir || 'up';
+        if (helpVoiceEnabled) {
+          speakArabic(`جرّب تمشي ${dirNames[dir] || ''} عشان تقرب من الهدف.`);
+        }
       },
       onPhysicalPrompt: () => {
+        const path = computeHintPath();
+        setHintPathCells(path.map((step) => ({ x: step.x, y: step.y })));
         setPhysicalPath(true);
-        window.setTimeout(() => setPhysicalPath(false), 4000);
-        setTimeout(() => setPhysicalPath(false), 2500);
+        if (helpVoiceEnabled) {
+          speakArabic('هوريك الطريق للهدف! اتبع الخلايا اللي بتلمع.');
+        }
+        window.setTimeout(() => {
+          setPhysicalPath(false);
+          setHintPathCells([]);
+        }, 4000);
+
+        const firstStep = path[0];
+        if (!firstStep) return;
+        const moves = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+        const [dx, dy] = moves[firstStep.dir] || [0, 0];
+        window.setTimeout(() => moveByRef.current?.(dx, dy), 1200);
       },
     });
 
     return () => registerAssistantActions({});
   }, [
+    helpVoiceEnabled,
     registerAssistantActions,
     position.x,
     position.y,
     goalX,
     goalY,
-    content?.instructionAudio,
-    content?.instructionAr,
+    cols,
+    rows,
+    grid,
   ]);
 
 
@@ -185,6 +245,7 @@ const MazeGame = ({
   const moveBy = (dx, dy) => {
     if (won || showModal) return;
     onAssistantInteraction?.();
+    clearHints();
 
     const nextX = position.x + dx;
     const nextY = position.y + dy;
@@ -208,6 +269,8 @@ const MazeGame = ({
       finishGame(nextAttempts);
     }
   };
+
+  moveByRef.current = moveBy;
 
   const handleModalNext = () => {
     setShowModal(false);
@@ -235,39 +298,19 @@ const MazeGame = ({
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-4 md:gap-6" dir="rtl">
       {/* Header */}
-      <section className="bg-white rounded-2xl md:rounded-[2rem] p-4 md:p-6 shadow-sm border border-[#dbe7f3] flex items-center justify-between gap-4">
-        <div className="flex-grow">
-          <h2 className="text-xl md:text-3xl font-black text-slate-900 leading-tight">
-            {content?.instructionAr || 'حرّك حتى تصل إلى الهدف'}
-          </h2>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              if (content?.instructionAudio) playAudioUrl(content.instructionAudio);
-              else speakArabic(content?.instructionAr || 'حرّك حتى تصل إلى الهدف');
-            }}
-            className="w-12 h-12 md:w-14 md:h-14 shrink-0 bg-blue-600 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg"
-          >
-            <Volume2 className="text-white w-6 h-6" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setPosition({ x: startX, y: startY });
-              setAttempts(0);
-              setWon(false);
-              setVisualPulse(false);
-              setGestureDirection(null);
-              setPhysicalPath(false);
-            }}
-            className="w-12 h-12 md:w-14 md:h-14 shrink-0 bg-rose-500 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg"
-          >
-            <RotateCcw className="text-white w-6 h-6" />
-          </button>
-        </div>
-      </section>
+      <GameHeader
+        instruction={content?.instructionAr || 'حرّك حتى تصل إلى الهدف'}
+        onPlayAudio={() => {
+          if (content?.instructionAudio) playAudioUrl(content.instructionAudio);
+          else speakArabic(content?.instructionAr || 'حرّك حتى تصل إلى الهدف');
+        }}
+        onRestart={() => {
+          setPosition({ x: startX, y: startY });
+          setAttempts(0);
+          setWon(false);
+          clearHints();
+        }}
+      />
 
       {/* Main Play Area */}
       <section className="bg-[#f8fbff] rounded-2xl md:rounded-[2.4rem] border border-[#dbe7f3] p-4 md:p-8 shadow-sm flex flex-col items-center gap-6 md:gap-10">
@@ -286,7 +329,7 @@ const MazeGame = ({
             dir="ltr"
           >
             <div 
-              className="grid w-full h-full"
+              className="relative grid w-full h-full"
               style={{ 
                 gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                 gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
@@ -300,14 +343,20 @@ const MazeGame = ({
                   const isWall = cell === 1;
                   const isPlayer = position.x === x && position.y === y;
                   const isGoal = goalX === x && goalY === y;
+                  const isNextHintCell = hintNextCell?.x === x && hintNextCell?.y === y;
+                  const isPathCell = hintPathCells.some((step) => step.x === x && step.y === y);
 
                   return (
                     <div
                       key={`${x}-${y}`}
-                      className={`relative rounded-lg md:rounded-xl flex items-center justify-center overflow-hidden transition-all duration-300 ${
+                      className={`relative rounded-lg md:rounded-xl flex items-center justify-center overflow-visible transition-all duration-300 ${
                         isWall 
                           ? 'bg-slate-700 border-b-4 border-slate-800 shadow-sm' 
-                          : 'bg-white shadow-[inset_0_0_4px_rgba(0,0,0,0.05)]'
+                          : isPathCell
+                            ? 'bg-cyan-200 ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.6)] animate-pulse z-20'
+                            : isNextHintCell && (visualPulse || gestureDirection)
+                              ? 'bg-amber-100 ring-4 ring-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.7)] animate-pulse z-20'
+                              : 'bg-white shadow-[inset_0_0_4px_rgba(0,0,0,0.05)]'
                       }`}
                     >
                       {isGoal && !isWall && (
@@ -333,13 +382,13 @@ const MazeGame = ({
                 })
               )}
 
-              {/* Gesture direction indicator above player */}
-              {gestureDirection && (
+              {gestureDirection && hintNextCell && (
                 <div
-                  className="absolute z-30 text-4xl drop-shadow-xl animate-bounce pointer-events-none"
+                  className="absolute z-30 text-4xl md:text-5xl drop-shadow-xl animate-bounce pointer-events-none"
                   style={{
-                    left: `calc(${(position.x - 1) * 100 / cols}% + ${50 / cols}% - 16px)`,
-                    top: `calc(${(position.y - 1) * 100 / rows}% - 30px)`,
+                    left: `calc((100% / ${cols}) * ${hintNextCell.x - 1} + (100% / ${cols}) / 2)`,
+                    top: `calc((100% / ${rows}) * ${hintNextCell.y - 1} - 8px)`,
+                    transform: 'translate(-50%, -100%)',
                   }}
                 >
                   {directionArrow[gestureDirection]}
@@ -352,11 +401,11 @@ const MazeGame = ({
         {/* Controls Area */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-5 w-fit mx-auto pb-2 md:pb-4" dir="ltr">
           <div />
-          <ControlButton icon={ArrowUp} onClick={() => moveBy(0, -1)} />
+          <ControlButton icon={ArrowUp} onClick={() => moveBy(0, -1)} highlighted={gestureDirection === 'up'} className="relative" />
           <div />
-          <ControlButton icon={ArrowLeft} onClick={() => moveBy(-1, 0)} />
-          <ControlButton icon={ArrowDown} onClick={() => moveBy(0, 1)} />
-          <ControlButton icon={ArrowRight} onClick={() => moveBy(1, 0)} />
+          <ControlButton icon={ArrowLeft} onClick={() => moveBy(-1, 0)} highlighted={gestureDirection === 'left'} className="relative" />
+          <ControlButton icon={ArrowDown} onClick={() => moveBy(0, 1)} highlighted={gestureDirection === 'down'} className="relative" />
+          <ControlButton icon={ArrowRight} onClick={() => moveBy(1, 0)} highlighted={gestureDirection === 'right'} className="relative" />
         </div>
       </section>
 

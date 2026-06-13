@@ -12,6 +12,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Volume2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
+import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl, playErrorSound, playSuccessSound } from '../utils/soundEffects';
 
 const speakArabic = (text) => {
@@ -149,6 +150,7 @@ const DragDropGame = ({
   previewMode = false,
   onAssistantInteraction,
   registerAssistantActions,
+  helpVoiceEnabled = false,
 }) => {
   const [matchedDraggableIds, setMatchedDraggableIds] = useState([]);
   const [isOverScene, setIsOverScene] = useState(false);
@@ -221,21 +223,23 @@ const DragDropGame = ({
         const hint = correctItem?.labelAr
           ? `جرّب تسحب "${correctItem.labelAr}" للمشهد.`
           : 'ركّز على العنصر الصح واسحبه للمشهد.';
-        speakArabic(hint);
+        if (helpVoiceEnabled) speakArabic(hint);
       },
       onPhysicalPrompt: () => {
         setPhysicalHighlight(true);
         window.setTimeout(() => setPhysicalHighlight(false), 4000);
-        const correctItem = draggables.find((d) => d.isCorrect);
-        const hint = correctItem?.labelAr
-          ? `اسحب "${correctItem.labelAr}" اللي بيلمع ده للمشهد!`
-          : 'اسحب العنصر اللي بيلمع للمشهد!';
-        speakArabic(hint);
+        if (helpVoiceEnabled) {
+          const correctItem = draggables.find((d) => d.isCorrect);
+          const hint = correctItem?.labelAr
+            ? `اسحب "${correctItem.labelAr}" اللي بيلمع ده للمشهد!`
+            : 'اسحب العنصر اللي بيلمع للمشهد!';
+          speakArabic(hint);
+        }
       },
     });
 
     return () => registerAssistantActions({});
-  }, [instructionAr, instructionAudio, draggables, registerAssistantActions]);
+  }, [helpVoiceEnabled, instructionAr, instructionAudio, draggables, registerAssistantActions]);
 
   /* ── Decorate items with hint flags ── */
   const decorateItems = (items) =>
@@ -338,20 +342,19 @@ const DragDropGame = ({
 
   return (
     <div className="max-w-6xl mx-auto space-y-6" dir="rtl">
-      <section className="bg-white rounded-[2rem] p-5 md:p-6 shadow-sm border border-[#dbe7f3] flex flex-col md:flex-row items-center justify-between gap-4">
-        <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center md:text-right flex-grow leading-relaxed">
-          {instructionAr}
-        </h2>
-        <button
-          type="button"
-          onClick={playInstruction}
-          onKeyDown={preventKeyboardAudioTrigger}
-          onKeyUp={preventKeyboardAudioTrigger}
-          className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg"
-        >
-          <Volume2 size={24} className="text-white" />
-        </button>
-      </section>
+      <GameHeader
+        instruction={instructionAr}
+        onPlayAudio={playInstruction}
+        onRestart={() => {
+          setMatchedDraggableIds([]);
+          setFeedback(null);
+          setAttempts(0);
+          setIsOverScene(false);
+          setVisualPulse(false);
+          setGestureArrow(false);
+          setPhysicalHighlight(false);
+        }}
+      />
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div className="space-y-7 md:space-y-8">

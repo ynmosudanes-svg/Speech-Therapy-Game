@@ -1,86 +1,111 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, ArrowRight, Volume2, CheckCircle2, PlayCircle } from 'lucide-react';
 import Button from '../components/Button';
-import { playAudioUrl } from '../utils/soundEffects';
+import GameHeader from '../components/game/GameHeader';
+import { playAudioUrl, playSpokenArabic } from '../utils/soundEffects';
 
 const AudioCardsGame = ({
   game,
   onComplete,
   therapistControlsEnabled = false,
   therapistPromptLevel = 'none',
-  onAssistantInteraction,
+  onAssistantInteraction = () => {},
   registerAssistantActions,
+  helpVoiceEnabled = false,
 }) => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const audioRef = useRef(null);
+  const [visualPulse, setVisualPulse] = useState(false);
+  const [gestureHint, setGestureHint] = useState(false);
 
   const config = game?.config || {};
   const content = config.content || {};
   const cards = Array.isArray(content.cards) ? content.cards : [];
+  const instructionAudio = content.instructionAudio || '';
 
   const currentCard = cards[currentCardIndex] || null;
 
+  const playInstruction = useCallback(() => {
+    if (instructionAudio) {
+      playAudioUrl(instructionAudio);
+      return;
+    }
+    if (content.instructionAr) {
+      playSpokenArabic(content.instructionAr);
+    }
+  }, [instructionAudio, content.instructionAr]);
+
+  const playCardAudio = useCallback(() => {
+    if (currentCard?.audioUrl) {
+      playAudioUrl(currentCard.audioUrl);
+      return;
+    }
+    if (currentCard?.textAr?.trim()) {
+      playSpokenArabic(currentCard.textAr);
+    }
+  }, [currentCard?.audioUrl, currentCard?.textAr]);
+
   useEffect(() => {
-    // Reset flip state when card changes
     setIsFlipped(false);
   }, [currentCardIndex]);
 
   useEffect(() => {
-    // Stop any playing audio when card changes or unmounts
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-  }, [currentCardIndex]);
+    playInstruction();
+  }, [game?.id, playInstruction]);
 
-  useEffect(() => {
-    if (registerAssistantActions) {
-      registerAssistantActions({
-        onVisualHint: () => {
-          setIsFlipped(true);
-        },
-        onVerbalHint: () => {
-          if (currentCard?.audioUrl) {
-            playAudioUrl(currentCard.audioUrl);
-          }
-        },
-        onGestureHint: () => {
-          setIsFlipped(true);
-        },
-        onPhysicalPrompt: () => {
-          setIsFlipped(true);
-        }
-      });
-    }
+  const handleFlip = useCallback(() => {
+    onAssistantInteraction?.();
+    setVisualPulse(false);
+    setGestureHint(false);
 
-    return () => {
-      if (registerAssistantActions) {
-        registerAssistantActions({});
-      }
-    };
-  }, [currentCard, isFlipped, content.instructionAudio, registerAssistantActions]);
-
-
-  const handleFlip = () => {
     if (!isFlipped) {
       setIsFlipped(true);
-      if (currentCard?.audioUrl) {
-        if (!audioRef.current) {
-          audioRef.current = new Audio(currentCard.audioUrl);
-        } else {
-          audioRef.current.src = currentCard.audioUrl;
-        }
-        audioRef.current.play().catch(e => console.error("Audio play failed:", e));
-      }
-    } else {
-      // If already flipped, just replay the sound
-      if (currentCard?.audioUrl && audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(e => console.error("Audio play failed:", e));
-      }
+      playCardAudio();
+      return;
     }
-  };
+
+    playCardAudio();
+  }, [isFlipped, onAssistantInteraction, playCardAudio]);
+
+  const handleFlipRef = useRef(handleFlip);
+  handleFlipRef.current = handleFlip;
+
+  useEffect(() => {
+    if (!registerAssistantActions) return undefined;
+
+    registerAssistantActions({
+      onVisualHint: () => {
+        if (isFlipped) return;
+        setVisualPulse(true);
+        speak('انتبه جيداً! الكارت يضيء الآن.');
+        window.setTimeout(() => setVisualPulse(false), 2500);
+      },
+      onGestureHint: () => {
+        if (isFlipped) return;
+        setGestureHint(true);
+        speak('انظر إلى الشاشة، أنا أشير إلى المكان الصحيح.');
+        window.setTimeout(() => setGestureHint(false), 3000);
+      },
+      onVerbalHint: () => {
+        const hint = currentCard?.textAr
+          ? `الكلمة هي "${currentCard.textAr}"`
+          : 'اضغط على الكارت عشان تسمع الكلمة';
+        speak(hint);
+      },
+      onPhysicalPrompt: () => {
+        if (!isFlipped) {
+          handleFlipRef.current?.();
+          return;
+        }
+        const hint = currentCard?.textAr
+          ? `الكلمة هي "${currentCard.textAr}"`
+          : 'اضغط على الكارت عشان تسمع الكلمة';
+        speak(hint);
+      },
+    });
+
+    return () => registerAssistantActions({});
+  }, [currentCard, isFlipped, registerAssistantActions, playCardAudio]);
 
   const handleNext = () => {
     if (currentCardIndex < cards.length - 1) {
@@ -109,14 +134,22 @@ const AudioCardsGame = ({
     return <div className="text-center p-10 font-bold text-xl">لا توجد كروت في هذا النشاط</div>;
   }
 
+  const handleRestart = () => {
+    setCurrentCardIndex(0);
+    setIsFlipped(false);
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col items-center select-none" dir="rtl">
       
       {content.instructionAr && (
-        <div className="text-center mb-8 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-2xl border-2 border-fuchsia-100 shadow-sm">
-          <h2 className="text-xl md:text-2xl font-black text-fuchsia-900 inline-flex items-center gap-2">
-            {content.instructionAr}
-          </h2>
+        <div className="w-full mb-8">
+          <GameHeader
+            instruction={content.instructionAr}
+            instructionAudio={instructionAudio}
+            onPlayAudio={playInstruction}
+            onRestart={handleRestart}
+          />
         </div>
       )}
 
@@ -138,10 +171,17 @@ const AudioCardsGame = ({
 
       {/* 3D Flip Card Container */}
       <div 
-        className="relative w-full max-w-[340px] md:max-w-[500px] aspect-[4/3] md:aspect-[3/2] cursor-pointer group/card"
+        className={`relative w-full max-w-[280px] md:max-w-[380px] aspect-[4/3] md:aspect-[3/2] cursor-pointer group/card transition-all duration-300 ${
+          visualPulse && !isFlipped ? 'ring-8 ring-yellow-400 animate-pulse shadow-[0_0_40px_rgba(250,204,21,0.5)] rounded-3xl' : ''
+        }`}
         style={{ perspective: '2000px' }}
         onClick={handleFlip}
       >
+        {gestureHint && !isFlipped && (
+          <div className="absolute -top-14 left-1/2 -translate-x-1/2 text-5xl animate-bounce z-30 drop-shadow-md pointer-events-none">
+            👇
+          </div>
+        )}
         <div
           className={`w-full h-full transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] transform-style-3d shadow-xl rounded-3xl ${
             isFlipped ? 'rotate-y-180 shadow-2xl shadow-fuchsia-200/50' : 'hover:scale-[1.02] shadow-fuchsia-100/50'
@@ -166,7 +206,9 @@ const AudioCardsGame = ({
             )}
             
             {/* Front Overlay Hint */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-fuchsia-100 opacity-80 group-hover/card:opacity-100 transition-all duration-300 transform translate-y-2 group-hover/card:translate-y-0 flex items-center gap-2 z-10">
+            <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border opacity-80 group-hover/card:opacity-100 transition-all duration-300 transform translate-y-2 group-hover/card:translate-y-0 flex items-center gap-2 z-10 ${
+              gestureHint ? 'border-amber-400 ring-4 ring-amber-300 scale-110' : 'border-fuchsia-100'
+            }`}>
               <PlayCircle size={24} className="text-fuchsia-600 animate-pulse" />
               <span className="text-fuchsia-900 font-black text-sm md:text-base whitespace-nowrap">اضغط للسماع والقلب</span>
             </div>

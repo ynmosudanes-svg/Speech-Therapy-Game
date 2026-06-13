@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Download, Search, Users, Clock, FileText, UserCircle, ChevronDown, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ConfirmModal from '../../components/ConfirmModal';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 
 const mapPromptToArabic = (prompt) => {
@@ -18,6 +19,8 @@ const ReportsPage = () => {
   const { fetchSessions, loadingSessions, sessions, students } = useTherapyStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState('all');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ isOpen: false, message: '' });
 
   useEffect(() => {
     fetchSessions().catch(() => {});
@@ -51,7 +54,10 @@ const ReportsPage = () => {
 
   const handleDownloadPdf = async () => {
     if (selectedStudent === 'all') {
-      alert('الرجاء اختيار مستفيد أولاً من قائمة التصفية لتنزيل تقريره.');
+      setAlertConfig({ 
+        isOpen: true, 
+        message: 'الرجاء اختيار مستفيد أولاً من قائمة التصفية لتنزيل تقريره.' 
+      });
       return;
     }
     
@@ -156,26 +162,35 @@ const ReportsPage = () => {
           <div style="text-align: center;">
             <div style="width: 150px; border-bottom: 1px solid #cbd5e1; margin-bottom: 5px;"></div>
             توقيع الأخصائي المتابع
-          </div>
         </div>
       </div>
     `;
 
-    // Dynamic import to avoid SSR issues and keep bundle size small if not used
-    const html2pdf = (await import('html2pdf.js')).default;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      setAlertConfig({ 
+        isOpen: true, 
+        message: 'يرجى السماح بفتح النوافذ المنبثقة (Pop-ups) لعرض التقرير وطباعته.' 
+      });
+      setIsDownloading(false);
+      return;
+    }
+
+    printWindow.document.write(`
+      <html dir="rtl">
+        <head>
+          <title>تقرير_${student.name}</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body onload="setTimeout(function() { window.print(); window.close(); }, 500);">
+          ${htmlString}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
     
-    const element = document.createElement('div');
-    element.innerHTML = htmlString;
-
-    const opt = {
-      margin:       10,
-      filename:     `تقرير_${student.name.replace(/\s+/g, '_')}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().set(opt).from(element).save();
+    setIsDownloading(false);
   };
 
   return (
@@ -188,10 +203,19 @@ const ReportsPage = () => {
         </div>
         <button 
           onClick={handleDownloadPdf}
-          className="flex items-center justify-center gap-2 bg-[#178bb6] hover:bg-[#126d8f] text-white px-6 py-3 rounded-xl font-medium shadow-sm shadow-cyan-500/30 transition-all focus:ring-4 focus:ring-cyan-500/20 active:scale-[0.98]"
+          disabled={isDownloading}
+          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium shadow-sm transition-all ${
+            isDownloading 
+              ? 'bg-slate-400 text-white cursor-not-allowed shadow-none'
+              : 'bg-[#178bb6] hover:bg-[#126d8f] text-white shadow-cyan-500/30 focus:ring-4 focus:ring-cyan-500/20 active:scale-[0.98]'
+          }`}
         >
-          <Download size={20} />
-          تنزيل التقرير (PDF)
+          {isDownloading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Download size={20} />
+          )}
+          {isDownloading ? 'جاري التجهيز...' : 'تنزيل التقرير (PDF)'}
         </button>
       </div>
 
@@ -380,6 +404,16 @@ const ReportsPage = () => {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={alertConfig.isOpen}
+        onClose={() => setAlertConfig({ isOpen: false, message: '' })}
+        onConfirm={() => setAlertConfig({ isOpen: false, message: '' })}
+        title="تنبيه"
+        message={alertConfig.message}
+        confirmText="حسناً"
+        isDestructive={false}
+      />
     </div>
   );
 };

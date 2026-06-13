@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
+import GameHeader from '../components/game/GameHeader';
 import { playSuccessSound, playErrorSound, playAudioUrl } from '../utils/soundEffects';
 
 /**
@@ -67,15 +68,26 @@ const FindSimilarGame = ({
     setSelectedOption(null);
   };
 
+  const handleRestart = () => {
+    setSelectedOption(null);
+    setShowFeedback(false);
+    setAttempts(0);
+  };
+
   if (!game) return null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
+      <GameHeader
+        instruction={game.questionTextAr || 'وريني الصورة الزي دي'}
+        onPlayAudio={() => {
+          if (game?.questionAudio) playAudioUrl(game.questionAudio);
+        }}
+        onRestart={handleRestart}
+      />
+
       {/* Target Image */}
       <div className="text-center">
-        <h2 className="text-2xl md:text-3xl font-black text-slate-800 mb-5">
-          {game.questionTextAr || 'وريني الصورة الزي دي'}
-        </h2>
         <div className="inline-block p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] border-4 border-blue-200 shadow-lg">
           <img
             src={game.targetImage}

@@ -95,6 +95,12 @@ const GAME_TYPE_CARDS = [
     description: 'يقوم الطفل بتركيب أجزاء الصورة لإكمال الشكل النهائي، لتنمية مهارات التركيز وحل المشكلات.',
     accent: 'from-blue-100 to-indigo-100',
   },
+  {
+    value: 'matching.connect',
+    title: 'لعبة التوصيل',
+    description: 'رسم خطوط بين عناصر متطابقة أو مرتبطة (مثل الحيوان وطعامه، أو الكلمة والصورة).',
+    accent: 'from-pink-100 to-rose-100',
+  },
 ];
 
 const EMPTY_MESSAGE = 'ارفع الملف أو اتركه فارغًا مؤقتًا';
@@ -693,6 +699,39 @@ const GameForm = ({ mode = 'create' }) => {
     updateCurrentActivity((activity) => ({
       ...activity,
       cards: (activity.cards || []).filter((_, index) => index !== cardIndex),
+    }));
+  };
+
+  const updatePair = (pairIndex, field, value) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      pairs: (activity.pairs || []).map((pair, index) => {
+        if (index !== pairIndex) return pair;
+        return { ...pair, [field]: value };
+      }),
+    }));
+  };
+
+  const addPair = () => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      pairs: [
+        ...(activity.pairs || []),
+        {
+          id: `pair_${Date.now()}`,
+          sourceImage: '',
+          sourceLabel: '',
+          targetImage: '',
+          targetLabel: '',
+        },
+      ],
+    }));
+  };
+
+  const removePair = (pairIndex) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      pairs: (activity.pairs || []).filter((_, index) => index !== pairIndex),
     }));
   };
 
@@ -1648,6 +1687,88 @@ const GameForm = ({ mode = 'create' }) => {
                             ))}
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {builderState.type === 'matching.connect' && (
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 text-emerald-700">
+                          <CheckCircle2 size={24} />
+                          <h3 className="text-xl font-black">أزواج التوصيل المتطابقة</h3>
+                        </div>
+                        <Button type="button" variant="outline" onClick={addPair} className="!py-2 !px-4 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-100">
+                          <Plus size={18} />
+                          <span>إضافة زوج جديد</span>
+                        </Button>
+                      </div>
+
+                      <div className="rounded-2xl bg-amber-50/80 border border-amber-100/80 px-4 py-3 text-sm font-bold text-amber-700/90">
+                        أضف أزواج العناصر التي سيقوم الطفل بتوصيلها (مثل: الكلب والعظمة). سيتم خلط ترتيبها تلقائياً عند اللعب. يجب إضافة زوجين على الأقل.
+                      </div>
+
+                      <div className="grid gap-4">
+                        {(currentActivity.pairs || []).map((pair, pairIndex) => (
+                          <div key={pair.id} className="rounded-[1.8rem] border border-[#dbe7f3] bg-[#f8fbff] p-5 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-black text-slate-800">زوج {pairIndex + 1}</h4>
+                              <button
+                                type="button"
+                                onClick={() => removePair(pairIndex)}
+                                disabled={(currentActivity.pairs || []).length <= 2}
+                                className={`inline-flex items-center justify-center rounded-xl border p-2 transition-colors ${
+                                  (currentActivity.pairs || []).length <= 2
+                                    ? 'text-slate-400 border-slate-200 bg-slate-100 cursor-not-allowed'
+                                    : 'text-red-500 border-red-200 bg-red-50 hover:text-red-600 hover:bg-red-100'
+                                }`}
+                                title={(currentActivity.pairs || []).length <= 2 ? 'لا يمكن الحذف: الحد الأدنى زوجان' : 'حذف الزوج'}
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                              {/* Source Item */}
+                              <div className="space-y-4 border-2 border-dashed border-fuchsia-200 rounded-2xl p-4 bg-white">
+                                <h5 className="font-bold text-fuchsia-700 text-center border-b pb-2">العنصر الأول (اليمين)</h5>
+                                <input
+                                  type="text"
+                                  value={pair.sourceLabel || ''}
+                                  onChange={(event) => updatePair(pairIndex, 'sourceLabel', event.target.value)}
+                                  className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-fuchsia-500 focus:ring-4 focus:ring-fuchsia-100 outline-none"
+                                  placeholder="النص (مثال: كلب)"
+                                />
+                                <ImageAssetField
+                                  label="صورة العنصر"
+                                  value={pair.sourceImage || ''}
+                                  onSelect={(value) => updatePair(pairIndex, 'sourceImage', value)}
+                                  token={adminSession?.token}
+                                  initialQuery={pair.sourceLabel || 'dog'}
+                                />
+                              </div>
+
+                              {/* Target Item */}
+                              <div className="space-y-4 border-2 border-dashed border-cyan-200 rounded-2xl p-4 bg-white">
+                                <h5 className="font-bold text-cyan-700 text-center border-b pb-2">العنصر المقابل (اليسار)</h5>
+                                <input
+                                  type="text"
+                                  value={pair.targetLabel || ''}
+                                  onChange={(event) => updatePair(pairIndex, 'targetLabel', event.target.value)}
+                                  className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100 outline-none"
+                                  placeholder="النص (مثال: عظمة)"
+                                />
+                                <ImageAssetField
+                                  label="صورة العنصر"
+                                  value={pair.targetImage || ''}
+                                  onSelect={(value) => updatePair(pairIndex, 'targetImage', value)}
+                                  token={adminSession?.token}
+                                  initialQuery={pair.targetLabel || 'bone'}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

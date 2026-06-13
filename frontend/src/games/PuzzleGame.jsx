@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, RefreshCw, Trophy, CheckCircle2, Hand, Image as ImageIcon } from 'lucide-react';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
+import { playAudioUrl } from '../utils/soundEffects';
+import GameHeader from '../components/game/GameHeader';
 
 // ==========================================
 // خوارزمية رسم مسارات البازل (Jigsaw Shapes)
@@ -44,12 +47,23 @@ export default function PuzzleGame({
   onComplete, 
   previewMode,
   onAssistantInteraction,
-  registerAssistantActions 
+  registerAssistantActions,
+  helpVoiceEnabled = false,
 }) {
   // --- إعدادات اللعبة القادمة من السيرفر ---
   const config = game?.config || {};
   const imageSrc = config.image || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop';
   const gridSize = Number(config.gridSize) || 3;
+  const instructionAr = config.instructionAr || 'قم بتركيب قطع البازل لتكوين الصورة الصحيحة';
+  const instructionAudio = config.instructionAudio || '';
+
+  const { speak } = useSpeechSynthesis();
+
+  const playInstruction = () => {
+    if (instructionAudio) {
+      playAudioUrl(instructionAudio);
+    }
+  };
 
   // --- حالة اللعبة ---
   const [gameState, setGameState] = useState('playing');
@@ -62,56 +76,43 @@ export default function PuzzleGame({
   // --- Assistant Hint States ---
   const [hintPieceId, setHintPieceId] = useState(null);
   const [hintSlotIndex, setHintSlotIndex] = useState(null);
+  const [gestureHint, setGestureHint] = useState(false);
 
-  // Register Assistant Actions
-  useEffect(() => {
-    if (registerAssistantActions) {
-      registerAssistantActions({
-        onVisualHint: () => {
-          // Level 1: Only highlight the piece in the tray, NOT the destination slot
-          const unplaced = trayPieces[0];
-          if (unplaced) {
-            setHintPieceId(unplaced.id);
-            setHintSlotIndex(null); // No slot hint yet!
-            setTimeout(() => {
-              setHintPieceId(null);
-            }, 3000);
-          }
-        },
-        onGestureHint: () => {
-          // Level 2: Highlight BOTH the piece and its destination slot
-          const unplaced = trayPieces[0];
-          if (unplaced) {
-            setHintPieceId(unplaced.id);
-            setHintSlotIndex(unplaced.originalPos);
-            setTimeout(() => {
-              setHintPieceId(null);
-              setHintSlotIndex(null);
-            }, 4000);
-          }
-        },
-        onVerbalHint: () => {
-          // Level 3: Verbal hint (assistant speaks), but we also keep the gesture hint active
-          const unplaced = trayPieces[0];
-          if (unplaced) {
-            setHintPieceId(unplaced.id);
-            setHintSlotIndex(unplaced.originalPos);
-            setTimeout(() => {
-              setHintPieceId(null);
-              setHintSlotIndex(null);
-            }, 4000);
-          }
-        },
-        onPhysicalPrompt: () => {
-          // Level 4: Auto solve one piece
-          const unplaced = trayPieces[0];
-          if (unplaced) {
-            movePieceToBoard(unplaced.id, unplaced.originalPos);
-          }
-        }
-      });
+  const hintTimersRef = useRef([]);
+
+  const clearHintTimers = () => {
+    hintTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    hintTimersRef.current = [];
+  };
+
+  const clearHints = () => {
+    clearHintTimers();
+    setHintPieceId(null);
+    setHintSlotIndex(null);
+    setGestureHint(false);
+  };
+
+  const scheduleHintClear = (delay = 3000) => {
+    clearHintTimers();
+    const timer = window.setTimeout(() => clearHints(), delay);
+    hintTimersRef.current.push(timer);
+  };
+
+  const getNextHintPiece = useCallback(() => {
+    if (trayPieces.length > 0) {
+      return trayPieces[0];
     }
-  }, [registerAssistantActions, trayPieces]);
+
+    const misplacedIndex = boardPieces.findIndex((piece, index) => piece && piece.originalPos !== index);
+    if (misplacedIndex !== -1) {
+      return boardPieces[misplacedIndex];
+    }
+
+    return null;
+  }, [trayPieces, boardPieces]);
+
+  const getNextHintPieceRef = useRef(getNextHintPiece);
+  getNextHintPieceRef.current = getNextHintPiece;
 
   useEffect(() => {
     startGame();
@@ -163,7 +164,7 @@ export default function PuzzleGame({
     }
   };
 
-  const movePieceToBoard = (pieceId, targetSlotIndex) => {
+  const movePieceToBoard = useCallback((pieceId, targetSlotIndex, fromAssistant = false) => {
     let piece = trayPieces.find(p => p.id === pieceId) || boardPieces.find(p => p && p.id === pieceId);
     if (!piece) return;
 
@@ -192,12 +193,69 @@ export default function PuzzleGame({
     setSelectedPieceId(null);
     const currentMoves = moves + 1;
     setMoves(currentMoves);
-    onAssistantInteraction?.();
+    clearHints();
+    if (!fromAssistant) {
+      onAssistantInteraction?.();
+    }
 
     if (newBoard.every((p, i) => p && p.originalPos === i)) {
       handleWin();
     }
-  };
+  }, [boardPieces, trayPieces, moves, onAssistantInteraction]);
+
+  const movePieceToBoardRef = useRef(movePieceToBoard);
+  movePieceToBoardRef.current = movePieceToBoard;
+
+  useEffect(() => {
+    if (!registerAssistantActions) return undefined;
+
+    registerAssistantActions({
+      onVisualHint: () => {
+        const piece = getNextHintPieceRef.current();
+        if (!piece) return;
+        setHintPieceId(piece.id);
+        setHintSlotIndex(null);
+        setGestureHint(false);
+        scheduleHintClear(3000);
+      },
+      onGestureHint: () => {
+        const piece = getNextHintPieceRef.current();
+        if (!piece) return;
+        setHintPieceId(piece.id);
+        setHintSlotIndex(piece.originalPos);
+        setGestureHint(true);
+        scheduleHintClear(4000);
+      },
+      onVerbalHint: () => {
+        const piece = getNextHintPieceRef.current();
+        if (!piece) return;
+        setHintPieceId(piece.id);
+        setHintSlotIndex(piece.originalPos);
+        setGestureHint(true);
+        if (helpVoiceEnabled) {
+          speak('شوف القطعة اللي بتلمع واركبها في المكان الأخضر على اللوحة.');
+        }
+        scheduleHintClear(4000);
+      },
+      onPhysicalPrompt: () => {
+        const piece = getNextHintPieceRef.current();
+        if (!piece) return;
+        setHintPieceId(piece.id);
+        setHintSlotIndex(piece.originalPos);
+        if (helpVoiceEnabled) {
+          speak('هيا نركّب القطعة سوا في مكانها الصح.');
+        }
+        window.setTimeout(() => {
+          movePieceToBoardRef.current?.(piece.id, piece.originalPos, true);
+        }, 800);
+      },
+    });
+
+    return () => {
+      registerAssistantActions({});
+      clearHintTimers();
+    };
+  }, [helpVoiceEnabled, registerAssistantActions, speak]);
 
   const returnPieceToTray = (pieceId) => {
     const slotIndex = boardPieces.findIndex(p => p && p.id === pieceId);
@@ -212,6 +270,7 @@ export default function PuzzleGame({
     setBoardPieces(newBoard);
     setTrayPieces([...trayPieces, piece]);
     setSelectedPieceId(null);
+    clearHints();
     onAssistantInteraction?.();
   };
 
@@ -256,7 +315,7 @@ export default function PuzzleGame({
             setSelectedPieceId(isSelected ? null : piece.id); 
           }
         }}
-        className={`relative w-full aspect-square transition-all duration-300 ease-in-out ${!isCorrect && 'cursor-grab active:cursor-grabbing hover:z-50'} ${(isSelected || hintPieceId === piece.id) ? 'z-50' : 'z-10'}`}
+        className={`relative w-full aspect-square transition-all duration-300 ease-in-out ${!isCorrect && 'cursor-grab active:cursor-grabbing hover:z-50'} ${(isSelected || hintPieceId === piece.id) ? 'z-50 ring-4 ring-amber-400 rounded-lg' : 'z-10'}`}
       >
         <div
           className={`absolute transition-all duration-300 ${hintPieceId === piece.id ? 'animate-pulse' : ''}`}
@@ -292,9 +351,17 @@ export default function PuzzleGame({
   return (
     <div dir="rtl" className="w-full flex flex-col items-center animate-fade-in space-y-6 h-full pb-10">
       
+      {/* Header مع زر الصوت وإعادة اللعب */}
+      <GameHeader
+        instruction={instructionAr}
+        instructionAudio={instructionAudio}
+        onPlayAudio={playInstruction}
+        onRestart={startGame}
+      />
+
       <div className="w-full flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex gap-2">
-          <button onClick={startGame} className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg" title="إعادة اللعب"><RefreshCw size={22} /></button>
+          {/* تم نقل زر إعادة اللعب إلى الهيدر الرئيسي */}
         </div>
         {gameState === 'won' ? (
           <div className="flex items-center text-emerald-600 font-bold bg-emerald-50 px-4 py-1.5 rounded-lg gap-2 animate-bounce-short">
@@ -333,9 +400,11 @@ export default function PuzzleGame({
               <div 
                 key={index}
                 className={`relative w-full h-full border-[0.5px] transition-all duration-300
-                  ${selectedPieceId !== null && !piece 
-                    ? 'bg-white/30 border-yellow-400 border-2 border-dashed shadow-[inset_0_0_15px_rgba(250,204,21,0.6)] animate-pulse z-10 cursor-pointer backdrop-brightness-110' 
-                    : (hintSlotIndex === index && !piece ? 'bg-green-400/40 border-green-400 border-4 animate-pulse shadow-[inset_0_0_30px_rgba(74,222,128,0.8)] z-20' : 'border-white/20')
+                  ${hintSlotIndex === index
+                    ? 'bg-emerald-300/50 border-emerald-500 border-4 animate-pulse shadow-[inset_0_0_30px_rgba(74,222,128,0.9)] z-20 ring-4 ring-emerald-300'
+                    : selectedPieceId !== null && !piece
+                      ? 'bg-white/30 border-yellow-400 border-2 border-dashed shadow-[inset_0_0_15px_rgba(250,204,21,0.6)] animate-pulse z-10 cursor-pointer backdrop-brightness-110'
+                      : 'border-white/20'
                   }
                 `}
                 onDragOver={(e) => e.preventDefault()}
@@ -371,7 +440,19 @@ export default function PuzzleGame({
               <p className="text-slate-400 text-sm mt-4">تم استخدام كل القطع!</p>
             ) : (
               trayPieces.map(piece => (
-                <div key={piece.id} className="relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0">
+                <div
+                  key={piece.id}
+                  className={`relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-xl transition-all duration-300 ${
+                    hintPieceId === piece.id
+                      ? 'ring-4 ring-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.9)] scale-110 z-20'
+                      : ''
+                  }`}
+                >
+                  {hintPieceId === piece.id && gestureHint && (
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl animate-bounce pointer-events-none z-30">
+                      👆
+                    </span>
+                  )}
                   {renderPiece(piece, false)}
                 </div>
               ))

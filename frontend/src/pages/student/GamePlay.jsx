@@ -4,8 +4,10 @@ import { DoorOpen, ShieldCheck } from 'lucide-react';
 import Button from '../../components/Button';
 import GameEngine from '../../games/GameEngine';
 import normalizeGameForEngine from '../../games/adapters/normalizeGameForEngine';
-import { PROMPT_LEVELS, useTherapyStore } from '../../hooks/useTherapyStore';
+import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
+import { computeSessionMetrics } from '../../utils/sessionMetrics';
+import { stopGameAudio } from '../../utils/soundEffects';
 
 const GamePlay = () => {
   const navigate = useNavigate();
@@ -66,60 +68,54 @@ const GamePlay = () => {
       return;
     }
 
-    const totalQuestions = (stats.correctAnswers || 0) + (stats.wrongAnswers || 0) || 1;
-    const score = Math.round(((stats.correctAnswers || 0) / totalQuestions) * 100);
-    const promptHistory = Array.isArray(stats.prompts) ? stats.prompts : [];
-    const independentCount = promptHistory.filter((prompt) => prompt === 'none').length;
-    const independenceRate = promptHistory.length
-      ? Math.round((independentCount / promptHistory.length) * 100)
-      : 100;
+    const metrics = computeSessionMetrics(stats);
 
-    const promptSummary = promptHistory.map(
-      (prompt) => PROMPT_LEVELS.find((level) => level.id === prompt)?.label || prompt
-    );
+    const sessionData = {
+      gameType: game.type,
+      level: game.level,
+      activityCount: metrics.activityCount,
+      correctAnswers: stats.correctAnswers || 0,
+      wrongAnswers: stats.wrongAnswers || 0,
+      score: metrics.score,
+      accuracyScore: metrics.accuracyScore,
+      completionScore: metrics.completionScore,
+      independenceRate: metrics.independenceRate,
+      totalAttempts: metrics.totalAttempts,
+      therapistMode: false,
+      sessionType: isFreePlay ? 'FREE_PLAY' : 'HOME',
+      promptSummary: metrics.promptSummary,
+      timeSpent: stats.timeSpent || 0,
+      isFreePlay,
+    };
 
-    const helps = Array.isArray(stats.helpsUsed) ? stats.helpsUsed : [];
-    let computedPrompt = 'none';
-    if (helps.includes('physical')) {
-      computedPrompt = 'physical';
-    } else if (helps.includes('verbal')) {
-      computedPrompt = 'verbal';
-    } else if (helps.includes('gesture')) {
-      computedPrompt = 'gestural';
-    } else if (helps.includes('visual')) {
-      computedPrompt = 'visual';
+    stopGameAudio();
+
+    if (isFreePlay) {
+      navigate('/student/result', { state: { game, sessionData } });
+      return;
     }
 
     const sessionPayload = {
       studentId: currentStudent.id,
       gameId: game.id,
-      score,
-      attempts: Array.isArray(stats.attempts)
-        ? stats.attempts.reduce((sum, value) => sum + value, 0)
-        : stats.attempts || totalQuestions,
+      score: metrics.score,
+      attempts: metrics.totalAttempts,
       duration: stats.timeSpent || 0,
-      sessionType: isFreePlay ? 'FREE_PLAY' : 'HOME',
-      promptLevel: mapFrontendPromptToApi(computedPrompt),
+      sessionType: 'HOME',
+      promptLevel: mapFrontendPromptToApi(metrics.computedPrompt),
     };
 
     try {
       const savedSession = await saveSession(sessionPayload);
-      const sessionData = {
-        ...savedSession,
-        gameType: game.type,
-        level: game.level,
-        totalQuestions,
-        correctAnswers: stats.correctAnswers || 0,
-        wrongAnswers: stats.wrongAnswers || 0,
-        score,
-        independenceRate,
-        therapistMode: false,
-        sessionType: sessionPayload.sessionType,
-        promptSummary,
-        timeSpent: stats.timeSpent || 0,
-      };
-
-      navigate('/student/result', { state: { game, sessionData } });
+      navigate('/student/result', {
+        state: {
+          game,
+          sessionData: {
+            ...sessionData,
+            ...savedSession,
+          },
+        },
+      });
     } catch (saveError) {
       setError(saveError?.response?.data?.message || saveError?.message || 'تعذر حفظ نتيجة الجلسة.');
     }
@@ -199,6 +195,12 @@ const GamePlay = () => {
               hintLevel2: game?.config?.assistant?.hintLevel2 || undefined,
               hintLevel3: game?.config?.assistant?.hintLevel3 || undefined,
               audioText: game?.config?.assistant?.audioText || undefined,
+              helpVoiceEnabled: true,
+            }}
+            onExit={() => {
+              if (window.confirm('هل تود الخروج من اللعبة حقاً؟ لن يتم حفظ أي تقدم في هذه الجلسة ولن يؤثر ذلك على التقييم.')) {
+                navigate('/student/home');
+              }
             }}
           />
         </>

@@ -80,7 +80,7 @@ const ImageAssetField = ({ label, value = '', onSelect, token }) => {
           )}
         </div>
 
-        <div className="flex-1 space-y-3 min-w-[220px]">
+        <div className="flex-1 space-y-3 min-w-[150px]">
           <input
             ref={inputRef}
             type="file"
@@ -94,7 +94,7 @@ const ImageAssetField = ({ label, value = '', onSelect, token }) => {
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
-              className="flex-1 min-w-[130px] inline-flex items-center justify-center gap-2 rounded-2xl bg-[#168FC7] px-4 py-3 font-black text-white transition hover:bg-[#127aac] disabled:cursor-wait disabled:opacity-70 whitespace-nowrap"
+              className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 rounded-2xl bg-[#168FC7] px-2 sm:px-4 py-3 font-black text-white transition hover:bg-[#127aac] disabled:cursor-wait disabled:opacity-70 whitespace-nowrap"
             >
               <Upload size={18} className="shrink-0" />
               <span className="truncate">{uploading ? 'جاري الرفع...' : 'رفع جديد'}</span>
@@ -102,7 +102,7 @@ const ImageAssetField = ({ label, value = '', onSelect, token }) => {
             <button
               type="button"
               onClick={() => setIsLibraryOpen(true)}
-              className="flex-1 min-w-[130px] inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3 font-black text-blue-700 transition hover:bg-blue-100 whitespace-nowrap"
+              className="flex-1 min-w-[110px] inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-50 border border-blue-200 px-2 sm:px-4 py-3 font-black text-blue-700 transition hover:bg-blue-100 whitespace-nowrap"
             >
               <ImageIcon size={18} className="shrink-0" />
               <span className="truncate">مكتبة الوسائط</span>

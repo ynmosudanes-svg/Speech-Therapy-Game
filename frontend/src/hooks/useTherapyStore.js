@@ -118,10 +118,8 @@ const normalizeStudent = (student) => ({
 
 const mapFrontendPromptToApi = (promptLevel) => {
   if (!promptLevel || promptLevel === 'none' || promptLevel === 'independent') return 'INDEPENDENT';
-  if (promptLevel === 'physical' || promptLevel === 'full_physical') return 'PHYSICAL';
-  if (promptLevel === 'verbal') return 'VERBAL';
-  if (promptLevel === 'visual' || promptLevel === 'gestural' || promptLevel === 'gesture') return 'VISUAL';
-  return 'PARTIAL';
+  if (promptLevel === 'physical' || promptLevel === 'full_physical' || promptLevel === 'partial_physical') return 'FULL';
+  return 'PARTIAL'; // visual, verbal, gestural, modeling
 };
 
 const getErrorMessage = (error, fallback) =>
@@ -221,14 +219,17 @@ export function TherapyProvider({ children }) {
   }, [adminSession?.token]);
 
   useEffect(() => {
-    if (adminSession?.token) {
-      fetchStudents(adminSession.token).catch(() => {});
-      fetchSessions(adminSession.token).catch(() => {});
+    const token = adminSession?.token || studentSession?.token;
+    if (token) {
+      if (adminSession?.token) {
+        fetchStudents(token).catch(() => {});
+      }
+      fetchSessions(token).catch(() => {});
     } else {
       setStudents([]);
       setSessions([]);
     }
-  }, [adminSession?.token]);
+  }, [adminSession?.token, studentSession?.token, fetchSessions]);
 
   const loginAdmin = useCallback(async (email, password) => {
     try {

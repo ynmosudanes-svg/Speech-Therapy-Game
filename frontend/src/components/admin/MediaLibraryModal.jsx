@@ -40,19 +40,20 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   };
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
     try {
       setIsUploading(true);
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      await gameService.uploadAsset(adminSession?.token, formData);
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        await gameService.uploadAsset(adminSession?.token, formData);
+      }
       setRefreshTrigger(prev => prev + 1); // Refresh the list
     } catch (error) {
-      console.error('Failed to upload file:', error);
-      alert('فشل رفع الملف، يرجى المحاولة مرة أخرى.');
+      console.error('Failed to upload files:', error);
+      alert('حدث خطأ أثناء رفع بعض الملفات، يرجى المحاولة مرة أخرى.');
     } finally {
       setIsUploading(false);
       // Reset input so the same file can be uploaded again if needed
@@ -120,6 +121,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
               onChange={handleFileUpload} 
               className="hidden" 
               accept="image/*,audio/*,video/*"
+              multiple
             />
             <button
               onClick={() => fileInputRef.current?.click()}

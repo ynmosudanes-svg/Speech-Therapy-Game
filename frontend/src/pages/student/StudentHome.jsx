@@ -122,10 +122,20 @@ const StudentHome = () => {
             </Swiper>
           </div>
         ) : (
-          <div className="rounded-[2.5rem] border-4 border-dashed border-[#c6d9ea] bg-white p-12 text-center mb-14">
-            <div className="text-6xl mb-4">📋</div>
-            <h3 className="text-2xl font-black text-slate-800 mb-2">لا توجد ألعاب مخصصة الآن</h3>
-            <p className="text-slate-600 text-lg font-bold">سيعطيك الأخصائي ألعاباً جديدة قريباً جداً!</p>
+          <div className="relative overflow-hidden rounded-[2.5rem] border-4 border-white/60 bg-gradient-to-br from-blue-100 via-sky-50 to-indigo-100 p-12 md:p-16 text-center mb-14 shadow-lg shadow-blue-900/5 hover:shadow-xl hover:shadow-blue-900/10 transition-all duration-500 transform hover:-translate-y-1">
+            {/* Decorative background blobs */}
+            <div className="absolute top-0 right-0 -mt-12 -mr-12 w-48 h-48 bg-white/50 rounded-full blur-2xl"></div>
+            <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-48 h-48 bg-blue-300/20 rounded-full blur-2xl"></div>
+            
+            <div className="relative z-10">
+              <div className="inline-flex items-center justify-center w-28 h-28 mb-6 rounded-[2rem] bg-white shadow-sm border border-blue-50 rotate-3 hover:rotate-6 transition-transform duration-300">
+                <span className="text-6xl drop-shadow-sm">🎮</span>
+              </div>
+              <h3 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">لا توجد ألعاب مخصصة الآن</h3>
+              <p className="text-slate-600 text-xl font-bold max-w-md mx-auto leading-relaxed">
+                خذ قسطاً من الراحة! سيعطيك الأخصائي ألعاباً وتحديات جديدة قريباً جداً 🚀
+              </p>
+            </div>
           </div>
         )}
 

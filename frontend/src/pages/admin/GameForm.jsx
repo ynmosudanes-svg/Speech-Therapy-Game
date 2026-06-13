@@ -1122,7 +1122,7 @@ const GameForm = ({ mode = 'create' }) => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="p-8 rounded-[2rem] space-y-6">
+        <Card className="p-8 rounded-[2rem] space-y-6 !overflow-visible">
           <SectionTitle>1. اختيار نوع اللعبة</SectionTitle>
 
           <div className="flex flex-col gap-4">
@@ -1212,7 +1212,7 @@ const GameForm = ({ mode = 'create' }) => {
               />
             </div>
 
-            <div className="relative w-full sm:max-w-[280px] z-50">
+            <div className="relative w-full sm:max-w-[280px]">
               <label className="block text-slate-700 font-bold mb-2">تصنيفات اللعبة</label>
               <button
                 type="button"

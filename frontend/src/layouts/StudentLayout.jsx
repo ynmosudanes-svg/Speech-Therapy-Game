@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, CalendarDays, FileText, Gamepad2, Home, LogOut, Menu, X } from 'lucide-react';
+import { Bell, CalendarDays, FileText, Gamepad2, Home, LogOut, Menu, X, UserRound } from 'lucide-react';
 import { useTherapyStore } from '../hooks/useTherapyStore';
 
 const PAGE_TITLES = {
@@ -84,7 +84,7 @@ const StudentLayout = () => {
                 {currentStudent?.avatarUrl ? (
                   <img src={currentStudent.avatarUrl} alt="صورة المستفيد" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-xl md:text-2xl drop-shadow-sm">👦</span>
+                  <UserRound size={24} className="text-sky-600 drop-shadow-sm" strokeWidth={2} />
                 )}
               </div>
             </div>

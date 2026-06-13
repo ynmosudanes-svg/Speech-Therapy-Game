@@ -174,7 +174,7 @@ const MatchingGame = ({
   /* ── Helper: compute card border class ── */
   const getOptionBorderClass = (option) => {
     if (selectedOption?.id === option.id) {
-      return 'border-blue-200 ring-4 ring-blue-400 shadow-blue-200/50 scale-105';
+      return 'border-slate-200 shadow-lg';
     }
     if (physicalHighlight && option.isCorrect) {
       return 'border-emerald-200 ring-4 ring-emerald-400 shadow-emerald-200/50 scale-105';
@@ -232,6 +232,7 @@ const MatchingGame = ({
               relative overflow-visible bg-[#FEFBFB] rounded-3xl p-5 md:p-8 flex flex-col items-center justify-center
               border-[4px] transition-all duration-200 group
               hover:-translate-y-2 hover:shadow-2xl
+              focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-200
               active:scale-95
               ${getOptionBorderClass(option)}
             `}

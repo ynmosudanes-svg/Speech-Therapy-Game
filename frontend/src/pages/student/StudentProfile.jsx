@@ -1,4 +1,5 @@
 import React from 'react';
+import { GraduationCap } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 
 const StudentProfile = () => {
@@ -9,8 +10,16 @@ const StudentProfile = () => {
   return (
     <div className="space-y-5">
       <section className="bg-white/95 border border-[#dbe7f3] rounded-[2.1rem] p-6 md:p-8 shadow-sm text-center">
-        <div className="w-20 h-20 rounded-[1.4rem] bg-blue-100 mx-auto mb-4 flex items-center justify-center text-4xl">
-          {currentStudent?.avatar || '👦'}
+        <div className="w-20 h-20 rounded-[1.4rem] bg-blue-100 mx-auto mb-4 flex items-center justify-center text-4xl overflow-hidden">
+          {currentStudent?.avatarUrl ? (
+            <img
+              src={currentStudent.avatarUrl}
+              alt="student avatar"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <GraduationCap size={42} className="text-blue-600" strokeWidth={2} />
+          )}
         </div>
         <h1 className="text-[2rem] md:text-[2.7rem] font-black text-slate-900 mb-2">صفحتي</h1>
         <p className="text-base md:text-lg text-slate-600 leading-7 md:leading-8 max-w-3xl mx-auto">

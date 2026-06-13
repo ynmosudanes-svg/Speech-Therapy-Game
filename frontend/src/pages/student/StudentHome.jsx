@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Star, Lock, Medal, Gamepad2, Check, RotateCcw, Sparkles, Trophy, Lightbulb } from 'lucide-react';
+import { Play, Star, Lock, Medal, Gamepad2, Check, RotateCcw, Sparkles, Trophy, Lightbulb, GraduationCap } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Autoplay } from 'swiper/modules';
@@ -75,8 +75,16 @@ const StudentHome = () => {
               {/* Slide 1: Welcome Slide */}
               <SwiperSlide>
                 <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
-                  <div className="text-7xl w-40 h-40 bg-white/20 backdrop-blur-sm rounded-[2rem] border-4 border-white/30 flex items-center justify-center shrink-0">
-                    {currentStudent?.avatar || '👦'}
+                  <div className="w-40 h-40 bg-white/20 backdrop-blur-sm rounded-[2rem] border-4 border-white/30 flex items-center justify-center shrink-0 overflow-hidden">
+                    {currentStudent?.avatarUrl ? (
+                      <img
+                        src={currentStudent.avatarUrl}
+                        alt="student avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <GraduationCap size={84} className="text-white drop-shadow-sm" strokeWidth={1.9} />
+                    )}
                   </div>
                   <div className="flex-1 text-center md:text-right">
                     <h3 className="text-3xl font-extrabold mb-3 text-white drop-shadow-sm">
@@ -93,7 +101,9 @@ const StudentHome = () => {
               {progressPercentage >= 100 ? (
                 <SwiperSlide>
                   <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
-                    <div className="text-8xl w-40 h-40 flex items-center justify-center drop-shadow-sm shrink-0">🎉</div>
+                    <div className="w-40 h-40 flex items-center justify-center shrink-0 rounded-[2rem] border-4 border-white/30 bg-white/15 backdrop-blur-sm">
+                      <Trophy size={84} className="text-white drop-shadow-sm" strokeWidth={1.9} />
+                    </div>
                     <div className="flex-1 text-center md:text-right">
                       <h3 className="text-4xl font-extrabold mb-3 text-white drop-shadow-sm">أنت بطل رائع!</h3>
                       <p className="text-blue-50 text-xl font-medium max-w-lg mx-auto md:mx-0">لقد أكملت جميع الألعاب في خطتك العلاجية بنجاح.</p>
@@ -129,7 +139,7 @@ const StudentHome = () => {
             
             <div className="relative z-10">
               <div className="inline-flex items-center justify-center w-28 h-28 mb-6 rounded-[2rem] bg-white shadow-sm border border-blue-50 rotate-3 hover:rotate-6 transition-transform duration-300">
-                <span className="text-6xl drop-shadow-sm">🎮</span>
+                <Gamepad2 size={58} className="text-sky-500 drop-shadow-sm" strokeWidth={2} />
               </div>
               <h3 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">لا توجد ألعاب مخصصة الآن</h3>
               <p className="text-slate-600 text-xl font-bold max-w-md mx-auto leading-relaxed">

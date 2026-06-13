@@ -143,7 +143,12 @@ export default function MatchingConnectGame({
         const x2 = targetRect.right - containerRect.left + 4;
         const y2 = targetRect.top - containerRect.top + (targetRect.height / 2);
 
-        newLines.push({ id, x1, y1, x2, y2 });
+        // Distance to stretch the curve horizontally. 
+        // We use Math.max to ensure there's a nice curve even if x1 and x2 are close.
+        const offset = Math.max(Math.abs(x1 - x2) * 0.5, 40);
+        const pathData = `M ${x1} ${y1} C ${x1 - offset} ${y1}, ${x2 + offset} ${y2}, ${x2} ${y2}`;
+
+        newLines.push({ id, x1, y1, x2, y2, pathData });
       }
     });
 
@@ -156,16 +161,15 @@ export default function MatchingConnectGame({
       if (sourceEl && targetEl) {
         const sourceRect = sourceEl.getBoundingClientRect();
         const targetRect = targetEl.getBoundingClientRect();
-        // Column A is right side, line connects to its left edge. 
-        // We move it slightly left (-4px) to perfectly center with the HTML anchor dot.
         const x1 = sourceRect.left - containerRect.left - 4; 
         const y1 = sourceRect.top - containerRect.top + (sourceRect.height / 2);
         
-        // Column B is left side, line connects to its right edge.
-        // We move it slightly right (+4px) to perfectly center.
         const x2 = targetRect.right - containerRect.left + 4;
         const y2 = targetRect.top - containerRect.top + (targetRect.height / 2);
-        setWrongLineSvg({ x1, y1, x2, y2 });
+        
+        const offset = Math.max(Math.abs(x1 - x2) * 0.5, 40);
+        const pathData = `M ${x1} ${y1} C ${x1 - offset} ${y1}, ${x2 + offset} ${y2}, ${x2} ${y2}`;
+        setWrongLineSvg({ x1, y1, x2, y2, pathData });
       }
     } else {
       setWrongLineSvg(null);
@@ -300,25 +304,25 @@ export default function MatchingConnectGame({
             <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                 {lines.map((line) => (
                     <g key={`line-${line.id}`}>
-                        {/* Background thick line */}
-                        <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
-                        {/* Foreground correct line */}
-                        <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="#10b981" strokeWidth="6" strokeLinecap="round" className="animate-[dash_0.5s_ease-out_forwards]" />
-                        <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="#10b981" strokeWidth="6" strokeLinecap="round" className="animate-[dash_0.5s_ease-out_forwards]" />
+                        {/* Background thick curve */}
+                        <path d={line.pathData} fill="none" stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
+                        {/* Foreground correct curve */}
+                        <path d={line.pathData} fill="none" stroke="#10b981" strokeWidth="6" strokeLinecap="round" className="animate-[dash_0.5s_ease-out_forwards]" />
+                        <path d={line.pathData} fill="none" stroke="#10b981" strokeWidth="6" strokeLinecap="round" className="animate-[dash_0.5s_ease-out_forwards]" />
                     </g>
                 ))}
                 
-                {/* Temporary Wrong Line */}
+                {/* Temporary Wrong Curve */}
                 {wrongLineSvg && (
                   <g>
-                    <line x1={wrongLineSvg.x1} y1={wrongLineSvg.y1} x2={wrongLineSvg.x2} y2={wrongLineSvg.y2} stroke="#fecdd3" strokeWidth="12" strokeLinecap="round" />
-                    <line x1={wrongLineSvg.x1} y1={wrongLineSvg.y1} x2={wrongLineSvg.x2} y2={wrongLineSvg.y2} stroke="#ef4444" strokeWidth="6" strokeLinecap="round" className="animate-[dash_0.3s_ease-out_forwards]" />
+                    <path d={wrongLineSvg.pathData} fill="none" stroke="#fecdd3" strokeWidth="12" strokeLinecap="round" />
+                    <path d={wrongLineSvg.pathData} fill="none" stroke="#ef4444" strokeWidth="6" strokeLinecap="round" className="animate-[dash_0.3s_ease-out_forwards]" />
                   </g>
                 )}
             </svg>
 
             {/* Column A (Visually Right, Logical Source) */}
-            <div className="flex flex-col justify-around w-[45%] sm:w-[40%] z-10 gap-4">
+            <div className="flex flex-col justify-around w-[36%] sm:w-[40%] z-10 gap-3 sm:gap-4">
                 {columnA.map((item) => {
                     const isSelected = selectedSource === item.id;
                     const isMatched = matchedIds.includes(item.id);
@@ -331,7 +335,7 @@ export default function MatchingConnectGame({
                             onClick={() => handleItemClick('source', item.id)}
                             disabled={isMatched}
                             className={`
-                                relative w-full rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 p-6 min-h-[140px]
+                                relative w-full rounded-2xl sm:rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 p-3 sm:p-6 min-h-[100px] sm:min-h-[140px]
                                 border-4 shadow-sm bg-white
                                 ${isMatched ? 'bg-emerald-50/50 border-emerald-200 scale-95 opacity-50 cursor-default' : 
                                   isSelected ? 'border-sky-500 shadow-sky-200 scale-105 shadow-xl z-20 ring-4 ring-sky-100' : 
@@ -340,15 +344,15 @@ export default function MatchingConnectGame({
                             `}
                         >
                             {item.image && (
-                              <img src={item.image} alt={item.label} className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-3 drop-shadow-md pointer-events-none transition-transform group-hover:scale-110" />
+                              <img src={item.image} alt={item.label} className="w-16 h-16 sm:w-28 sm:h-28 object-contain mb-1 sm:mb-3 drop-shadow-md pointer-events-none transition-transform group-hover:scale-110" />
                             )}
-                            {item.label && <span className={`text-xl sm:text-2xl font-black ${item.image ? 'text-slate-700' : 'text-slate-600 text-3xl'}`}>{item.label}</span>}
+                            {item.label && <span className={`text-base sm:text-2xl font-black ${item.image ? 'text-slate-700' : 'text-slate-600 text-xl sm:text-3xl'}`}>{item.label}</span>}
                             {!item.image && !item.label && (
-                              <span className="text-xl sm:text-2xl font-black text-slate-300">صورة فارغة</span>
+                              <span className="text-sm sm:text-2xl font-black text-slate-300">صورة فارغة</span>
                             )}
                             
                             {/* Anchor point visual (Left side of card) */}
-                            <div className={`absolute top-1/2 -left-[14px] -translate-y-1/2 w-6 h-6 rounded-full border-4 border-white transition-all duration-300 z-20 shadow-sm
+                            <div className={`absolute top-1/2 -left-[10px] sm:-left-[14px] -translate-y-1/2 w-4 h-4 sm:w-6 sm:h-6 rounded-full border-2 sm:border-4 border-white transition-all duration-300 z-20 shadow-sm
                                 ${isMatched ? 'bg-emerald-500 border-emerald-100 scale-90' : isSelected ? 'bg-sky-500 scale-125 ring-2 ring-sky-200' : isWrong ? 'bg-rose-500' : 'bg-slate-300 hover:bg-sky-400'}
                             `} />
                         </button>
@@ -357,7 +361,7 @@ export default function MatchingConnectGame({
             </div>
 
             {/* Column B (Visually Left, Logical Target) */}
-            <div className="flex flex-col justify-around w-[45%] sm:w-[40%] z-10 gap-4">
+            <div className="flex flex-col justify-around w-[36%] sm:w-[40%] z-10 gap-3 sm:gap-4">
                  {columnB.map((item) => {
                     const isSelected = selectedTarget === item.id;
                     const isMatched = matchedIds.includes(item.id);
@@ -370,7 +374,7 @@ export default function MatchingConnectGame({
                             onClick={() => handleItemClick('target', item.id)}
                             disabled={isMatched}
                             className={`
-                                relative w-full rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 p-6 min-h-[140px]
+                                relative w-full rounded-2xl sm:rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 p-3 sm:p-6 min-h-[100px] sm:min-h-[140px]
                                 border-4 shadow-sm bg-white
                                 ${isMatched ? 'bg-emerald-50/50 border-emerald-200 scale-95 opacity-50 cursor-default' : 
                                   isSelected ? 'border-sky-500 shadow-sky-200 scale-105 shadow-xl z-20 ring-4 ring-sky-100' : 
@@ -379,15 +383,15 @@ export default function MatchingConnectGame({
                             `}
                         >
                             {item.image && (
-                              <img src={item.image} alt={item.label} className="w-24 h-24 sm:w-28 sm:h-28 object-contain mb-3 drop-shadow-md pointer-events-none transition-transform group-hover:scale-110" />
+                              <img src={item.image} alt={item.label} className="w-16 h-16 sm:w-28 sm:h-28 object-contain mb-1 sm:mb-3 drop-shadow-md pointer-events-none transition-transform group-hover:scale-110" />
                             )}
-                            {item.label && <span className={`text-xl sm:text-2xl font-black ${item.image ? 'text-slate-700' : 'text-slate-600 text-3xl'}`}>{item.label}</span>}
+                            {item.label && <span className={`text-base sm:text-2xl font-black ${item.image ? 'text-slate-700' : 'text-slate-600 text-xl sm:text-3xl'}`}>{item.label}</span>}
                             {!item.image && !item.label && (
-                              <span className="text-xl sm:text-2xl font-black text-slate-300">صورة فارغة</span>
+                              <span className="text-sm sm:text-2xl font-black text-slate-300">صورة فارغة</span>
                             )}
                             
                             {/* Anchor point visual (Right side of card) */}
-                            <div className={`absolute top-1/2 -right-[14px] -translate-y-1/2 w-6 h-6 rounded-full border-4 border-white transition-all duration-300 z-20 shadow-sm
+                            <div className={`absolute top-1/2 -right-[10px] sm:-right-[14px] -translate-y-1/2 w-4 h-4 sm:w-6 sm:h-6 rounded-full border-2 sm:border-4 border-white transition-all duration-300 z-20 shadow-sm
                                 ${isMatched ? 'bg-emerald-500 border-emerald-100 scale-90' : isSelected ? 'bg-sky-500 scale-125 ring-2 ring-sky-200' : isWrong ? 'bg-rose-500' : 'bg-slate-300 hover:bg-sky-400'}
                             `} />
                         </button>

@@ -1306,31 +1306,6 @@ const GameForm = ({ mode = 'create' }) => {
               placeholder="مثال: intro-video.mp4"
             />
 
-            <div className="grid lg:grid-cols-2 gap-6">
-              <SoundPresetField
-                label="صوت النجاح"
-                value={builderState.config.media?.successSound || ''}
-                options={SOUND_PRESET_OPTIONS.success}
-                onChange={(value) =>
-                  updateConfig((current) => ({
-                    ...current,
-                    media: { ...current.media, successSound: value },
-                  }))
-                }
-              />
-
-              <SoundPresetField
-                label="صوت الخطأ"
-                value={builderState.config.media?.failSound || ''}
-                options={SOUND_PRESET_OPTIONS.fail}
-                onChange={(value) =>
-                  updateConfig((current) => ({
-                    ...current,
-                    media: { ...current.media, failSound: value },
-                  }))
-                }
-              />
-            </div>
           </div>
         </Card>
 

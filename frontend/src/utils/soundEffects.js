@@ -116,14 +116,38 @@ export const playSpokenArabic = (text) => {
 };
 
 export const playSuccessSound = () => {
-  playTone({ frequency: 523.25, duration: 0.18, type: 'sine', volume: 0.16 });
-  playTone({ frequency: 659.25, duration: 0.2, type: 'sine', volume: 0.14, delay: 0.12 });
-  playTone({ frequency: 783.99, duration: 0.24, type: 'triangle', volume: 0.12, delay: 0.24 });
+  try {
+    // Layering multiple sounds for success
+    const clap = new Audio('/sounds/clap.mp3');
+    const goodJob = new Audio('/sounds/goodjob.mp3');
+    const levelUp = new Audio('/sounds/levelup.mp3');
+    
+    // Adjust volumes if necessary (0.0 to 1.0)
+    clap.volume = 0.8;
+    goodJob.volume = 1.0;
+    levelUp.volume = 0.6;
+
+    clap.play().catch(e => console.warn('Audio play prevented:', e));
+    goodJob.play().catch(e => console.warn('Audio play prevented:', e));
+    levelUp.play().catch(e => console.warn('Audio play prevented:', e));
+  } catch (error) {
+    console.warn('Error playing success sounds:', error);
+  }
 };
 
 export const playErrorSound = () => {
-  playTone({ frequency: 320, duration: 0.16, type: 'sawtooth', volume: 0.12 });
-  playTone({ frequency: 240, duration: 0.22, type: 'sawtooth', volume: 0.1, delay: 0.12 });
+  try {
+    const tryAgain = new Audio('/sounds/tryagain.mp3');
+    const failBuzz = new Audio('/sounds/failbuzz.mp3');
+    
+    tryAgain.volume = 1.0;
+    failBuzz.volume = 0.5;
+
+    tryAgain.play().catch(e => console.warn('Audio play prevented:', e));
+    failBuzz.play().catch(e => console.warn('Audio play prevented:', e));
+  } catch (error) {
+    console.warn('Error playing error sounds:', error);
+  }
 };
 
 export const playMoveSound = () => {

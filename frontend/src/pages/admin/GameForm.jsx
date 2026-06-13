@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
+import CustomSelect from '../../components/CustomSelect';
 import ImageAssetField from '../../components/ImageAssetField';
 import { gameService } from '../../services/gameService';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
@@ -1375,10 +1376,9 @@ const GameForm = ({ mode = 'create' }) => {
                       
                       <div>
                         <label className="block text-slate-600 font-bold mb-2">نوع اللعبة لهذا النشاط</label>
-                        <select
+                        <CustomSelect
                           value={currentActivityType}
-                          onChange={(e) => {
-                            const newType = e.target.value;
+                          onChange={(newType) => {
                             // Update activity type and merge default properties for the new type
                             updateCurrentActivity((activity) => ({
                               ...activity,
@@ -1386,12 +1386,11 @@ const GameForm = ({ mode = 'create' }) => {
                               ...getDefaultActivityForType(newType, selectedActivity)
                             }));
                           }}
-                          className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none bg-white"
-                        >
-                          {GAME_TYPE_CARDS.map(card => (
-                            <option key={card.value} value={card.value}>{card.title}</option>
-                          ))}
-                        </select>
+                          options={GAME_TYPE_CARDS.map(card => ({
+                            value: card.value,
+                            label: card.title
+                          }))}
+                        />
                       </div>
                     </div>
                   </div>

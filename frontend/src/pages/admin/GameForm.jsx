@@ -1293,33 +1293,13 @@ const GameForm = ({ mode = 'create' }) => {
         {builderState.type && (
           <div className="grid xl:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
             <Card className="p-8 rounded-[2rem] space-y-6">
-              <SectionTitle>2. المستويات والأنشطة</SectionTitle>
-
-              <div className="flex flex-wrap gap-3">
-                {levels.map((level, index) => (
-                  <button
-                    key={level.levelNumber}
-                    type="button"
-                    onClick={() => {
-                      setSelectedLevel(index);
-                      setSelectedActivity(0);
-                    }}
-                    className={`rounded-[1.4rem] px-5 py-3 font-black border transition-all ${
-                      selectedLevel === index
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-slate-700 border-[#dbe7f3]'
-                    }`}
-                  >
-                    Level {level.levelNumber}
-                  </button>
-                ))}
-              </div>
+              <SectionTitle>2. الأنشطة</SectionTitle>
 
               <div className="rounded-[1.8rem] border border-[#dbe7f3] p-5 bg-[#f8fbff] space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div>
-                    <div className="text-lg font-black text-slate-900">أنشطة المستوى {currentLevel?.levelNumber}</div>
-                    <div className="text-sm text-slate-500">يمكنك إضافة عدة Activities داخل كل مستوى.</div>
+                    <div className="text-lg font-black text-slate-900">أنشطة اللعبة</div>
+                    <div className="text-sm text-slate-500">يمكنك إضافة عدة أنشطة (أسئلة) داخل اللعبة.</div>
                   </div>
 
                   <Button type="button" variant="outline" onClick={addActivity} className="!py-2 !px-4">
@@ -1379,7 +1359,7 @@ const GameForm = ({ mode = 'create' }) => {
                       <h3 className="text-lg font-black">إعدادات النشاط</h3>
                     </div>
                     
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid md:grid-cols-1 gap-6">
                       <div>
                         <label className="block text-slate-600 font-bold mb-2">عنوان النشاط</label>
                         <input
@@ -1389,19 +1369,6 @@ const GameForm = ({ mode = 'create' }) => {
                           className="w-full px-4 py-3 rounded-2xl border border-gray-300 bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none placeholder:text-slate-400"
                           placeholder={getActivityAutoTitle(selectedActivity)}
                         />
-                      </div>
-
-                      <div>
-                        <label className="block text-slate-600 font-bold mb-2">الصعوبة</label>
-                        <select
-                          value={currentActivity.difficulty || 'easy'}
-                          onChange={(event) => setActivityField('difficulty', event.target.value)}
-                          className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none bg-white"
-                        >
-                          <option value="easy">سهل</option>
-                          <option value="medium">متوسط</option>
-                          <option value="hard">صعب</option>
-                        </select>
                       </div>
                     </div>
                   </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, CalendarClock, Flag, Target, TrendingUp, Users, Clock, User, ChevronLeft, Gamepad2, Tags, LayoutTemplate, Layers, BarChart, PlayCircle } from 'lucide-react';
+import { Activity, CalendarClock, Flag, Target, TrendingUp, Users, Clock, User, ChevronLeft, Gamepad2, Tags, LayoutTemplate, Layers, PlayCircle } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 
@@ -23,7 +23,6 @@ export default function AdminDashboard() {
     const totalGames = games.length;
     const activeCategories = new Set(games.map(g => g.type)).size;
     const totalActivities = games.reduce((acc, g) => acc + (g.config?.levels?.reduce((lAcc, l) => lAcc + (l.activities?.length || 0), 0) || 0), 0);
-    const difficultyLevels = 3;
     const gamesPlayed = sessions.length;
 
     // Last 5 sessions as "Recent Sessions"
@@ -49,7 +48,6 @@ export default function AdminDashboard() {
         activeCategories,
         playTemplates: games.length,
         totalActivities,
-        difficultyLevels,
         gamesPlayed,
       },
       upcomingSessions,
@@ -64,7 +62,6 @@ export default function AdminDashboard() {
     { label: 'التصنيفات النشطة', value: kpis.activeCategories, icon: Tags, tone: 'from-[#38bdf8] to-[#168FC7]', bg: 'bg-sky-50', text: 'text-[#168FC7]' },
     { label: 'قوالب اللعب', value: kpis.playTemplates, icon: LayoutTemplate, tone: 'from-[#7dd3fc] to-[#168FC7]', bg: 'bg-sky-50', text: 'text-[#168FC7]' },
     { label: 'الأنشطة التفاعلية', value: kpis.totalActivities, icon: Layers, tone: 'from-[#168FC7] to-[#0f7ea6]', bg: 'bg-cyan-50', text: 'text-cyan-700' },
-    { label: 'مستويات الصعوبة', value: kpis.difficultyLevels, icon: BarChart, tone: 'from-[#38bdf8] to-[#168FC7]', bg: 'bg-sky-50', text: 'text-[#168FC7]' },
     { label: 'مرات اللعب', value: kpis.gamesPlayed, icon: PlayCircle, tone: 'from-[#168FC7] to-[#0f7ea6]', bg: 'bg-cyan-50', text: 'text-cyan-700' },
   ];
 

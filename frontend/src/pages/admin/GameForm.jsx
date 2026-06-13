@@ -1212,7 +1212,7 @@ const GameForm = ({ mode = 'create' }) => {
               />
             </div>
 
-            <div className="relative w-full sm:max-w-[280px]">
+            <div className="relative w-full sm:max-w-[280px] z-50">
               <label className="block text-slate-700 font-bold mb-2">تصنيفات اللعبة</label>
               <button
                 type="button"

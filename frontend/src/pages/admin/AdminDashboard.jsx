@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, CalendarClock, Flag, Target, TrendingUp, Users, Clock, User, ChevronLeft, Gamepad2, Tags, LayoutTemplate, Layers, PlayCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Activity, CalendarClock, Flag, Target, TrendingUp, Users, Clock, UserRound, Gamepad2, Tags, LayoutTemplate, Layers, PlayCircle } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 
@@ -10,6 +11,7 @@ const Card = ({ children, className = '' }) => (
 );
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const { students, sessions, adminSession } = useTherapyStore();
   const [games, setGames] = useState([]);
 
@@ -33,7 +35,7 @@ export default function AdminDashboard() {
         patientName: student?.name || 'طالب محذوف',
         time: new Date(session.createdAt).toLocaleDateString('ar-EG'),
         type: session.gameType === 'speech' ? 'نطق وتخاطب' : 'تنمية مهارات',
-        color: 'bg-blue-100 text-blue-700'
+        color: 'bg-[#f5f8f9] text-[#138fbc] border border-[#d6e0e4]'
       };
     });
 
@@ -134,7 +136,7 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                <div className="p-2.5 bg-[#f5f8f9] text-[#138fbc] rounded-xl">
                   <CalendarClock size={24} />
                 </div>
                 <h2 className="text-xl font-black text-slate-900">أحدث الجلسات</h2>
@@ -144,11 +146,11 @@ export default function AdminDashboard() {
                 {upcomingSessions.map((session) => (
                   <div
                     key={session.id}
-                    className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 hover:border-blue-100 hover:bg-blue-50/30 transition-all group cursor-pointer"
+                    className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 hover:border-[#d6e0e4] hover:bg-[#f9fbfb] transition-all group"
                   >
                     <div className="flex items-center gap-3.5">
-                      <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:text-blue-600 transition-colors shadow-sm">
-                        <User size={20} />
+                      <div className="w-11 h-11 rounded-xl bg-[#f8fbfd] flex items-center justify-center text-[#6b7a90] group-hover:bg-white group-hover:text-[#138fbc] transition-colors shadow-sm border border-[#e7eef3]">
+                        <UserRound size={20} />
                       </div>
                       <div>
                         <div className="font-bold text-slate-800">{session.patientName}</div>
@@ -160,13 +162,16 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <span className={`px-3 py-1 rounded-lg text-xs font-bold ${session.color}`}>{session.type}</span>
-                      <ChevronLeft size={16} className="text-slate-300 group-hover:text-blue-500" />
                     </div>
                   </div>
                 ))}
               </div>
-              <button className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-500 font-bold hover:bg-sky-50 hover:border-[#168FC7] hover:text-[#168FC7] transition-colors">
-                عرض الجدول الكامل
+              <button
+                type="button"
+                onClick={() => navigate('/admin/reports')}
+                className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-[#d6e0e4] text-slate-600 font-bold hover:bg-[#f5f8f9] hover:border-[#138fbc] hover:text-[#138fbc] transition-colors"
+              >
+                عرض كل الجلسات والتقارير
               </button>
             </Card>
           </div>

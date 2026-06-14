@@ -6,13 +6,25 @@ import { playAudioUrl, playErrorSound, playSuccessSound } from '../utils/soundEf
 
 const FeedbackModal = ({ isCorrect, onNext, show, successSound, failSound }) => {
   useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.classList.toggle('feedback-modal-open', show);
+    }
+
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('feedback-modal-open');
+      }
+    };
+  }, [show]);
+
+  useEffect(() => {
     if (!show) return;
 
     if (isCorrect) {
       if (successSound) playAudioUrl(successSound);
       else playSuccessSound();
 
-      const burst = { spread: 68, startVelocity: 26, ticks: 85, gravity: 1.1, zIndex: 1000 };
+      const burst = { spread: 68, startVelocity: 26, ticks: 85, gravity: 1.1, zIndex: 1400 };
 
       confetti({ ...burst, particleCount: 50, origin: { y: 0.65 } });
       const followUp = window.setTimeout(() => {
@@ -33,8 +45,8 @@ const FeedbackModal = ({ isCorrect, onNext, show, successSound, failSound }) => 
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-10 max-w-sm w-full text-center shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] transform transition-all scale-100 animate-bounce-in border border-white/50 relative overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-lg z-[1200] flex items-center justify-center p-4">
+      <div className="bg-white/97 backdrop-blur-xl rounded-[2.5rem] p-10 max-w-sm w-full text-center shadow-[0_28px_70px_-18px_rgba(15,23,42,0.25)] transform transition-all scale-100 animate-bounce-in border border-white/60 relative overflow-hidden z-[1210]">
         {/* Soft background glow based on status */}
         <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-64 opacity-20 blur-3xl rounded-full pointer-events-none ${isCorrect ? 'bg-emerald-400' : 'bg-rose-400'}`}></div>
         
@@ -47,7 +59,7 @@ const FeedbackModal = ({ isCorrect, onNext, show, successSound, failSound }) => 
             <p className="text-lg text-slate-500 mb-10 font-medium">إجابة صحيحة يا بطل 🌟</p>
             <button 
               onClick={onNext}
-              className="w-full bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-600 hover:to-emerald-500 text-white text-lg font-bold py-4 rounded-2xl shadow-lg shadow-emerald-200 transition-all hover:shadow-xl hover:-translate-y-1 active:translate-y-0"
+              className="w-full bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-lg font-bold py-4 rounded-2xl shadow-lg shadow-emerald-200 transition-all active:scale-[0.99]"
             >
               التالي
             </button>
@@ -61,7 +73,7 @@ const FeedbackModal = ({ isCorrect, onNext, show, successSound, failSound }) => 
             <p className="text-lg text-slate-500 mb-10 font-medium">تقدر تجاوب صح المرة دي 💪</p>
             <button 
               onClick={onNext}
-              className="w-full bg-gradient-to-r from-rose-500 to-rose-400 hover:from-rose-600 hover:to-rose-500 text-white text-lg font-bold py-4 rounded-2xl shadow-lg shadow-rose-200 transition-all hover:shadow-xl hover:-translate-y-1 active:translate-y-0"
+              className="w-full bg-gradient-to-r from-rose-500 to-rose-400 text-white text-lg font-bold py-4 rounded-2xl shadow-lg shadow-rose-200 transition-all active:scale-[0.99]"
             >
               حاول مرة كمان
             </button>

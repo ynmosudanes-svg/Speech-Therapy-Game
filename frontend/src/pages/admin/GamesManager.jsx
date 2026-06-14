@@ -238,7 +238,7 @@ const GamesManager = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => navigate(`/admin/games/edit/${game.id}`)}
                           className="w-9 h-9 flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-transparent hover:border-blue-200"

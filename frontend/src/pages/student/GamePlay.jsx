@@ -2,12 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DoorOpen, ShieldCheck } from 'lucide-react';
 import Button from '../../components/Button';
+import ConfirmModal from '../../components/ConfirmModal';
 import GameEngine from '../../games/GameEngine';
 import normalizeGameForEngine from '../../games/adapters/normalizeGameForEngine';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 import { computeSessionMetrics } from '../../utils/sessionMetrics';
-import { stopGameAudio } from '../../utils/soundEffects';
+import { silenceSiteAudio, stopGameAudio } from '../../utils/soundEffects';
 
 const GamePlay = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ const GamePlay = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showIntroVideo, setShowIntroVideo] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const currentLevel = Math.min(Math.max(Number(currentStudent?.currentLevel || 1), 1), 3);
   const assignedGame = useMemo(
     () =>
@@ -62,6 +64,40 @@ const GamePlay = () => {
   useEffect(() => {
     setShowIntroVideo(Boolean(introVideo));
   }, [introVideo, game?.id]);
+
+  useEffect(() => {
+    document.body.classList.toggle('confirm-modal-open', showExitConfirm);
+
+    if (showExitConfirm) {
+      silenceSiteAudio();
+    }
+
+    return () => {
+      document.body.classList.remove('confirm-modal-open');
+    };
+  }, [showExitConfirm]);
+
+  useEffect(() => {
+    const handleBackgroundAudioStop = () => {
+      silenceSiteAudio({ resetTrackedAudio: false });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleBackgroundAudioStop();
+      }
+    };
+
+    window.addEventListener('blur', handleBackgroundAudioStop);
+    window.addEventListener('pagehide', handleBackgroundAudioStop);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('blur', handleBackgroundAudioStop);
+      window.removeEventListener('pagehide', handleBackgroundAudioStop);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const handleGameComplete = async (stats) => {
     if (!currentStudent || !game) {
@@ -189,6 +225,7 @@ const GamePlay = () => {
             therapistPromptLevel={'none'}
             onUnsupported={() => navigate('/student/home')}
             startLevel={currentLevel}
+            assistantSuspended={showExitConfirm}
             assistantOptions={{
               idleTime: Number(game?.config?.assistant?.idleTime || 7000),
               hintLevel1: game?.config?.assistant?.hintLevel1 || undefined,
@@ -197,11 +234,23 @@ const GamePlay = () => {
               audioText: game?.config?.assistant?.audioText || undefined,
               helpVoiceEnabled: true,
             }}
-            onExit={() => {
-              if (window.confirm('هل تود الخروج من اللعبة حقاً؟ لن يتم حفظ أي تقدم في هذه الجلسة ولن يؤثر ذلك على التقييم.')) {
-                navigate('/student/home');
-              }
+            onExit={() => setShowExitConfirm(true)}
+          />
+
+          <ConfirmModal
+            isOpen={showExitConfirm}
+            onClose={() => setShowExitConfirm(false)}
+            onConfirm={() => {
+              setShowExitConfirm(false);
+              navigate('/student/home');
             }}
+            title="الخروج من اللعبة"
+            message="هل تود الخروج من اللعبة الآن؟ لن يتم حفظ أي تقدم في هذه الجلسة، ولن يؤثر ذلك على التقييم."
+            confirmText="خروج"
+            cancelText="إلغاء"
+            isDestructive={false}
+            hideCancelButton
+            position="top"
           />
         </>
       )}

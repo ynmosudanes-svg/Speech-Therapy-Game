@@ -1,5 +1,11 @@
 const fallbackName = 'لعبة علاجية';
 const getDefaultActivityTitle = (index = 0) => `نشاط ${index + 1}`;
+const getDefaultInstructionForType = (type) => {
+  if (type === 'matching.similar') return 'اختر الصورة المطابقة';
+  if (type === 'matching.different') return 'أوجد المختلف';
+  if (type === 'matching.find') return 'أوجد الصورة المطلوبة';
+  return 'اكتب السؤال هنا';
+};
 
 const createMatchingOption = (id, isCorrect = false) => ({
   id,
@@ -36,7 +42,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
-      questionAr: '',
+      questionAr: getDefaultInstructionForType(type),
       instructionAudio: '',
       difficulty: 'easy',
       heroImage: '',
@@ -49,7 +55,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
-      questionAr: '',
+      questionAr: getDefaultInstructionForType(type),
       instructionAudio: '',
       difficulty: 'easy',
       heroImage: '',
@@ -62,7 +68,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       type,
       id: `activity_${Date.now()}`,
       titleAr: getDefaultActivityTitle(activityIndex),
-      questionAr: '',
+      questionAr: getDefaultInstructionForType(type),
       instructionAudio: '',
       difficulty: 'easy',
       heroImage: '',
@@ -234,13 +240,37 @@ export const createEmptyBuilderConfig = (type = 'matching.similar') => ({
   })),
 });
 
+export const normalizeActivityTypesForConfig = (config, fallbackType = 'matching.similar') => {
+  const defaultType = config?.templateType || fallbackType || 'matching.similar';
+
+  return {
+    ...config,
+    templateType: defaultType,
+    levels: [1, 2, 3].map((levelNumber, index) => {
+      const level = config?.levels?.[index] || {};
+      const activities = Array.isArray(level.activities) ? level.activities : [];
+
+      return {
+        ...level,
+        levelNumber: Number(level.levelNumber ?? levelNumber),
+        starsToUnlock: Number(level.starsToUnlock ?? (levelNumber === 1 ? 0 : 2)),
+        activities: activities.map((activity) => ({
+          ...activity,
+          type: activity?.type || defaultType,
+        })),
+      };
+    }),
+  };
+};
+
 export const normalizeBuilderConfig = (game) => {
   const config = game?.config;
 
   if (config?.version === 2 && Array.isArray(config.levels)) {
-    return {
+    const templateType = game?.type || config.templateType || 'matching.similar';
+    return normalizeActivityTypesForConfig({
       ...config,
-      templateType: game?.type || config.templateType,
+      templateType,
       name: game?.name || config.name || '',
       nameAr: game?.titleAr || game?.nameAr || config.nameAr || '',
       media: {
@@ -255,7 +285,7 @@ export const normalizeBuilderConfig = (game) => {
           ? config.levels[index].activities
           : [],
       })),
-    };
+    }, templateType);
   }
 
   return createEmptyBuilderConfig(game?.type || 'matching.similar');
@@ -279,7 +309,7 @@ export const buildActivityRuntimeGame = ({
         gameType: templateType,
         titleAr,
         content: {
-          instructionAr: activity?.questionAr || 'اكتب السؤال هنا',
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
           questionAudio: activity?.instructionAudio || '',
           hero: { image: activity?.heroImage || '' },
           options: Array.isArray(activity?.options) ? activity.options : [],

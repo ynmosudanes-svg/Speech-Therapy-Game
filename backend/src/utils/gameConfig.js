@@ -138,15 +138,17 @@ function normalizeMazeConfig(activity) {
 }
 
 function normalizeActivity(activity, type, index) {
+  const activityType = SUPPORTED_TEMPLATE_TYPES.includes(activity?.type) ? activity.type : type;
   const baseActivity = {
     id: String(activity?.id || `activity_${index + 1}`),
+    type: activityType,
     titleAr: activity?.titleAr || '',
     questionAr: activity?.questionAr || activity?.instructionAr || '',
     instructionAudio: activity?.instructionAudio || '',
     difficulty: activity?.difficulty || 'easy',
   };
 
-  if (type === 'matching.similar' || type === 'matching.different' || type === 'matching.find') {
+  if (activityType === 'matching.similar' || activityType === 'matching.different' || activityType === 'matching.find') {
     return {
       ...baseActivity,
       heroImage: activity?.heroImage || '',
@@ -154,7 +156,7 @@ function normalizeActivity(activity, type, index) {
     };
   }
 
-  if (type === 'action.drag_to_target') {
+  if (activityType === 'action.drag_to_target') {
     return {
       ...baseActivity,
       mode: activity?.mode || 'one-to-one',
@@ -164,28 +166,28 @@ function normalizeActivity(activity, type, index) {
     };
   }
 
-  if (type === 'navigation.move_to_target') {
+  if (activityType === 'navigation.move_to_target') {
     return {
       ...baseActivity,
       ...normalizeNavigationConfig(activity),
     };
   }
 
-  if (type === 'navigation.maze') {
+  if (activityType === 'navigation.maze') {
     return {
       ...baseActivity,
       ...normalizeMazeConfig(activity),
     };
   }
 
-  if (type === 'sequence.order') {
+  if (activityType === 'sequence.order') {
     return {
       ...baseActivity,
       steps: Array.isArray(activity?.steps) ? activity.steps.map(normalizeStep) : [],
     };
   }
 
-  if (type === 'text.missing_word') {
+  if (activityType === 'text.missing_word') {
     return {
       ...baseActivity,
       image: activity?.image || '',
@@ -194,14 +196,14 @@ function normalizeActivity(activity, type, index) {
     };
   }
 
-  if (type === 'cards.audio_flashcards') {
+  if (activityType === 'cards.audio_flashcards') {
     return {
       ...baseActivity,
       cards: Array.isArray(activity?.cards) ? activity.cards : [],
     };
   }
 
-  if (type === 'puzzle.jigsaw') {
+  if (activityType === 'puzzle.jigsaw') {
     return {
       ...baseActivity,
       image: activity?.image || '',
@@ -209,7 +211,7 @@ function normalizeActivity(activity, type, index) {
     };
   }
 
-  if (type === 'matching.connect') {
+  if (activityType === 'matching.connect') {
     return {
       ...baseActivity,
       pairs: Array.isArray(activity?.pairs) ? activity.pairs.map(normalizePair) : [],
@@ -291,6 +293,7 @@ function buildConfigFromLegacyGame(game) {
     baseConfig.levels[0].activities = [
       {
         id: 'activity_1',
+        type,
         titleAr: game.titleAr || game.name || '',
         questionAr: game.questionTextAr || game.questionText || '',
         instructionAudio: game.questionAudio || '',
@@ -306,6 +309,7 @@ function buildConfigFromLegacyGame(game) {
     baseConfig.levels[0].activities = [
       {
         id: 'activity_1',
+        type,
         titleAr: game.titleAr || game.name || '',
         questionAr: game.instructionTextAr || game.instructionText || '',
         instructionAudio: game.instructionAudio || '',

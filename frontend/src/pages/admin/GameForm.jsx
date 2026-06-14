@@ -31,6 +31,7 @@ import {
   buildActivityRuntimeGame,
   createEmptyBuilderConfig,
   getDefaultActivityForType,
+  normalizeActivityTypesForConfig,
   normalizeBuilderConfig,
 } from '../../games/adapters/buildActivityPreviewGame';
 import renderGameActivity from '../../games/renderGameActivity';
@@ -524,6 +525,18 @@ const GameForm = ({ mode = 'create' }) => {
 
   const currentActivityType = currentActivity?.type || builderState.type;
 
+  useEffect(() => {
+    const hasActivityWithoutType = (builderState.config?.levels || []).some((level) =>
+      (level.activities || []).some((activity) => !activity?.type)
+    );
+
+    if (!hasActivityWithoutType) {
+      return;
+    }
+
+    updateConfig((currentConfig) => normalizeActivityTypesForConfig(currentConfig, builderState.type));
+  }, [builderState.config?.levels, builderState.type]);
+
   const previewGame = useMemo(() => {
     if (!currentActivityType || !currentActivity) {
       return null;
@@ -544,7 +557,7 @@ const GameForm = ({ mode = 'create' }) => {
     }));
   };
 
-  const updateType = (type) => {
+  const updateDefaultActivityType = (type) => {
     const selectedTypeCard = GAME_TYPE_CARDS.find((card) => card.value === type);
 
     setBuilderState((current) => {
@@ -562,7 +575,7 @@ const GameForm = ({ mode = 'create' }) => {
         name: autoName,
         nameAr: autoNameAr,
         config: {
-          ...current.config,
+          ...normalizeActivityTypesForConfig(current.config, current.type || type),
           templateType: type,
           name: autoName,
           nameAr: autoNameAr,
@@ -591,13 +604,14 @@ const GameForm = ({ mode = 'create' }) => {
   };
 
   const addActivity = () => {
-    if (!builderState.type) return;
+    const newActivityType = builderState.type || currentActivityType;
+    if (!newActivityType) return;
 
     updateLevel(selectedLevel, (level) => ({
       ...level,
       activities: [
         ...level.activities,
-        getDefaultActivityForType(builderState.type, level.activities.length),
+        getDefaultActivityForType(newActivityType, level.activities.length),
       ],
     }));
     setSelectedActivity(currentActivities.length);
@@ -613,6 +627,22 @@ const GameForm = ({ mode = 'create' }) => {
 
   const setActivityField = (field, value) => {
     updateCurrentActivity((activity) => ({ ...activity, [field]: value }));
+  };
+
+  const changeCurrentActivityType = (newType) => {
+    updateCurrentActivity((activity) => {
+      const defaults = getDefaultActivityForType(newType, selectedActivity);
+
+      return {
+        ...defaults,
+        id: activity.id || defaults.id,
+        type: newType,
+        titleAr: activity.titleAr || defaults.titleAr,
+        questionAr: defaults.questionAr,
+        instructionAudio: '',
+        difficulty: activity.difficulty || defaults.difficulty,
+      };
+    });
   };
 
   const updateOption = (optionIndex, field, value) => {
@@ -1053,7 +1083,7 @@ const GameForm = ({ mode = 'create' }) => {
             return `Target position لازم تكون داخل الـ Grid في المستوى ${level.levelNumber}.`;
           }
           if (
-            builderState.type === 'navigation.move_to_target' &&
+            activityType === 'navigation.move_to_target' &&
             Number(activity.target?.radius || 0) < 1
           ) {
             return `Radius لازم تكون 1 أو أكثر في المستوى ${level.levelNumber}.`;
@@ -1075,6 +1105,8 @@ const GameForm = ({ mode = 'create' }) => {
     setFormError('');
     setSaving(true);
 
+    const configWithActivityTypes = normalizeActivityTypesForConfig(builderState.config, builderState.type);
+
     const payload = {
       gameCode: builderState.gameCode.trim(),
       name: builderState.name.trim() || builderState.nameAr.trim(),
@@ -1083,7 +1115,7 @@ const GameForm = ({ mode = 'create' }) => {
       level: 1,
       isActive: builderState.isActive,
       config: {
-        ...builderState.config,
+        ...configWithActivityTypes,
         name: builderState.name.trim() || builderState.nameAr.trim(),
         nameAr: builderState.nameAr.trim(),
         templateType: builderState.type,
@@ -1126,7 +1158,11 @@ const GameForm = ({ mode = 'create' }) => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card className="p-8 rounded-[2rem] space-y-6 !overflow-visible">
-          <SectionTitle>1. اختيار نوع اللعبة</SectionTitle>
+          <SectionTitle>1. النوع الافتراضي للأنشطة الجديدة</SectionTitle>
+
+          <div className="rounded-2xl border border-sky-100 bg-sky-50 px-5 py-4 text-sm font-bold leading-7 text-slate-600">
+            هذا الاختيار يحدد نوع النشاط الجديد عند الضغط على إضافة نشاط. تعديل نشاط موجود يتم من قائمة "نوع اللعبة لهذا النشاط" داخل فورم النشاط.
+          </div>
 
           <div className="flex flex-col gap-4">
             {/* Template Filtering */}
@@ -1152,7 +1188,7 @@ const GameForm = ({ mode = 'create' }) => {
                 <div key={typeCard.value} className="relative group">
                   <button
                     type="button"
-                    onClick={() => updateType(typeCard.value)}
+                    onClick={() => updateDefaultActivityType(typeCard.value)}
                     className={`w-full h-full rounded-[1.5rem] border-2 p-4 text-right transition-all flex flex-col items-start ${
                       builderState.type === typeCard.value
                         ? 'border-blue-600 bg-blue-50 shadow-lg shadow-blue-100'
@@ -1167,6 +1203,11 @@ const GameForm = ({ mode = 'create' }) => {
                       <ImagePlus size={18} className="text-slate-700" />
                     </div>
                     <div className="text-base font-black text-slate-900 mb-1 leading-tight">{typeCard.title}</div>
+                    {builderState.type === typeCard.value && (
+                      <div className="mb-2 rounded-full bg-blue-100 px-3 py-1 text-[11px] font-black text-blue-700">
+                        افتراضي للأنشطة الجديدة
+                      </div>
+                    )}
                     <div className="text-xs leading-5 text-slate-500 opacity-80 group-hover:opacity-100 transition-opacity">{typeCard.description}</div>
                   </button>
 
@@ -1378,14 +1419,7 @@ const GameForm = ({ mode = 'create' }) => {
                         <label className="block text-slate-600 font-bold mb-2">نوع اللعبة لهذا النشاط</label>
                         <CustomSelect
                           value={currentActivityType}
-                          onChange={(newType) => {
-                            // Update activity type and merge default properties for the new type
-                            updateCurrentActivity((activity) => ({
-                              ...activity,
-                              type: newType,
-                              ...getDefaultActivityForType(newType, selectedActivity)
-                            }));
-                          }}
+                          onChange={changeCurrentActivityType}
                           options={GAME_TYPE_CARDS.map(card => ({
                             value: card.value,
                             label: card.title
@@ -2412,7 +2446,10 @@ const GameForm = ({ mode = 'create' }) => {
               </SectionTitle>
 
               {previewGame ? (
-                <div className="rounded-[2rem] border border-[#dbe7f3] bg-[#f8fbff] p-4">
+                <div
+                  key={`${selectedLevel}-${selectedActivity}-${currentActivity?.id || 'activity'}-${currentActivityType}`}
+                  className="rounded-[2rem] border border-[#dbe7f3] bg-[#f8fbff] p-4"
+                >
                   {renderGameActivity({
                     game: previewGame,
                     onComplete: () => {},
@@ -2421,7 +2458,7 @@ const GameForm = ({ mode = 'create' }) => {
                 </div>
               ) : (
                 <div className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-slate-500">
-                  اختر نوع اللعبة ثم أضف Activity لعرض المعاينة هنا.
+                  اختر النوع الافتراضي ثم أضف نشاطًا لعرض المعاينة هنا.
                 </div>
               )}
             </Card>

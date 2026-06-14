@@ -17,6 +17,28 @@ export const stopGameAudio = () => {
   }
 };
 
+export const silenceSiteAudio = ({ resetTrackedAudio = true } = {}) => {
+  if (resetTrackedAudio) {
+    stopGameAudio();
+  } else if (typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+    gameAudioPlaying = false;
+  }
+
+  if (typeof document === 'undefined') return;
+
+  document.querySelectorAll('audio, video').forEach((media) => {
+    try {
+      media.pause();
+      if (resetTrackedAudio && media.tagName.toLowerCase() === 'audio') {
+        media.currentTime = 0;
+      }
+    } catch (error) {
+      console.warn('Unable to pause media element:', error);
+    }
+  });
+};
+
 const trackGameAudio = (audio) => {
   activeGameAudio = audio;
   gameAudioPlaying = true;
@@ -115,21 +137,24 @@ export const playSpokenArabic = (text) => {
   speakArabicText(text);
 };
 
+const playLayeredClip = (src, volume = 0.5) => {
+  try {
+    const audio = new Audio(src);
+    audio.volume = volume;
+    audio.play().catch((error) => console.warn('Audio play prevented:', error));
+    return audio;
+  } catch (error) {
+    console.warn('Error preparing audio clip:', error);
+    return null;
+  }
+};
+
 export const playSuccessSound = () => {
   try {
-    // Layering multiple sounds for success
-    const clap = new Audio('/sounds/clap.mp3');
-    const goodJob = new Audio('/sounds/goodjob.mp3');
-    const levelUp = new Audio('/sounds/levelup.mp3');
-    
-    // Adjust volumes if necessary (0.0 to 1.0)
-    clap.volume = 0.8;
-    goodJob.volume = 1.0;
-    levelUp.volume = 0.6;
-
-    clap.play().catch(e => console.warn('Audio play prevented:', e));
-    goodJob.play().catch(e => console.warn('Audio play prevented:', e));
-    levelUp.play().catch(e => console.warn('Audio play prevented:', e));
+    playLayeredClip('/sounds/clap.mp3', 0.34);
+    window.setTimeout(() => {
+      speakArabicText('أحسنت يا بطل');
+    }, 120);
   } catch (error) {
     console.warn('Error playing success sounds:', error);
   }
@@ -137,14 +162,10 @@ export const playSuccessSound = () => {
 
 export const playErrorSound = () => {
   try {
-    const tryAgain = new Audio('/sounds/tryagain.mp3');
-    const failBuzz = new Audio('/sounds/failbuzz.mp3');
-    
-    tryAgain.volume = 1.0;
-    failBuzz.volume = 0.5;
-
-    tryAgain.play().catch(e => console.warn('Audio play prevented:', e));
-    failBuzz.play().catch(e => console.warn('Audio play prevented:', e));
+    playLayeredClip('/sounds/failbuzz.mp3', 0.28);
+    window.setTimeout(() => {
+      speakArabicText('حاول مرة ثانية');
+    }, 90);
   } catch (error) {
     console.warn('Error playing error sounds:', error);
   }

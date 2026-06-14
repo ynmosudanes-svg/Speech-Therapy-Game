@@ -46,8 +46,8 @@ const StudentLayout = () => {
 
   if (isGameScreen) {
     return (
-      <div dir="rtl" className="min-h-screen bg-[radial-gradient(circle_at_top,_#eaf7fb,_#f7fcfd_34%,_#ffffff_75%)] text-slate-800 font-arabic">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-5">
+      <div dir="rtl" className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#eaf7fb,_#f7fcfd_34%,_#ffffff_75%)] text-slate-800 font-arabic">
+        <div className="min-h-screen px-3 md:px-6 py-4 md:py-5">
           <Outlet />
         </div>
       </div>

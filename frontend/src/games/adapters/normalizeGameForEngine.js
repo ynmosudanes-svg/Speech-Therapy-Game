@@ -1,16 +1,20 @@
+import { normalizeActivityTypesForConfig } from './buildActivityPreviewGame';
+
 export const normalizeGameForEngine = (game) => {
   if (!game) {
     return null;
   }
 
   if (game.config?.version === 2 && Array.isArray(game.config?.levels)) {
+    const templateType = game.type || game.config.templateType || 'matching.similar';
+
     return {
       ...game,
-      type: game.type || game.config.templateType,
-      config: {
+      type: templateType,
+      config: normalizeActivityTypesForConfig({
         ...game.config,
-        templateType: game.type || game.config.templateType,
-      },
+        templateType,
+      }, templateType),
     };
   }
 

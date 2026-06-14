@@ -227,15 +227,17 @@ const GameAssistant = forwardRef(function GameAssistant(
       pauseAssistant();
     };
 
-    document.addEventListener("visibilitychange", () => {
+    const handleVisibilityChange = () => {
       if (document.hidden) handleHide();
       else if (!disabledRef.current) startIdleTimer();
-    });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("blur", handleHide);
 
     return () => {
       stopAssistant();
-      document.removeEventListener("visibilitychange", handleHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("blur", handleHide);
     };
   }, [idleTime, autoEscalate, clearIdleTimer, resetAssistant, pauseAssistant, stopAssistant, startIdleTimer]);
@@ -288,7 +290,7 @@ const GameAssistant = forwardRef(function GameAssistant(
       <div 
         ref={nodeRef}
         onPointerDown={handlePointerDown}
-        className="fixed top-0 left-0 z-[100] flex flex-col items-start cursor-grab active:cursor-grabbing" 
+        className="game-assistant-root fixed top-0 left-0 z-[90] flex flex-col items-start cursor-grab active:cursor-grabbing" 
         dir="ltr"
         style={{ touchAction: 'none' }}
       >

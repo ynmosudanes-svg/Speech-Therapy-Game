@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   LogOut,
   Bell,
+  UserRound,
 } from 'lucide-react';
 import { useTherapyStore } from '../hooks/useTherapyStore';
 
@@ -25,7 +26,7 @@ const PAGE_TITLES = {
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { adminSession, logoutAdmin } = useTherapyStore();
+  const { adminSession, currentStudent, logoutAdmin } = useTherapyStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
   if (!adminSession?.token) {
@@ -34,6 +35,8 @@ const AdminLayout = () => {
 
   const activePath = Object.keys(PAGE_TITLES).find((path) => location.pathname.startsWith(path));
   const currentTitle = activePath ? PAGE_TITLES[activePath] : 'لوحة الإدارة';
+
+  const activeStudentName = currentStudent?.name || 'المستفيد';
 
   const menuItems = [
     ...(adminSession?.user?.role === 'SUPER_ADMIN'
@@ -87,6 +90,20 @@ const AdminLayout = () => {
             <X size={18} />
           </button>
         </div>
+
+        {isSidebarOpen && currentStudent && (
+          <div className="mx-4 mt-4 rounded-[1.35rem] border border-[#dbe7f3] bg-[#f8fbfd] px-4 py-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#d3edf5] bg-gradient-to-br from-[#f0f9fb] to-[#e1f4f9] shadow-inner">
+                <UserRound size={24} className="text-sky-600" strokeWidth={2.2} />
+              </div>
+              <div className="min-w-0 text-right">
+                <div className="text-[11px] font-bold text-[#138fbc]">المستفيد الحالي</div>
+                <div className="truncate text-sm font-black text-slate-800">{activeStudentName}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 admin-sidebar-scroll">
           {menuItems.map((item) => {
@@ -156,8 +173,18 @@ const AdminLayout = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center overflow-hidden border border-indigo-200">
-              <img src="/logo.png" alt="Clinic" className="w-8 h-8 object-contain" />
+            <div className="flex items-center gap-2.5 rounded-2xl border border-[#dbe7f3] bg-white px-2.5 py-1.5 shadow-sm">
+              <div className="text-right leading-tight">
+                <div className="text-[10px] font-bold text-[#138fbc]">
+                  {currentStudent ? 'المستفيد الحالي' : 'لوحة التحكم'}
+                </div>
+                <div className="max-w-[120px] truncate text-sm font-black text-slate-800">
+                  {currentStudent ? activeStudentName : adminSession?.name || 'الإدارة'}
+                </div>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d3edf5] bg-gradient-to-br from-[#f0f9fb] to-[#e1f4f9] shadow-inner">
+                <UserRound size={20} className="text-sky-600" strokeWidth={2.2} />
+              </div>
             </div>
           </div>
         </header>

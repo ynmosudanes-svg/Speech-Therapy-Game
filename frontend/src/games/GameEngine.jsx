@@ -12,6 +12,7 @@ const GameEngine = ({
   onUnsupported,
   startLevel = 1,
   assistantOptions = {},
+  assistantSuspended = false,
   onExit,
 }) => {
   const [activityIndex, setActivityIndex] = useState(0);
@@ -100,6 +101,15 @@ const GameEngine = ({
     assistantRef.current?.resetAssistant?.();
   }, [activityIndex, game?.id]);
 
+  useEffect(() => {
+    if (assistantSuspended) {
+      assistantRef.current?.stopAssistant?.();
+      return;
+    }
+
+    assistantRef.current?.resetAssistant?.();
+  }, [assistantSuspended, activityIndex, game?.id]);
+
   useEffect(() => () => {
     assistantRef.current?.stopAssistant?.();
   }, []);
@@ -155,31 +165,47 @@ const GameEngine = ({
   };
 
   return (
-    <div className="relative space-y-5 pb-28">
+    <div className="relative space-y-3 md:space-y-5 pb-20 md:pb-28">
       {/* الهيدر الموحد للعبة (عنوان، مستوى، نشاط) */}
-      <div className="w-full mx-auto flex justify-between items-center bg-white/80 backdrop-blur-sm p-3 md:p-4 rounded-[2rem] md:rounded-3xl shadow-sm border-2 border-white mb-2 md:mb-4">
-        <div className="text-center px-3 py-1.5 md:px-4 md:py-2 bg-indigo-100 rounded-xl md:rounded-2xl min-w-[4rem] md:min-w-[5rem]">
-          <span className="block text-[10px] md:text-sm text-indigo-600 font-bold mb-0.5 md:mb-1">النشاط</span>
-          <span className="text-base md:text-xl font-extrabold text-indigo-900" dir="ltr">
-            {activityIndex + 1} / {activities.length}
-          </span>
-        </div>
-        
-        <div className="flex-1 text-center px-1 md:px-4">
-          <h1 className="text-xs sm:text-sm md:text-2xl lg:text-3xl font-extrabold text-indigo-700 leading-tight md:leading-9 line-clamp-2">
-            {game?.config?.nameAr || game?.titleAr || game?.name || 'لعبة تخاطب'}
-          </h1>
+      <div className="game-engine-header relative z-20 w-full max-w-5xl xl:max-w-[980px] mx-auto bg-white/80 backdrop-blur-sm px-4 py-3 md:px-5 md:py-4 rounded-[1.45rem] md:rounded-3xl shadow-sm border-2 border-white mb-1 md:mb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="w-8 md:w-12 shrink-0" />
+
+          <div className="flex-1 text-center px-2 md:px-4">
+            <h1 className="text-[11px] sm:text-sm md:text-2xl lg:text-3xl font-extrabold text-indigo-700 leading-tight md:leading-9 line-clamp-2">
+              {game?.config?.nameAr || game?.titleAr || game?.name || 'لعبة تخاطب'}
+            </h1>
+          </div>
+
+          {onExit ? (
+            <button
+              onClick={onExit}
+              className="w-8 h-8 md:w-12 md:h-12 bg-rose-100 hover:bg-rose-500 hover:text-white text-rose-600 rounded-full flex items-center justify-center transition-all flex-shrink-0"
+              title="خروج من اللعبة"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 md:w-6 md:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          ) : (
+            <div className="w-8 md:w-12 shrink-0" />
+          )}
         </div>
 
-        {onExit && (
-          <button
-            onClick={onExit}
-            className="w-8 h-8 md:w-12 md:h-12 mr-1.5 md:mr-2 bg-rose-100 hover:bg-rose-500 hover:text-white text-rose-600 rounded-full flex items-center justify-center transition-all flex-shrink-0"
-            title="خروج من اللعبة"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 md:w-6 md:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        )}
+        <div className="mt-3 md:mt-4">
+          <div className="mb-2 flex items-center justify-between text-[11px] md:text-xl font-black text-slate-400">
+            <span>البداية</span>
+            <span className="rounded-full bg-indigo-100 px-3 py-1 text-indigo-600 shadow-sm">
+              المرحلة {activityIndex + 1} من {activities.length}
+            </span>
+            <span>النهاية</span>
+          </div>
+
+          <div className="h-4 md:h-5 rounded-full bg-slate-100/95 border border-white/90 shadow-inner overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-sky-300 via-indigo-400 to-fuchsia-400 transition-all duration-500 ease-out"
+              style={{ width: `${((activityIndex + 1) / Math.max(activities.length, 1)) * 100}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {renderGameActivity({
@@ -192,15 +218,17 @@ const GameEngine = ({
         helpVoiceEnabled,
       })}
 
-      <GameAssistant
-        ref={assistantRef}
-        idleTime={idleTime}
-        voiceEnabled={helpVoiceEnabled}
-        onVisualHint={handleVisualHint}
-        onGestureHint={handleGestureHint}
-        onVerbalHint={handleVerbalHint}
-        onPhysicalPrompt={handlePhysicalPrompt}
-      />
+      {!assistantSuspended && (
+        <GameAssistant
+          ref={assistantRef}
+          idleTime={idleTime}
+          voiceEnabled={helpVoiceEnabled}
+          onVisualHint={handleVisualHint}
+          onGestureHint={handleGestureHint}
+          onVerbalHint={handleVerbalHint}
+          onPhysicalPrompt={handlePhysicalPrompt}
+        />
+      )}
     </div>
   );
 };

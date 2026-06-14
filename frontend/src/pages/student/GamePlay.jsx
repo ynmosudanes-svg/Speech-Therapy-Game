@@ -232,7 +232,7 @@ const GamePlay = () => {
               hintLevel2: game?.config?.assistant?.hintLevel2 || undefined,
               hintLevel3: game?.config?.assistant?.hintLevel3 || undefined,
               audioText: game?.config?.assistant?.audioText || undefined,
-              helpVoiceEnabled: true,
+              helpVoiceEnabled: false,
             }}
             onExit={() => setShowExitConfirm(true)}
           />

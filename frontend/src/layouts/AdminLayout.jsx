@@ -119,8 +119,8 @@ const AdminLayout = () => {
                   isSidebarOpen ? 'gap-4 px-5 justify-start' : 'justify-center px-0'
                 } ${
                   isActive
-                    ? 'bg-[#158eb5] text-white shadow-md shadow-[#158eb5]/30'
-                    : 'text-[#3a4b66] hover:bg-slate-50 hover:text-[#158eb5]'
+                    ? 'bg-[#178bb6] text-white shadow-md shadow-cyan-500/30'
+                    : 'text-[#3a4b66] hover:bg-slate-50 hover:text-[#178bb6]'
                 }`}
               >
                 <Icon size={22} strokeWidth={2} className={isActive ? 'text-white' : 'text-slate-500'} />

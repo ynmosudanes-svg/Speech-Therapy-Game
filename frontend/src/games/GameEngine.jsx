@@ -172,7 +172,7 @@ const GameEngine = ({
           <div className="w-8 md:w-12 shrink-0" />
 
           <div className="flex-1 text-center px-2 md:px-4">
-            <h1 className="text-[11px] sm:text-sm md:text-2xl lg:text-3xl font-extrabold text-indigo-700 leading-tight md:leading-9 line-clamp-2">
+            <h1 className="text-[11px] sm:text-sm md:text-2xl lg:text-3xl font-extrabold text-[#19add6] leading-tight md:leading-9 line-clamp-2">
               {game?.config?.nameAr || game?.titleAr || game?.name || 'لعبة تخاطب'}
             </h1>
           </div>
@@ -193,7 +193,7 @@ const GameEngine = ({
         <div className="mt-3 md:mt-4">
           <div className="mb-2 flex items-center justify-between text-[11px] md:text-xl font-black text-slate-400">
             <span>البداية</span>
-            <span className="rounded-full bg-indigo-100 px-3 py-1 text-indigo-600 shadow-sm">
+            <span className="rounded-full border border-[#cdeef7] bg-[#eefafd] px-3 py-1 text-[#19add6] shadow-sm">
               المرحلة {activityIndex + 1} من {activities.length}
             </span>
             <span>النهاية</span>
@@ -201,7 +201,7 @@ const GameEngine = ({
 
           <div className="h-4 md:h-5 rounded-full bg-slate-100/95 border border-white/90 shadow-inner overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-300 via-indigo-400 to-fuchsia-400 transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-[#19add6] transition-all duration-500 ease-out"
               style={{ width: `${((activityIndex + 1) / Math.max(activities.length, 1)) * 100}%` }}
             />
           </div>

@@ -48,18 +48,18 @@ const FeedbackModal = ({ isCorrect, onNext, show, successSound, failSound }) => 
     <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-lg z-[1200] flex items-center justify-center p-4">
       <div className="bg-white/97 backdrop-blur-xl rounded-[2.5rem] p-10 max-w-sm w-full text-center shadow-[0_28px_70px_-18px_rgba(15,23,42,0.25)] transform transition-all scale-100 animate-bounce-in border border-white/60 relative overflow-hidden z-[1210]">
         {/* Soft background glow based on status */}
-        <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-64 opacity-20 blur-3xl rounded-full pointer-events-none ${isCorrect ? 'bg-emerald-400' : 'bg-rose-400'}`}></div>
+        <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-64 opacity-20 blur-3xl rounded-full pointer-events-none ${isCorrect ? 'bg-[#66c8e6]' : 'bg-rose-400'}`}></div>
         
         {isCorrect ? (
           <div className="relative z-10">
-            <div className="mx-auto w-32 h-32 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-full flex items-center justify-center mb-6 shadow-inner border border-emerald-100">
-              <CheckCircle className="w-16 h-16 text-emerald-500" strokeWidth={2.5} />
+            <div className="mx-auto w-32 h-32 bg-gradient-to-br from-[#eefafd] to-white rounded-full flex items-center justify-center mb-6 shadow-inner border border-[#cdeef7]">
+              <CheckCircle className="w-16 h-16 text-[#19add6]" strokeWidth={2.5} />
             </div>
             <h2 className="text-4xl font-extrabold text-slate-800 mb-3 tracking-tight">ممتاز!</h2>
             <p className="text-lg text-slate-500 mb-10 font-medium">إجابة صحيحة يا بطل 🌟</p>
             <button 
               onClick={onNext}
-              className="w-full bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-lg font-bold py-4 rounded-2xl shadow-lg shadow-emerald-200 transition-all active:scale-[0.99]"
+              className="w-full bg-gradient-to-r from-[#19add6] to-[#33b9de] text-white text-lg font-bold py-4 rounded-2xl shadow-lg shadow-cyan-200 transition-all active:scale-[0.99]"
             >
               التالي
             </button>

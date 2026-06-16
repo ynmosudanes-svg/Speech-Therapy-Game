@@ -219,7 +219,7 @@ const AuthLanding = () => {
   };
 
   const inputClass =
-    'min-h-12 w-full rounded-2xl border border-[#D9EAF2] bg-[#F8FBFD] px-4 text-base font-bold outline-none transition-colors focus:border-[#1584C3] focus:bg-white focus:ring-4 focus:ring-[#1584C3]/15';
+    'min-h-10 w-full rounded-2xl border border-[#D9EAF2] bg-[#F8FBFD] px-4 text-sm font-bold outline-none transition-colors focus:border-[#1584C3] focus:bg-white focus:ring-4 focus:ring-[#1584C3]/15 sm:min-h-12 sm:text-base';
 
   return (
     <main
@@ -246,7 +246,7 @@ const AuthLanding = () => {
         </header>
 
         <section
-          className={`grid flex-1 items-start gap-3 py-3 sm:gap-6 sm:py-6 lg:items-center lg:gap-10 lg:py-6 ${
+          className={`grid flex-1 items-start gap-5 py-4 sm:gap-6 sm:py-6 lg:items-center lg:gap-10 lg:py-6 ${
             isWelcome ? 'lg:grid-cols-[0.95fr_1.05fr]' : 'lg:grid-cols-[minmax(520px,0.95fr)_minmax(320px,0.75fr)] lg:pt-6'
           }`}
         >
@@ -261,12 +261,12 @@ const AuthLanding = () => {
               }`}
             >
               {!isWelcome && (
-              <div className="mb-5 inline-grid w-full max-w-lg grid-cols-3 gap-1.5 self-end rounded-2xl bg-[#EAF7FD] p-1 sm:mb-8">
+              <div className="mb-6 inline-grid w-full max-w-lg grid-cols-3 gap-1.5 self-start rounded-2xl bg-[#EAF7FD] p-1.5 sm:mb-8">
                 <button
                   type="button"
                   onClick={() => switchMode('register')}
-                  className={`min-h-10 rounded-xl px-4 text-sm font-black transition-colors ${
-                    isRegister ? 'bg-white text-[#1584C3] shadow-sm' : 'text-[#64748B] hover:text-[#0F6FA6]'
+                  className={`min-h-9 rounded-xl px-1.5 text-[11px] font-black leading-5 transition-colors sm:min-h-10 sm:px-4 sm:text-sm ${
+                    isRegister ? 'bg-white text-[#1584C3] shadow-sm' : 'text-[#64748B] hover:bg-white/65 hover:text-[#1584C3]'
                   }`}
                 >
                   إنشاء حساب
@@ -274,8 +274,8 @@ const AuthLanding = () => {
                 <button
                   type="button"
                   onClick={() => switchMode('student')}
-                  className={`min-h-10 rounded-xl px-4 text-sm font-black transition-colors ${
-                    isStudent ? 'bg-white text-[#1584C3] shadow-sm' : 'text-[#64748B] hover:text-[#0F6FA6]'
+                  className={`min-h-9 rounded-xl px-1.5 text-[11px] font-black leading-5 transition-colors sm:min-h-10 sm:px-4 sm:text-sm ${
+                    isStudent ? 'bg-white text-[#1584C3] shadow-sm' : 'text-[#64748B] hover:bg-white/65 hover:text-[#1584C3]'
                   }`}
                 >
                   دخول المستفيد
@@ -283,8 +283,8 @@ const AuthLanding = () => {
                 <button
                   type="button"
                   onClick={() => switchMode('staff')}
-                  className={`min-h-10 rounded-xl px-3 text-sm font-black transition-colors ${
-                    isStaff ? 'bg-white text-[#1584C3] shadow-sm' : 'text-[#64748B] hover:text-[#0F6FA6]'
+                  className={`min-h-9 rounded-xl px-1.5 text-[11px] font-black leading-5 transition-colors sm:min-h-10 sm:px-3 sm:text-sm ${
+                    isStaff ? 'bg-white text-[#1584C3] shadow-sm' : 'text-[#64748B] hover:bg-white/65 hover:text-[#1584C3]'
                   }`}
                 >
                   الفريق الطبي
@@ -294,29 +294,29 @@ const AuthLanding = () => {
 
               <div className="min-w-0 flex-1">
                 {isWelcome ? (
-                  <div className="flex min-h-[390px] flex-col justify-center text-right sm:min-h-[430px]">
-                    <p className="mb-4 text-sm font-black tracking-[0.18em] text-[#20B7B5]">
+                  <div className="flex min-h-[320px] flex-col justify-center text-right sm:min-h-[430px]">
+                    <p className="mb-2 text-xs font-black tracking-[0.08em] text-[#20B7B5] sm:mb-4 sm:text-sm sm:tracking-[0.18em]">
                       منصة علاجية تفاعلية
                     </p>
-                    <h1 className="max-w-lg text-4xl font-black leading-[1.25] text-[#073B5C] sm:text-5xl">
+                    <h1 className="max-w-lg text-[1.625rem] font-black leading-[1.2] text-[#073B5C] sm:text-5xl sm:leading-[1.25]">
                       رحلتك العلاجية تبدأ بخطوة بسيطة
                     </h1>
-                    <p className="mt-5 max-w-lg text-base font-bold leading-8 text-[#64748B] sm:text-lg">
+                    <p className="mt-3 max-w-lg text-xs font-bold leading-5 text-[#64748B] sm:mt-5 sm:text-lg sm:leading-8">
                       ألعاب نطق مصممة بعناية، متابعة واضحة، وتجربة سهلة للمستفيدين والفريق الطبي.
                     </p>
 
-                    <div className="mt-8 grid w-full max-w-lg gap-3 sm:grid-cols-2">
+                    <div className="mt-6 grid w-full max-w-lg gap-2.5 sm:mt-8 sm:grid-cols-2 sm:gap-3">
                       <button
                         type="button"
                         onClick={() => switchMode('student')}
-                        className="min-h-14 rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 text-base font-black text-white shadow-[0_14px_30px_rgba(21,132,195,0.24)] transition hover:-translate-y-0.5"
+                        className="min-h-12 rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 text-sm font-black text-white shadow-[0_14px_30px_rgba(21,132,195,0.24)] transition hover:-translate-y-0.5 sm:min-h-14 sm:text-base"
                       >
                         دخول المستفيد
                       </button>
                       <button
                         type="button"
                         onClick={() => switchMode('register')}
-                        className="min-h-14 rounded-2xl border border-[#D9EAF2] bg-[#EAF7FD] px-5 text-base font-black text-[#0F6FA6] shadow-[0_12px_24px_rgba(15,111,166,0.12)] transition hover:-translate-y-0.5 hover:border-[#1584C3]"
+                        className="min-h-12 rounded-2xl border border-[#D9EAF2] bg-[#EAF7FD] px-5 text-sm font-black text-[#0F6FA6] shadow-[0_12px_24px_rgba(15,111,166,0.12)] transition hover:-translate-y-0.5 hover:border-[#1584C3] sm:min-h-14 sm:text-base"
                       >
                         إنشاء حساب
                       </button>
@@ -325,7 +325,7 @@ const AuthLanding = () => {
                     <button
                       type="button"
                       onClick={() => switchMode('staff')}
-                      className="mt-5 w-fit text-sm font-black text-[#64748B] transition hover:text-[#0F6FA6]"
+                      className="mt-4 w-fit text-xs font-black text-[#64748B] transition hover:text-[#0F6FA6] sm:mt-5 sm:text-sm"
                     >
                       دخول الفريق الطبي
                     </button>
@@ -337,9 +337,9 @@ const AuthLanding = () => {
                         <span className="grid h-8 w-8 place-items-center rounded-xl border border-[#D9EAF2] bg-[#EAF7FD] text-[#1584C3]">
                           <UserPlus size={16} />
                         </span>
-                        <h1 className="text-xl font-black text-[#073B5C] sm:text-2xl">إنشاء حساب جديد</h1>
+                        <h1 className="text-base font-black text-[#073B5C] sm:text-2xl">إنشاء حساب جديد</h1>
                       </div>
-                      <p className="mt-1 text-sm font-bold leading-6 text-[#64748B]">
+                      <p className="mt-1 text-[11px] font-bold leading-5 text-[#64748B] sm:text-sm sm:leading-6">
                         املأ بياناتك الأساسية وسيتم مراجعتها من المختص.
                       </p>
                     </div>
@@ -360,7 +360,7 @@ const AuthLanding = () => {
                             key={type.value}
                             type="button"
                             onClick={() => updateRegisterField('accountType', type.value)}
-                            className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-black transition-colors ${
+                            className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-3 text-xs font-black transition-colors sm:text-sm ${
                               isSelected
                                 ? 'border-[#1584C3] bg-[#EAF7FD] text-[#0F6FA6] shadow-sm'
                                 : 'border-[#D9EAF2] bg-[#F8FBFD] text-[#64748B] hover:border-[#1584C3] hover:text-[#0F6FA6]'
@@ -393,27 +393,27 @@ const AuthLanding = () => {
 
                     <button
                       type="submit"
-                      className="min-h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-3 text-base font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)]"
+                      className="min-h-11 w-full rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-2.5 text-xs font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)] sm:min-h-12 sm:py-3 sm:text-base"
                     >
                       إنشاء الحساب
                     </button>
                   </form>
                 ) : isStaff ? (
-                  <form onSubmit={handleStaffLogin} className="space-y-6">
-                    <div className="mb-4 text-right">
+                  <form onSubmit={handleStaffLogin} className="space-y-4 sm:space-y-6">
+                    <div className="mb-3 text-right sm:mb-4">
                       <div className="mb-2 flex items-center gap-2">
                         <span className="grid h-8 w-8 place-items-center rounded-xl border border-[#D9EAF2] bg-[#EAF7FD] text-[#1584C3]">
                           <Stethoscope size={16} />
                         </span>
-                        <h1 className="text-xl font-black text-[#073B5C] sm:text-2xl">تسجيل دخول الفريق الطبي</h1>
+                        <h1 className="text-base font-black text-[#073B5C] sm:text-2xl">تسجيل دخول الفريق الطبي</h1>
                       </div>
-                      <p className="mt-1 text-sm font-bold leading-6 text-[#64748B]">
+                      <p className="mt-1 text-[11px] font-bold leading-5 text-[#64748B] sm:text-sm sm:leading-6">
                         سجل دخول الطبيب أو الأخصائي لإدارة المستفيدين والجلسات من نفس الصفحة.
                       </p>
                     </div>
 
                     <label className="block">
-                      <span className="mb-3 block text-sm font-black text-[#0F172A]">البريد الإلكتروني</span>
+                      <span className="mb-2 block text-xs font-black text-[#0F172A] sm:mb-3 sm:text-sm">البريد الإلكتروني</span>
                       <input
                         type="email"
                         value={staffForm.email}
@@ -426,7 +426,7 @@ const AuthLanding = () => {
                     </label>
 
                     <label className="block">
-                      <span className="mb-3 block text-sm font-black text-[#0F172A]">كلمة المرور</span>
+                      <span className="mb-2 block text-xs font-black text-[#0F172A] sm:mb-3 sm:text-sm">كلمة المرور</span>
                       <input
                         type="password"
                         value={staffForm.password}
@@ -446,27 +446,27 @@ const AuthLanding = () => {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="min-h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-3 text-base font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="min-h-10 w-full rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-2 text-xs font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-12 sm:py-3 sm:text-base"
                     >
                       دخول لوحة التحكم
                     </button>
                   </form>
                 ) : isStudent ? (
-                  <form onSubmit={handleStudentLogin} className="space-y-6">
-                    <div className="mb-4 text-right">
+                  <form onSubmit={handleStudentLogin} className="space-y-5 sm:space-y-6">
+                    <div className="mb-3 text-right sm:mb-4">
                       <div className="mb-2 flex items-center gap-2">
                         <span className="grid h-8 w-8 place-items-center rounded-xl border border-[#D9EAF2] bg-[#EAF7FD] text-[#1584C3]">
                           <Gamepad2 size={16} />
                         </span>
-                        <h1 className="text-xl font-black text-[#073B5C] sm:text-2xl">دخول المستفيد</h1>
+                        <h1 className="text-base font-black text-[#073B5C] sm:text-2xl">دخول المستفيد</h1>
                       </div>
-                      <p className="mt-1 text-sm font-bold leading-6 text-[#64748B]">
+                      <p className="mt-1 text-[11px] font-bold leading-5 text-[#64748B] sm:text-sm sm:leading-6">
                         لا نطلب كلمة مرور أو PIN. أدخل كود الدخول وابدأ الأنشطة مباشرة.
                       </p>
                     </div>
 
                     <label className="block">
-                      <span className="mb-3 block text-sm font-black text-[#0F172A]">كود الدخول</span>
+                      <span className="mb-2 block text-xs font-black text-[#0F172A] sm:mb-3 sm:text-sm">كود الدخول</span>
                       <input
                         value={accessCode}
                         onChange={(event) => {
@@ -476,11 +476,11 @@ const AuthLanding = () => {
                         placeholder="أدخل كود الدخول"
                         dir="auto"
                         autoComplete="one-time-code"
-                        className="min-h-12 w-full rounded-2xl border border-[#D9EAF2] bg-[#F8FBFD] px-5 text-center text-lg font-black text-[#0F172A] shadow-sm outline-none transition-colors placeholder:text-[#8A94A6] focus:border-[#1584C3] focus:bg-white focus:ring-4 focus:ring-[#1584C3]/15"
+                        className="min-h-11 w-full rounded-2xl border border-[#D9EAF2] bg-[#F8FBFD] px-5 text-center text-sm font-black text-[#0F172A] shadow-sm outline-none transition-colors placeholder:text-[#8A94A6] focus:border-[#1584C3] focus:bg-white focus:ring-4 focus:ring-[#1584C3]/15 sm:min-h-12 sm:text-lg"
                       />
                     </label>
 
-                    <label className="flex w-fit cursor-pointer items-center gap-2 text-sm font-black text-[#0F172A]">
+                    <label className="flex w-fit cursor-pointer items-center gap-2 text-xs font-black text-[#0F172A] sm:text-sm">
                       <span>تذكرني</span>
                       <span
                         className={`grid h-6 w-6 place-items-center rounded-lg border-2 ${
@@ -501,7 +501,7 @@ const AuthLanding = () => {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="min-h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-3 text-base font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="min-h-11 w-full rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-2.5 text-xs font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-12 sm:py-3 sm:text-base"
                     >
                       دخول المستفيد
                     </button>
@@ -513,22 +513,23 @@ const AuthLanding = () => {
 
           <div
             className={`order-1 mx-auto w-full min-w-0 pt-0 sm:pt-6 lg:order-2 ${
-              isWelcome ? 'max-w-xl lg:min-h-[560px]' : 'max-w-sm lg:min-h-[430px]'
+              isWelcome ? 'max-w-xl lg:min-h-[560px]' : 'max-w-xl lg:min-h-[560px] lg:-translate-y-8 xl:-translate-y-10'
             }`}
           >
             <aside
               className={`relative flex flex-col justify-end overflow-hidden px-0 pb-0 text-white ${
-                isWelcome ? 'h-[275px] sm:h-[390px] lg:h-auto lg:min-h-[540px] lg:overflow-visible' : 'h-[230px] sm:h-[320px] lg:h-auto lg:min-h-[430px]'
+                isWelcome ? 'h-[225px] sm:h-[390px] lg:h-auto lg:min-h-[540px] lg:overflow-visible' : 'h-[235px] sm:h-[390px] lg:h-auto lg:min-h-[540px] lg:overflow-visible'
               }`}
             >
               <div
                 className={`absolute left-1/2 -translate-x-1/2 rounded-[42%_58%_34%_66%/42%_38%_62%_58%] bg-[linear-gradient(155deg,#1584C3_0%,#0F6FA6_50%,#20B7B5_100%)] shadow-[0_24px_60px_rgba(7,59,92,0.18)] ${
-                  isWelcome ? 'bottom-5 h-[72%] w-[82%] sm:bottom-8 sm:h-[70%] sm:w-[88%]' : 'bottom-4 h-[68%] w-[88%] sm:bottom-6'
+                  isWelcome ? 'bottom-5 h-[72%] w-[82%] sm:bottom-8 sm:h-[70%] sm:w-[88%]' : 'bottom-5 h-[72%] w-[82%] sm:bottom-8 sm:h-[70%] sm:w-[88%]'
                 }`}
               />
+              <div className="absolute bottom-0 left-1/2 z-30 h-2 w-[34%] -translate-x-1/2 rounded-full bg-[#0F6FA6]/18 shadow-[0_12px_28px_rgba(7,59,92,0.1)] sm:bottom-1 sm:h-3 sm:w-[42%]" />
               <div
                 className={`relative z-10 mx-auto flex h-full w-full min-w-0 items-end justify-center overflow-hidden ${
-                  isWelcome ? 'lg:h-[540px] lg:overflow-visible' : 'lg:h-[430px]'
+                  isWelcome ? 'lg:h-[540px] lg:overflow-visible' : 'lg:h-[540px] lg:overflow-visible'
                 }`}
               >
                 <Swiper
@@ -545,14 +546,15 @@ const AuthLanding = () => {
                         alt={doctor.alt}
                         className={`w-auto max-w-full object-contain object-bottom drop-shadow-[0_22px_28px_rgba(7,59,92,0.18)] ${
                           isWelcome
-                            ? 'h-[106%] -translate-y-4 sm:h-[106%] sm:-translate-y-5 lg:h-[100%] lg:max-w-none lg:-translate-y-4'
-                            : 'h-[100%] -translate-y-2 sm:h-[102%] sm:-translate-y-3 lg:h-[96%]'
+                            ? 'h-[98%] sm:h-[99%] lg:h-[96%] lg:max-w-none'
+                            : 'h-[98%] sm:h-[99%] lg:h-[96%] lg:max-w-none'
                         }`}
                       />
                     </SwiperSlide>
                   ))}
                 </Swiper>
               </div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-20 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.72)_56%,#ffffff_100%)] sm:h-28 lg:h-32" />
 
             </aside>
           </div>

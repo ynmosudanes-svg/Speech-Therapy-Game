@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Target, Filter, Play, Gamepad2, Sparkles } from 'lucide-react';
+import { Filter, Play, Gamepad2, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import gameService from '../../services/gameService';
 
@@ -78,10 +78,7 @@ const GamesLibrary = () => {
                   {game.descriptionAr || game.description || 'لعبة تفاعلية لتنمية المهارات بصورة ممتعة ومحفزة.'}
                 </p>
 
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 font-black text-xs text-slate-600 backdrop-blur-sm border border-white/50">
-                    المستوى {game.level || 1}
-                  </span>
+                <div className="flex items-center justify-end mt-auto">
                   <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white shadow-md transition-transform active:scale-95 group-hover:-translate-x-1
                     ${index % 3 === 0 ? 'bg-blue-600 shadow-blue-200' : index % 3 === 1 ? 'bg-emerald-600 shadow-emerald-200' : 'bg-fuchsia-600 shadow-fuchsia-200'}`}>
                     <Play size={16} fill="currentColor" /> جرب اللعبة

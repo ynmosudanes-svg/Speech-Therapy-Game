@@ -14,7 +14,8 @@ const GamePlay = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { gameId } = useParams();
-  const isFreePlay = location.state?.isFreePlay || false;
+  const isPublicPlay = location.pathname.startsWith('/play/');
+  const isFreePlay = isPublicPlay || location.state?.isFreePlay || false;
   const {
     currentStudent,
     mapFrontendPromptToApi,
@@ -26,6 +27,7 @@ const GamePlay = () => {
   const [error, setError] = useState('');
   const [showIntroVideo, setShowIntroVideo] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [completedSessionData, setCompletedSessionData] = useState(null);
   const currentLevel = Math.min(Math.max(Number(currentStudent?.currentLevel || 1), 1), 3);
   const assignedGame = useMemo(
     () =>
@@ -100,7 +102,7 @@ const GamePlay = () => {
   }, []);
 
   const handleGameComplete = async (stats) => {
-    if (!currentStudent || !game) {
+    if (!game) {
       return;
     }
 
@@ -127,7 +129,15 @@ const GamePlay = () => {
     stopGameAudio();
 
     if (isFreePlay) {
-      navigate('/student/result', { state: { game, sessionData } });
+      if (isPublicPlay) {
+        setCompletedSessionData(sessionData);
+      } else {
+        navigate('/student/result', { state: { game, sessionData } });
+      }
+      return;
+    }
+
+    if (!currentStudent) {
       return;
     }
 
@@ -165,9 +175,33 @@ const GamePlay = () => {
     return (
       <div className="bg-white rounded-[2.5rem] border border-[#eadfbe] p-10 text-center">
         <h2 className="text-3xl font-black text-slate-800 mb-4">{error || 'تعذر العثور على اللعبة'}</h2>
-        <Button variant="primary" onClick={() => navigate('/student/home')}>
+        <Button variant="primary" onClick={() => navigate(isPublicPlay ? '/' : '/student/home')}>
           العودة
         </Button>
+      </div>
+    );
+  }
+
+  if (completedSessionData) {
+    return (
+      <div className="mx-auto flex min-h-[85vh] max-w-3xl items-center justify-center" dir="rtl">
+        <div className="w-full rounded-[3rem] border border-[#dbe7f3] bg-white p-8 text-center shadow-xl shadow-sky-100/60 md:p-10">
+          <div className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-[2rem] bg-[#EAF7FD] text-[#1584C3]">
+            <ShieldCheck size={46} />
+          </div>
+          <h1 className="mb-3 text-4xl font-black text-slate-900">أحسنت!</h1>
+          <p className="mx-auto mb-8 max-w-xl text-lg font-bold leading-8 text-slate-600">
+            أنهيت لعبة <span className="font-black text-slate-900">{game?.titleAr || game?.title || 'اللعبة'}</span> بنجاح. هذا لعب حر ولا يتم حفظه في تقارير أي طالب.
+          </p>
+          <div className="flex flex-col justify-center gap-3 sm:flex-row">
+            <Button variant="primary" onClick={() => window.location.reload()}>
+              العب مرة أخرى
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/')}>
+              العودة
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -203,7 +237,7 @@ const GamePlay = () => {
             <Button variant="primary" onClick={() => setShowIntroVideo(false)}>
               ابدأ اللعب
             </Button>
-            <Button variant="outline" onClick={() => navigate('/student/home')}>
+            <Button variant="outline" onClick={() => navigate(isPublicPlay ? '/' : '/student/home')}>
               العودة
             </Button>
           </div>
@@ -223,7 +257,7 @@ const GamePlay = () => {
             onComplete={handleGameComplete}
             therapistControlsEnabled={false}
             therapistPromptLevel={'none'}
-            onUnsupported={() => navigate('/student/home')}
+            onUnsupported={() => navigate(isPublicPlay ? '/' : '/student/home')}
             startLevel={currentLevel}
             assistantSuspended={showExitConfirm}
             assistantOptions={{
@@ -242,7 +276,7 @@ const GamePlay = () => {
             onClose={() => setShowExitConfirm(false)}
             onConfirm={() => {
               setShowExitConfirm(false);
-              navigate('/student/home');
+              navigate(isPublicPlay ? '/' : '/student/home');
             }}
             title="الخروج من اللعبة"
             message="هل تود الخروج من اللعبة الآن؟ لن يتم حفظ أي تقدم في هذه الجلسة، ولن يؤثر ذلك على التقييم."

@@ -6,10 +6,10 @@ import StudentLayout from '../layouts/StudentLayout';
 import RoleRoute from '../components/RoleRoute';
 
 import AdminDashboard from '../pages/admin/AdminDashboard';
-import AdminLogin from '../pages/admin/AdminLogin';
 import CreateGame from '../pages/admin/CreateGame';
 import EditGame from '../pages/admin/EditGame';
 import GamesManager from '../pages/admin/GamesManager';
+import LibraryPage from '../pages/admin/LibraryPage';
 import PatientDetails from '../pages/admin/PatientDetails';
 import PatientsList from '../pages/admin/PatientsList';
 import ReportsPage from '../pages/admin/ReportsPage';
@@ -17,10 +17,10 @@ import StudentForm from '../pages/admin/StudentForm';
 import TherapistsList from '../pages/admin/TherapistsList';
 import TherapistForm from '../pages/admin/TherapistForm';
 
+import AuthLanding from '../pages/auth/AuthLanding';
 import GamePlay from '../pages/student/GamePlay';
 import Result from '../pages/student/Result';
 import StudentHome from '../pages/student/StudentHome';
-import StudentLogin from '../pages/student/StudentLogin';
 import StudentWorkspaceSection from '../pages/student/StudentWorkspaceSection';
 import GamesLibrary from '../pages/student/GamesLibrary';
 import { useTherapyStore } from '../hooks/useTherapyStore';
@@ -30,11 +30,33 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/student/login" replace />} />
+      <Route path="/" element={<AuthLanding />} />
+      <Route path="/auth/register" element={<Navigate to="/" replace state={{ mode: 'register' }} />} />
+      <Route path="/auth/staff-login" element={<Navigate to="/" replace state={{ mode: 'staff' }} />} />
+      <Route path="/account/dashboard" element={<Navigate to="/" replace />} />
+      <Route path="/trial/dashboard" element={<Navigate to="/" replace />} />
+      <Route
+        path="/library"
+        element={
+          <div dir="rtl" className="min-h-screen bg-[radial-gradient(circle_at_top,_#eaf7fb,_#f7fcfd_34%,_#ffffff_75%)] px-4 py-6 text-slate-800 md:px-8">
+            <div className="mx-auto max-w-6xl">
+              <GamesLibrary />
+            </div>
+          </div>
+        }
+      />
+      <Route
+        path="/play/:gameId"
+        element={
+          <div dir="rtl" className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#eaf7fb,_#f7fcfd_34%,_#ffffff_75%)] px-3 py-4 text-slate-800 md:px-6 md:py-5">
+            <GamePlay />
+          </div>
+        }
+      />
 
       <Route path="/student" element={<StudentLayout />}>
         <Route index element={<Navigate to="/student/home" replace />} />
-        <Route path="login" element={<StudentLogin />} />
+        <Route path="login" element={<Navigate to="/" replace state={{ mode: 'student' }} />} />
         <Route path="home" element={<StudentHome />} />
         <Route path="profile" element={<Navigate to="/student/medical?tab=profile" replace />} />
         <Route path="sessions" element={<StudentWorkspaceSection section="sessions" />} />
@@ -50,12 +72,13 @@ const AppRoutes = () => {
         <Route path="result" element={<Result />} />
       </Route>
 
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/login" element={<Navigate to="/" replace state={{ mode: 'staff' }} />} />
       <Route
         path="/admin"
         element={
           <Navigate
-            to={adminSession?.token ? (adminSession?.user?.role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/admin/patients') : '/admin/login'}
+            to={adminSession?.token ? (adminSession?.user?.role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/admin/patients') : '/'}
+            state={adminSession?.token ? undefined : { mode: 'staff' }}
             replace
           />
         }
@@ -67,7 +90,7 @@ const AppRoutes = () => {
         <Route path="patients/create" element={<StudentForm mode="create" />} />
         <Route path="patients/edit/:studentId" element={<StudentForm mode="edit" />} />
         <Route path="patients/:id" element={<PatientDetails />} />
-        <Route path="library" element={<Navigate to="/admin/games" replace />} />
+        <Route path="library" element={<LibraryPage />} />
         <Route path="curriculum" element={<Navigate to="/admin/games" replace />} />
 
         <Route path="games" element={<GamesManager />} />
@@ -87,7 +110,7 @@ const AppRoutes = () => {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/student/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

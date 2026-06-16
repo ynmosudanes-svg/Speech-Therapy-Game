@@ -6,7 +6,7 @@ const RoleRoute = ({ allowedRoles }) => {
   const { adminSession } = useTherapyStore();
 
   if (!adminSession?.token) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/" replace state={{ mode: 'staff' }} />;
   }
 
   const userRole = adminSession?.user?.role;

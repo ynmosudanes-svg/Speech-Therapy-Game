@@ -5,6 +5,7 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
+import gameLibraryService from '../../services/gameLibraryService';
 import therapistService from '../../services/therapistService';
 
 const defaultForm = {
@@ -24,11 +25,13 @@ const StudentForm = ({ mode = 'create' }) => {
 
   const [formData, setFormData] = useState(defaultForm);
   const [availableGames, setAvailableGames] = useState([]);
+  const [libraries, setLibraries] = useState([]);
   const [therapists, setTherapists] = useState([]);
   const [loadingGames, setLoadingGames] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [gamesFilter, setGamesFilter] = useState('');
+  const [selectedLibraryId, setSelectedLibraryId] = useState('all');
   const [selectedTag, setSelectedTag] = useState('');
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
 
@@ -47,9 +50,18 @@ const StudentForm = ({ mode = 'create' }) => {
     () => (Array.isArray(students) ? students.find((item) => String(item.id) === String(studentId)) : null),
     [studentId, students]
   );
+  const selectedLibrary = useMemo(
+    () => libraries.find((library) => String(library.id) === String(selectedLibraryId)) || null,
+    [libraries, selectedLibraryId]
+  );
 
   const filteredGames = useMemo(() => {
     let result = availableGames;
+
+    if (selectedLibrary && Array.isArray(selectedLibrary.gameIds)) {
+      const allowedIds = new Set(selectedLibrary.gameIds.map((id) => String(id)));
+      result = result.filter((game) => allowedIds.has(String(game.id)));
+    }
 
     if (selectedTag) {
       result = result.filter(game => (game.config?.tags || []).includes(selectedTag));
@@ -58,13 +70,13 @@ const StudentForm = ({ mode = 'create' }) => {
     const query = gamesFilter.trim().toLowerCase();
     if (query) {
       result = result.filter((game) => {
-        const searchableText = `${game.titleAr || ''} ${game.title || ''} ${game.name || ''} ${game.level || ''}`.toLowerCase();
+        const searchableText = `${game.titleAr || ''} ${game.title || ''} ${game.name || ''} ${game.level || ''} ${game.gameCode || ''}`.toLowerCase();
         return searchableText.includes(query);
       });
     }
 
     return result;
-  }, [availableGames, gamesFilter, selectedTag]);
+  }, [availableGames, gamesFilter, selectedLibrary, selectedTag]);
 
   useEffect(() => {
     const fetchFormDependencies = async () => {
@@ -85,6 +97,19 @@ const StudentForm = ({ mode = 'create' }) => {
       } catch (_gamesError) {
         setAvailableGames([]);
         nextError = 'تعذر تحميل الألعاب.';
+      }
+
+      try {
+        const librariesResponse = await gameLibraryService.getLibraries(adminSession?.token);
+        setLibraries(
+          Array.isArray(librariesResponse)
+            ? librariesResponse
+            : Array.isArray(librariesResponse?.data)
+              ? librariesResponse.data
+              : []
+        );
+      } catch (_librariesError) {
+        setLibraries([]);
       }
 
       if (adminSession?.user?.role === 'SUPER_ADMIN' && adminSession?.token) {
@@ -383,13 +408,26 @@ const StudentForm = ({ mode = 'create' }) => {
                 </div>
                 <input
                   type="text"
-                  placeholder="ابحثي عن لعبة..."
+                  placeholder="ابحث بكود اللعبة أو الاسم..."
                   value={gamesFilter}
                   onChange={(e) => setGamesFilter(e.target.value)}
                   disabled={loadingGames}
                   className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
                 />
               </div>
+              <select
+                value={selectedLibraryId}
+                onChange={(e) => setSelectedLibraryId(e.target.value)}
+                disabled={loadingGames || !libraries.length}
+                className="w-36 sm:w-44 bg-white border border-gray-200 text-gray-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
+              >
+                <option value="all">كل المكتبات</option>
+                {libraries.map((library) => (
+                  <option key={library.id} value={library.id}>
+                    {library.name}
+                  </option>
+                ))}
+              </select>
               <div className="relative">
                 <button
                   type="button"
@@ -470,6 +508,11 @@ const StudentForm = ({ mode = 'create' }) => {
                         {gameTitle}
                       </p>
                       <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                        {!!game.gameCode && (
+                          <span className="bg-cyan-50 text-[#178bb6] px-1.5 py-0.5 rounded text-[10px] font-bold border border-cyan-100">
+                            {game.gameCode}
+                          </span>
+                        )}
                         <span>المستوى {game.level}</span>
                         {(game.config?.tags || []).length > 0 && (
                           <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-100">
@@ -548,7 +591,14 @@ const StudentForm = ({ mode = 'create' }) => {
                       {/* اسم اللعبة */}
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-800 text-base">{gameTitle}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">المستوى {game.level}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                          {!!game.gameCode && (
+                            <span className="bg-cyan-50 text-[#178bb6] px-1.5 py-0.5 rounded text-[10px] font-bold border border-cyan-100">
+                              {game.gameCode}
+                            </span>
+                          )}
+                          <span>المستوى {game.level}</span>
+                        </p>
                       </div>
 
                       {/* أيقونة السحب */}

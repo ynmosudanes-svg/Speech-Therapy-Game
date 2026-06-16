@@ -7,6 +7,8 @@ import { useTherapyStore } from '../../hooks/useTherapyStore';
 const mapPromptToArabic = (prompt) => {
   if (!prompt) return 'مستقل';
   const p = prompt.toUpperCase();
+  if (p === 'FULL') return 'مساعدة كاملة';
+  if (p === 'PARTIAL') return 'مساعدة جزئية';
   if (p === 'INDEPENDENT' || p === 'NONE') return 'مستقل';
   if (p === 'VERBAL' || p === 'PROMPTED') return 'مساعدة لفظية';
   if (p === 'PHYSICAL') return 'مساعدة جسدية';

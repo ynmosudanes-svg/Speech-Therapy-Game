@@ -41,7 +41,7 @@ const StudentLayout = () => {
   }
 
   if (!currentStudent) {
-    return <Navigate to="/student/login" replace />;
+    return <Navigate to="/" replace state={{ mode: 'student' }} />;
   }
 
   if (isGameScreen) {
@@ -144,7 +144,7 @@ const StudentLayout = () => {
             onClick={() => {
               logoutStudent();
               setMobileNavOpen(false);
-              navigate('/student/login', { replace: true });
+              navigate('/', { replace: true, state: { mode: 'student' } });
             }}
             className="group relative mt-2 flex items-center justify-start lg:justify-center gap-3 px-3 lg:px-2 py-3 rounded-xl border border-red-300/80 bg-red-50/40 font-bold text-red-600 hover:bg-red-50 transition-all duration-200"
           >

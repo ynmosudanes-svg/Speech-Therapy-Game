@@ -89,10 +89,7 @@ const StudentWorkspaceSection = ({ section }) => {
                   {game.descriptionAr || game.description || 'لعبة تفاعلية لتنمية المهارات بصورة ممتعة ومحفزة.'}
                 </p>
 
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 font-black text-xs text-slate-600 backdrop-blur-sm border border-white/50">
-                    المستوى {game.level || 1}
-                  </span>
+                <div className="flex items-center justify-end mt-auto">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform active:scale-95 group-hover:-translate-x-1
                     ${index % 3 === 0 ? 'bg-blue-600 shadow-blue-200' : index % 3 === 1 ? 'bg-emerald-600 shadow-emerald-200' : 'bg-fuchsia-600 shadow-fuchsia-200'}`}>
                     <Play fill="currentColor" className="w-4 h-4 ml-1" />

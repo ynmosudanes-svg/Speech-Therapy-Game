@@ -5,6 +5,10 @@ dotenv.config({
   path: path.join(__dirname, '../../.env'),
 });
 
+const uploadsDir = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(__dirname, '../../uploads');
+
 module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: process.env.PORT || 5000,
@@ -12,7 +16,7 @@ module.exports = {
   publicApiUrl: process.env.PUBLIC_API_URL || '',
   jwtSecret: process.env.JWT_SECRET || 'replace-this-secret-in-production',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  uploadsDir: path.join(__dirname, '../../uploads'),
+  uploadsDir,
   legacyDbPath: path.join(__dirname, '../../data/legacy-games.archive.json'),
   enableLegacyGameSeed: process.env.ENABLE_LEGACY_GAME_SEED === 'true',
   imageSearchProvider: process.env.IMAGE_SEARCH_PROVIDER || 'pexels',

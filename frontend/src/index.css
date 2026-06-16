@@ -5,29 +5,45 @@
   --font-arabic: 'Tajawal', sans-serif;
   --font-en: 'Outfit', sans-serif;
   --font-weight-black: 800;
-  --color-primary: #138fbc;
-  --color-primary-hover: #0f7ea6;
-  --color-secondary: #ec4899; /* Pink */
-  --color-secondary-hover: #db2777;
-  --color-accent: #10b981; /* Green */
-  --color-background: #ffffff;
-  --color-dark: #1e293b; /* Slate 800 */
+  --color-primary: #1584C3;
+  --color-primary-hover: #0F6FA6;
+  --color-secondary: #20B7B5;
+  --color-secondary-hover: #168D8B;
+  --color-accent: #F2B84B;
+  --color-background: #F8FBFD;
+  --color-dark: #0F172A;
 }
 
 :root {
-  --theme-primary: #138fbc;
-  --theme-primary-hover: #0f7ea6;
-  --theme-primary-soft: #f5f8f9;
-  --theme-primary-soft-2: #f9fbfb;
-  --theme-primary-border: #d6e0e4;
-  --theme-scrollbar-thumb: rgba(19, 143, 188, 0.78);
-  --theme-scrollbar-thumb-hover: rgba(15, 126, 166, 0.95);
-  --theme-scrollbar-track: rgba(214, 224, 228, 0.68);
+  --primary: #1584C3;
+  --primary-hover: #0F6FA6;
+  --primary-dark: #073B5C;
+  --primary-soft: #EAF7FD;
+  --secondary: #20B7B5;
+  --secondary-hover: #168D8B;
+  --accent: #F2B84B;
+  --bg: #F8FBFD;
+  --surface: #FFFFFF;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --border: #D9EAF2;
+
+  --theme-primary: var(--primary);
+  --theme-primary-hover: var(--primary-hover);
+  --theme-primary-dark: var(--primary-dark);
+  --theme-primary-soft: var(--primary-soft);
+  --theme-primary-soft-2: var(--bg);
+  --theme-primary-border: var(--border);
+  --theme-scrollbar-thumb: rgba(21, 132, 195, 0.78);
+  --theme-scrollbar-thumb-hover: rgba(15, 111, 166, 0.95);
+  --theme-scrollbar-track: rgba(217, 234, 242, 0.68);
 }
 
 @layer base {
   html, body, #root {
-    @apply bg-slate-50 text-slate-800 w-full min-h-screen m-0 p-0;
+    @apply w-full min-h-screen m-0 p-0;
+    background: var(--bg);
+    color: var(--text-main);
     font-family: var(--font-arabic);
     direction: rtl;
     -webkit-font-smoothing: antialiased;
@@ -63,17 +79,22 @@
 
 @layer components {
   .btn-primary {
-    @apply text-white font-bold py-3 px-8 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 active:scale-95 border-none;
-    background-color: var(--theme-primary);
+    @apply text-white font-bold py-3 px-8 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 active:scale-95 border-none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    box-shadow: 0 12px 28px rgba(21, 132, 195, 0.28);
   }
   .btn-primary:hover {
-    background-color: var(--theme-primary-hover);
+    background: linear-gradient(135deg, var(--primary-hover), var(--secondary-hover));
+    box-shadow: 0 16px 34px rgba(21, 132, 195, 0.38);
   }
   .btn-secondary {
     @apply bg-pink-500 text-white font-bold py-3 px-8 rounded-2xl shadow-lg hover:shadow-xl hover:bg-pink-600 hover:-translate-y-1 transition-all duration-300 active:scale-95 border-none;
   }
   .btn-outline {
-    @apply bg-white border-2 border-slate-200 text-slate-700 font-bold py-3 px-8 rounded-2xl shadow-sm hover:-translate-y-1 transition-all duration-300 active:scale-95;
+    @apply bg-white border-2 font-bold py-3 px-8 rounded-2xl shadow-sm hover:-translate-y-1 transition-all duration-300 active:scale-95;
+    border-color: var(--border);
+    color: var(--text-main);
   }
   .btn-outline:hover {
     border-color: var(--theme-primary);
@@ -142,7 +163,17 @@
   }
 
   .card {
-    @apply bg-white rounded-3xl shadow-md overflow-hidden border border-slate-100 transition-all duration-300 hover:shadow-xl;
+    @apply overflow-hidden transition-all duration-300;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: 0 18px 45px rgba(7, 59, 92, 0.08);
+  }
+
+  .card:hover {
+    border-color: var(--primary);
+    transform: translateY(-4px);
+    box-shadow: 0 24px 60px rgba(7, 59, 92, 0.14);
   }
 
   .therapy-blob {

@@ -5,6 +5,7 @@ import {
   X,
   LayoutDashboard,
   Users,
+  FolderOpen,
   Gamepad2,
   FileText,
   ShieldCheck,
@@ -18,6 +19,7 @@ import { useTherapyStore } from '../hooks/useTherapyStore';
 const PAGE_TITLES = {
   '/admin/dashboard': 'لوحة التحكم',
   '/admin/patients': 'المرضى',
+  '/admin/library': 'مكتبة الألعاب',
   '/admin/games': 'الألعاب',
   '/admin/reports': 'التقارير',
   '/admin/therapists': 'الأخصائيون',
@@ -30,7 +32,7 @@ const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
   if (!adminSession?.token) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/" replace state={{ mode: 'staff' }} />;
   }
 
   const activePath = Object.keys(PAGE_TITLES).find((path) => location.pathname.startsWith(path));
@@ -43,6 +45,7 @@ const AdminLayout = () => {
       ? [{ path: '/admin/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' }]
       : []),
     { path: '/admin/patients', icon: Users, label: 'المرضى' },
+    { path: '/admin/library', icon: FolderOpen, label: 'المكتبة' },
     { path: '/admin/games', icon: Gamepad2, label: 'الألعاب' },
     { path: '/admin/reports', icon: FileText, label: 'التقارير' },
     ...(adminSession?.user?.role === 'SUPER_ADMIN'
@@ -132,7 +135,8 @@ const AdminLayout = () => {
 
         <div className="p-4 border-t border-slate-100 space-y-1.5 bg-white">
           <Link
-            to="/student/login"
+            to="/"
+            state={{ mode: 'student' }}
             onClick={() => setIsSidebarOpen(false)}
             className={`w-full flex items-center py-3.5 rounded-2xl font-bold text-[16px] text-[#3a4b66] hover:bg-slate-50 transition-colors ${
               isSidebarOpen ? 'gap-4 px-5 justify-start' : 'justify-center px-0'
@@ -145,7 +149,7 @@ const AdminLayout = () => {
           <button
             onClick={() => {
               logoutAdmin();
-              navigate('/admin/login');
+              navigate('/', { state: { mode: 'staff' } });
             }}
             className={`w-full flex items-center py-3.5 rounded-2xl font-bold text-[16px] text-red-600 hover:bg-red-50 transition-colors ${
               isSidebarOpen ? 'gap-4 px-5 justify-start' : 'justify-center px-0'

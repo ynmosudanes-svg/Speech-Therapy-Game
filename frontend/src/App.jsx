@@ -8,6 +8,12 @@ function AppShell() {
   const location = useLocation();
 
   const hideFooter =
+    location.pathname === '/' ||
+    location.pathname.startsWith('/auth') ||
+    location.pathname.startsWith('/account') ||
+    location.pathname.startsWith('/trial') ||
+    location.pathname.startsWith('/library') ||
+    location.pathname.startsWith('/play') ||
     location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/student');
 

@@ -4,6 +4,18 @@ import { ArrowRight, BarChart3, Clock, TrendingUp } from 'lucide-react';
 import Button from '../../components/Button';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 
+const mapPromptToArabic = (prompt) => {
+  if (!prompt) return 'مستقل';
+  const p = String(prompt).toUpperCase();
+  if (p === 'INDEPENDENT' || p === 'NONE') return 'مستقل';
+  if (p === 'FULL') return 'مساعدة كاملة';
+  if (p === 'PARTIAL') return 'مساعدة جزئية';
+  if (p === 'VERBAL' || p === 'PROMPTED') return 'مساعدة لفظية';
+  if (p === 'PHYSICAL') return 'مساعدة جسدية';
+  if (p === 'VISUAL') return 'مساعدة بصرية';
+  return prompt;
+};
+
 const StudentProfile = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
@@ -172,7 +184,7 @@ const StudentProfile = () => {
                 {performanceByPromptLevel.length > 0 ? (
                   performanceByPromptLevel.map((entry) => (
                     <div key={entry.promptLevel} className="rounded-2xl border border-slate-100 p-4 bg-slate-50">
-                      <div className="font-black text-slate-900">{entry.promptLevel}</div>
+                      <div className="font-black text-slate-900">{mapPromptToArabic(entry.promptLevel)}</div>
                       <div className="text-sm text-slate-500 mt-1">
                         {entry.totalSessions} جلسات - متوسط {entry.averageScore}%
                       </div>

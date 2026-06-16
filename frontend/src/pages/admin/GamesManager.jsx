@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Plus, Search, Trash2, Tag, ChevronDown, Check, Gamepad2, Sparkles, ArrowLeft } from 'lucide-react';
+import { Copy, Edit2, Plus, Search, Trash2, Tag, ChevronDown, Check, Gamepad2 } from 'lucide-react';
 import Button from '../../components/Button';
 import gameService from '../../services/gameService';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
@@ -27,9 +27,10 @@ const GamesManager = () => {
   const [activeTags, setActiveTags] = useState([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [deleteGameId, setDeleteGameId] = useState(null);
+  const [copiedGameId, setCopiedGameId] = useState('');
 
   const allAvailableTags = useMemo(() => {
-    const tags = new Set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']); // default starter tags
+    const tags = new Set();
     games.forEach(g => {
       if (Array.isArray(g.config?.tags)) {
         g.config.tags.forEach(t => tags.add(t));
@@ -78,6 +79,27 @@ const GamesManager = () => {
 
   const handleDelete = (gameId) => {
     setDeleteGameId(gameId);
+  };
+
+  const handleCopyGameLink = async (gameId) => {
+    const gameUrl = `${window.location.origin}/play/${gameId}`;
+
+    try {
+      await navigator.clipboard.writeText(gameUrl);
+    } catch (_error) {
+      const textarea = document.createElement('textarea');
+      textarea.value = gameUrl;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+
+    setCopiedGameId(String(gameId));
+    window.setTimeout(() => setCopiedGameId(''), 1800);
   };
 
   const confirmDelete = async () => {
@@ -131,7 +153,7 @@ const GamesManager = () => {
                 <div className="flex items-center gap-2">
                   <Tag size={18} className="text-slate-400" />
                   <span className="font-bold whitespace-nowrap">
-                    الفلاتر {activeTags.length > 0 ? `(${activeTags.length})` : ''}
+                    التصنيف {activeTags.length > 0 ? `(${activeTags.length})` : ''}
                   </span>
                 </div>
                 <ChevronDown size={18} className={`text-slate-400 transition-transform ${filterMenuOpen ? 'rotate-180' : ''}`} />
@@ -140,7 +162,7 @@ const GamesManager = () => {
               {filterMenuOpen && (
                 <div className="absolute z-50 left-0 top-full mt-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden" dir="ltr">
                   <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50" dir="rtl">
-                    <span className="font-bold text-slate-700">تصفية بالتصنيفات</span>
+                    <span className="font-bold text-slate-700">تصفية بالتصنيف</span>
                     {activeTags.length > 0 && (
                       <button
                         onClick={() => { setActiveTags([]); setFilterMenuOpen(false); }}
@@ -239,6 +261,21 @@ const GamesManager = () => {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyGameLink(game.id)}
+                          className={`h-9 min-w-9 rounded-lg border px-2.5 text-sm font-black transition-colors ${
+                            copiedGameId === String(game.id)
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
+                              : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-700'
+                          }`}
+                          title="نسخ رابط اللعب"
+                        >
+                          <span className="inline-flex items-center gap-1.5">
+                            {copiedGameId === String(game.id) ? <Check size={17} /> : <Copy size={17} />}
+                            <span className="hidden xl:inline">{copiedGameId === String(game.id) ? 'تم النسخ' : 'نسخ'}</span>
+                          </span>
+                        </button>
                         <button
                           onClick={() => navigate(`/admin/games/edit/${game.id}`)}
                           className="w-9 h-9 flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-transparent hover:border-blue-200"

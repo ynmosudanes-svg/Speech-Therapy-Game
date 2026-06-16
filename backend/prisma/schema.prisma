@@ -83,6 +83,30 @@ model Game {
   updatedAt       DateTime      @updatedAt
   students        StudentGame[]
   sessions        Session[]
+  libraries       GameLibraryItem[]
+}
+
+model GameLibrary {
+  id              String            @id @default(cuid())
+  name            String
+  description     String?
+  color           String?           @default("#19add6")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  items           GameLibraryItem[]
+
+  @@index([createdAt])
+}
+
+model GameLibraryItem {
+  libraryId       String
+  gameId          String
+  order           Int               @default(0)
+  addedAt         DateTime          @default(now())
+  library         GameLibrary       @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  game            Game              @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([libraryId, gameId])
 }
 
 model ImageLibrary {

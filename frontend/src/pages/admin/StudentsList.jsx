@@ -58,7 +58,7 @@ const StudentsList = () => {
           <div class="card">
             <div class="avatar">👦</div>
             <div class="title">${student.name}</div>
-            <div class="subtitle">يدخل ولي الأمر بهذا الكود فقط من صفحة /student/login</div>
+            <div class="subtitle">يدخل ولي الأمر بهذا الكود فقط من صفحة الدخول الرئيسية</div>
             <div class="code">${student.accessCode || student.code}</div>
             <div class="note">بعد الدخول سيشاهد الطفل ألعابه المخصصة فقط بدون أي إعدادات أو تنقل معقد.</div>
           </div>

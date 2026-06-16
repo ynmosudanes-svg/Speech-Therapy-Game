@@ -439,7 +439,9 @@ const GameForm = ({ mode = 'create' }) => {
   const [selectedActivity, setSelectedActivity] = useState(0);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [savedGameId, setSavedGameId] = useState(gameId || '');
   const [formError, setFormError] = useState('');
+  const [saveNotice, setSaveNotice] = useState('');
   const [mazeDrawTool, setMazeDrawTool] = useState('wall');
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -1094,15 +1096,15 @@ const GameForm = ({ mode = 'create' }) => {
     return '';
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const saveGame = async ({ stayOnPage = false } = {}) => {
     const validationError = validateBuilder();
     if (validationError) {
       setFormError(validationError);
-      return;
+      return false;
     }
 
     setFormError('');
+    setSaveNotice('');
     setSaving(true);
 
     const configWithActivityTypes = normalizeActivityTypesForConfig(builderState.config, builderState.type);
@@ -1123,18 +1125,34 @@ const GameForm = ({ mode = 'create' }) => {
     };
 
     try {
-      if (isEdit) {
-        await gameService.updateGame(adminSession?.token, gameId, payload);
+      const targetGameId = savedGameId || gameId;
+      if (isEdit || targetGameId) {
+        await gameService.updateGame(adminSession?.token, targetGameId, payload);
       } else {
-        await gameService.createGame(adminSession?.token, payload);
+        const createdGame = await gameService.createGame(adminSession?.token, payload);
+        if (createdGame?.id) {
+          setSavedGameId(createdGame.id);
+        }
+      }
+
+      if (stayOnPage) {
+        setSaveNotice('تم تحديث آخر الإضافات بنجاح.');
+        return true;
       }
 
       navigate('/admin/games');
+      return true;
     } catch (error) {
       setFormError(getApiErrorMessage(error, 'تعذر حفظ اللعبة.'));
+      return false;
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    await saveGame({ stayOnPage: false });
   };
 
   if (loading) {
@@ -1167,16 +1185,33 @@ const GameForm = ({ mode = 'create' }) => {
           <div className="flex flex-col gap-4">
             {/* Template Filtering */}
             <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <Search size={20} className="text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="ابحث عن نوع اللعبة (مثال: المطابقة، المتاهة...)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 bg-transparent outline-none text-slate-800 font-bold"
-                />
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <Search size={20} className="text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="ابحث عن نوع اللعبة (مثال: المطابقة، المتاهة...)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="min-w-0 flex-1 bg-transparent outline-none text-slate-800 font-bold"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => saveGame({ stayOnPage: true })}
+                  disabled={saving}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#168FC7] px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-900/10 transition hover:bg-[#127cae] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {saving ? <LoaderCircle size={18} className="animate-spin" /> : <Save size={18} />}
+                  <span>{saving ? 'جارٍ التحديث...' : 'تحديث'}</span>
+                </button>
               </div>
+              {saveNotice && (
+                <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700">
+                  {saveNotice}
+                </div>
+              )}
             </div>
 
             {/* Denser Grid */}

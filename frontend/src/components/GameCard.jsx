@@ -1,13 +1,11 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 import Card from './Card';
-import LevelBadge from './LevelBadge';
 import Button from './Button';
 import { useNavigate } from 'react-router-dom';
 
 const GameCard = ({ game, basePath = '/student/game' }) => {
   const navigate = useNavigate();
-  const levelsCount = Array.isArray(game?.config?.levels) ? game.config.levels.length : game.level;
 
   return (
     <Card className="flex flex-col h-full transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
@@ -17,8 +15,7 @@ const GameCard = ({ game, basePath = '/student/game' }) => {
         </div>
         <h3 className="text-2xl font-bold text-dark mb-2">{game.config?.nameAr || game.titleAr || game.title || game.name}</h3>
         <p className="text-gray-500 mb-4">{game.title}</p>
-        <div className="mt-auto w-full flex justify-between items-center">
-          <LevelBadge level={levelsCount} />
+        <div className="mt-auto w-full flex justify-end items-center">
           <Button 
             variant="primary" 
             onClick={() => navigate(`${basePath}/${game.id}`)}

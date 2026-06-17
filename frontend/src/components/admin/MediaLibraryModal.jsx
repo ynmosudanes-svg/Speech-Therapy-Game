@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Search, Image as ImageIcon, Music, Video, LoaderCircle, UploadCloud } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
@@ -61,10 +62,11 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+  return ReactDOM.createPortal(
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }} onClick={onClose} />
       <div 
-        className="bg-white rounded-3xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden"
+        style={{ position: 'relative', width: '100%', height: '100%', maxWidth: '65vw', maxHeight: '75vh', backgroundColor: 'rgba(255,255,255,0.97)', borderRadius: '2rem', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.5)' }}
         dir="rtl"
       >
         {/* Header */}
@@ -179,8 +181,9 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
             </div>
           )}
         </div>
-      </div>
-    </div>
+        </div>
+    </div>,
+    document.body
   );
 };
 

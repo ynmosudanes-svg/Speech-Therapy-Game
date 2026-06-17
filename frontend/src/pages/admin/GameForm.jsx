@@ -56,6 +56,12 @@ const GAME_TYPE_CARDS = [
     accent: 'from-fuchsia-100 to-pink-100',
   },
   {
+    value: 'matching.shadow',
+    title: 'بازل الظل',
+    description: 'ظل كبير وصور اختيارات، الطفل يختار الصورة المطابقة للظل. يمكن رفع ظل جاهز أو استخدام صورة الإجابة الصحيحة كظل تلقائي.',
+    accent: 'from-sky-100 to-teal-100',
+  },
+  {
     value: 'sequence.order',
     title: 'ترتيب الصور',
     description: 'صور خطوات يعيد الطفل ترتيبها بالسحب.',
@@ -682,15 +688,18 @@ const GameForm = ({ mode = 'create' }) => {
     }));
   };
 
-  // Auto-initialize missing_word options if empty
+  // Auto-initialize options if empty
   useEffect(() => {
-    if (currentActivityType === 'text.missing_word' && currentActivity) {
+    if (
+      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow'].includes(currentActivityType) && 
+      currentActivity
+    ) {
       if (!currentActivity.options || currentActivity.options.length === 0) {
         updateCurrentActivity((activity) => ({
           ...activity,
           options: [
-            { id: `opt_${Date.now()}_1`, textAr: '', isCorrect: true },
-            { id: `opt_${Date.now()}_2`, textAr: '', isCorrect: false },
+            { id: `opt_${Date.now()}_1`, textAr: '', image: '', isCorrect: true },
+            { id: `opt_${Date.now()}_2`, textAr: '', image: '', isCorrect: false },
           ],
         }));
       }
@@ -989,6 +998,18 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
+        if (activityType === 'matching.shadow') {
+          if ((activity.options || []).length < 2) {
+            return `لعبة بازل الظل تحتاج صورتين على الأقل في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.options || []).filter((option) => option.isCorrect).length !== 1) {
+            return `حدد صورة صحيحة واحدة فقط لبازل الظل في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.options || []).some((option) => !option.image?.trim())) {
+            return `كل اختيارات بازل الظل تحتاج صورة في المستوى ${level.levelNumber}.`;
+          }
+        }
+
         if (activityType === 'matching.different') {
           if (!activity.heroImage?.trim()) {
             return `أضف الصورة الرئيسية في المستوى ${level.levelNumber}.`;
@@ -1060,6 +1081,12 @@ const GameForm = ({ mode = 'create' }) => {
             return `أدخل شبكة متاهة صحيحة في المستوى ${level.levelNumber}.`;
           }
         }
+        if (activityType === 'puzzle.jigsaw') {
+          if (!activity.image?.trim()) {
+            return `أضف صورة البازل في المستوى ${level.levelNumber}.`;
+          }
+        }
+
           if (
             activityType === 'navigation.move_to_target' &&
             Number(activity.movable?.startX || 0) > Number(activity.grid?.cols || 0)
@@ -1185,8 +1212,8 @@ const GameForm = ({ mode = 'create' }) => {
           <div className="flex flex-col gap-4">
             {/* Template Filtering */}
             <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200 transition focus-within:ring-[var(--primary)] lg:w-[min(100%,34rem)]">
                   <Search size={20} className="text-slate-400" />
                   <input
                     type="text"
@@ -1204,7 +1231,7 @@ const GameForm = ({ mode = 'create' }) => {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#168FC7] px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-900/10 transition hover:bg-[#127cae] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {saving ? <LoaderCircle size={18} className="animate-spin" /> : <Save size={18} />}
-                  <span>{saving ? 'جارٍ التحديث...' : 'تحديث'}</span>
+                  <span>{saving ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}</span>
                 </button>
               </div>
               {saveNotice && (
@@ -1520,6 +1547,21 @@ const GameForm = ({ mode = 'create' }) => {
                       </div>
                     )}
 
+                    {currentActivityType === 'matching.shadow' && (
+                      <div className="pt-2 space-y-3">
+                        <ImageAssetField
+                          label="صورة ظل جاهزة اختيارية"
+                          value={currentActivity.heroImage || ''}
+                          onSelect={(value) => setActivityField('heroImage', value)}
+                          token={adminSession?.token}
+                          initialQuery="animal shadow silhouette"
+                        />
+                        <div className="rounded-2xl border border-[#D9EAF2] bg-[#EAF7FD] px-4 py-3 text-sm font-bold text-[#0F6FA6]">
+                          لو لم ترفع صورة ظل، سيتم استخدام صورة الإجابة الصحيحة وتحويلها تلقائيًا إلى ظل داخل اللعبة.
+                        </div>
+                      </div>
+                    )}
+
                   </div>
 
                   {/* 3. الإجابات والاختيارات */}
@@ -1787,7 +1829,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {currentActivityType === 'matching.find' && (
+                  {(currentActivityType === 'matching.find' || currentActivityType === 'matching.shadow') && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -1801,7 +1843,9 @@ const GameForm = ({ mode = 'create' }) => {
                       </div>
 
                       <div className="rounded-2xl bg-fuchsia-50/80 border border-fuchsia-100/80 px-4 py-3 text-sm font-bold text-fuchsia-700/90">
-                        الطفل يسمع أو يقرأ التعليمات مثل: أوجد القطة، ثم يختار الصورة الصحيحة من بين 2 أو 3 أو 4 أو 6 صور.
+                        {currentActivityType === 'matching.shadow'
+                          ? 'ارفع صور الاختيارات الملونة وحدد الصورة الصحيحة. اللعبة ستعرض ظل الصورة الصحيحة تلقائيًا أو تستخدم صورة الظل الجاهزة لو رفعتها.'
+                          : 'الطفل يسمع أو يقرأ التعليمات مثل: أوجد القطة، ثم يختار الصورة الصحيحة من بين 2 أو 3 أو 4 أو 6 صور.'}
                       </div>
 
                       <div className="grid gap-4">
@@ -1846,7 +1890,7 @@ const GameForm = ({ mode = 'create' }) => {
                                 checked={Boolean(option.isCorrect)}
                                 onChange={() => selectCorrectOption(optionIndex)}
                               />
-                              <span>هذه هي الصورة المطلوبة</span>
+                              <span>{currentActivityType === 'matching.shadow' ? 'هذه هي الصورة المطابقة للظل' : 'هذه هي الصورة المطلوبة'}</span>
                             </label>
                           </div>
                         ))}

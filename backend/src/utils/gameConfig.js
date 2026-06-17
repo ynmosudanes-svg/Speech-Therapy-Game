@@ -2,6 +2,7 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'matching.similar',
   'matching.different',
   'matching.find',
+  'matching.shadow',
   'sequence.order',
   'action.drag_to_target',
   'navigation.move_to_target',
@@ -49,7 +50,8 @@ function normalizeOption(option, index) {
   return {
     id: String(option?.id || `option_${index + 1}`),
     image: option?.image || '',
-    textAr: option?.textAr || option?.text || '',
+    label: option?.label || option?.textAr || option?.text || '',
+    textAr: option?.textAr || option?.label || option?.text || '',
     isCorrect: Boolean(option?.isCorrect),
   };
 }
@@ -148,7 +150,7 @@ function normalizeActivity(activity, type, index) {
     difficulty: activity?.difficulty || 'easy',
   };
 
-  if (activityType === 'matching.similar' || activityType === 'matching.different' || activityType === 'matching.find') {
+  if (activityType === 'matching.similar' || activityType === 'matching.different' || activityType === 'matching.find' || activityType === 'matching.shadow') {
     return {
       ...baseActivity,
       heroImage: activity?.heroImage || '',
@@ -287,7 +289,7 @@ function buildConfigFromLegacyGame(game) {
     failSound: game.failSound,
   });
 
-  if (type === 'matching.similar' || type === 'matching.different' || type === 'matching.find') {
+  if (type === 'matching.similar' || type === 'matching.different' || type === 'matching.find' || type === 'matching.shadow') {
     const options = Array.isArray(game.options) ? game.options.map(normalizeOption) : [];
     const correctOption = options.find((option) => option.isCorrect) || options[0] || null;
     baseConfig.levels[0].activities = [

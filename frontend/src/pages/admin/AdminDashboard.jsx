@@ -7,7 +7,7 @@ import gameService from '../../services/gameService';
 
 
 const Card = ({ children, className = '' }) => (
-  <div className={`bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-300 ${className}`}>{children}</div>
+  <div className={`bg-white rounded-3xl border border-[#D9EAF2] shadow-[0_12px_30px_rgba(15,111,166,0.08)] hover:shadow-[0_16px_36px_rgba(15,111,166,0.12)] transition-shadow duration-300 ${className}`}>{children}</div>
 );
 
 export default function AdminDashboard() {
@@ -35,7 +35,7 @@ export default function AdminDashboard() {
         patientName: student?.name || 'طالب محذوف',
         time: new Date(session.createdAt).toLocaleDateString('ar-EG'),
         type: session.gameType === 'speech' ? 'نطق وتخاطب' : 'تنمية مهارات',
-        color: 'bg-[#f5f8f9] text-[#138fbc] border border-[#d6e0e4]'
+        color: 'bg-[#EAF7FD] text-[#0F6FA6] border border-[#D9EAF2]'
       };
     });
 
@@ -68,14 +68,14 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="w-full bg-slate-50/50 p-4 sm:p-6 lg:p-8 font-arabic" dir="rtl">
+    <div className="w-full p-4 sm:p-6 lg:p-8 font-arabic" dir="rtl">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-[#D9EAF2] shadow-[0_12px_30px_rgba(15,111,166,0.08)]">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">لوحة متابعة المركز</h1>
             <p className="text-slate-500 mt-1.5 font-medium">نظرة شاملة ومحدثة لحالة المرضى، الجلسات، والخطط العلاجية.</p>
           </div>
-          <button className="flex items-center gap-2 bg-[#168FC7] hover:bg-[#0f7ea6] text-white px-5 py-2.5 rounded-xl font-bold transition-colors shadow-sm shadow-sky-100">
+          <button className="admin-primary-action">
             <span>تحديث البيانات</span>
             <Activity size={18} />
           </button>
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
                   className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.tone} opacity-5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110 duration-500`}
                 />
                 <div className="relative z-10">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${stat.bg} ${stat.text}`}>
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border border-[#D9EAF2] ${stat.bg} ${stat.text}`}>
                     <Icon size={24} strokeWidth={2.5} />
                   </div>
                   <div className="space-y-1">
@@ -111,7 +111,7 @@ export default function AdminDashboard() {
                   <h2 className="text-xl font-black text-slate-900">معدل التقدم العام (6 أشهر)</h2>
                   <p className="text-sm text-slate-500 mt-1 font-medium">متوسط استجابة المرضى للخطط العلاجية</p>
                 </div>
-                <div className="p-2 bg-sky-50 text-[#168FC7] rounded-xl">
+                <div className="p-2 bg-[#EAF7FD] text-[#1584C3] rounded-xl border border-[#D9EAF2]">
                   <TrendingUp size={24} />
                 </div>
               </div>
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
                       {point.value}%
                     </div>
                     <div
-                      className="w-full max-w-[3.5rem] rounded-t-xl bg-gradient-to-t from-[#168FC7] to-[#7dd3fc] transition-all duration-500 shadow-sm group-hover:opacity-80"
+                      className="w-full max-w-[3.5rem] rounded-t-xl bg-gradient-to-t from-[#1584C3] to-[#20B7B5] transition-all duration-500 shadow-[0_12px_24px_rgba(21,132,195,0.18)] group-hover:opacity-90"
                       style={{ height: `${point.value}%` }}
                     />
                     <div className="text-sm font-bold text-slate-500 mt-4">{point.label}</div>
@@ -136,7 +136,7 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2.5 bg-[#f5f8f9] text-[#138fbc] rounded-xl">
+                <div className="p-2.5 bg-[#EAF7FD] text-[#1584C3] rounded-xl border border-[#D9EAF2]">
                   <CalendarClock size={24} />
                 </div>
                 <h2 className="text-xl font-black text-slate-900">أحدث الجلسات</h2>
@@ -146,10 +146,10 @@ export default function AdminDashboard() {
                 {upcomingSessions.map((session) => (
                   <div
                     key={session.id}
-                    className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 hover:border-[#d6e0e4] hover:bg-[#f9fbfb] transition-all group"
+                    className="flex items-center justify-between p-3.5 rounded-2xl border border-[#D9EAF2] hover:border-[#1584C3] hover:bg-[#F8FBFD] transition-all group"
                   >
                     <div className="flex items-center gap-3.5">
-                      <div className="w-11 h-11 rounded-xl bg-[#f8fbfd] flex items-center justify-center text-[#6b7a90] group-hover:bg-white group-hover:text-[#138fbc] transition-colors shadow-sm border border-[#e7eef3]">
+                      <div className="w-11 h-11 rounded-xl bg-[#F8FBFD] flex items-center justify-center text-[#64748B] group-hover:bg-[#EAF7FD] group-hover:text-[#1584C3] transition-colors shadow-sm border border-[#D9EAF2]">
                         <UserRound size={20} />
                       </div>
                       <div>
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => navigate('/admin/reports')}
-                className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-[#d6e0e4] text-slate-600 font-bold hover:bg-[#f5f8f9] hover:border-[#138fbc] hover:text-[#138fbc] transition-colors"
+                className="admin-soft-action mt-4 w-full border-dashed"
               >
                 عرض كل الجلسات والتقارير
               </button>

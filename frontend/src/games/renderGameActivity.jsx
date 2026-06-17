@@ -8,6 +8,7 @@ import MissingWordGame from './MissingWordGame';
 import AudioCardsGame from './AudioCardsGame';
 import PuzzleGame from './PuzzleGame';
 import MatchingConnectGame from './MatchingConnectGame';
+import ShadowPuzzleGame from './ShadowPuzzleGame';
 
 const renderGameActivity = ({
   game,
@@ -30,6 +31,10 @@ const renderGameActivity = ({
     registerAssistantActions,
     helpVoiceEnabled,
   };
+
+  if (game?.type === 'matching.shadow') {
+    return <ShadowPuzzleGame {...sharedProps} />;
+  }
 
   if (game?.type === 'matching.similar' || game?.type === 'matching.different' || game?.type === 'matching.find') {
     return <MatchingGame {...sharedProps} />;

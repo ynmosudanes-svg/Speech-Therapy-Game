@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Check, Gamepad2, Stethoscope, UserPlus } from 'lucide-react';
+import { Check, Gamepad2, UserPlus, LogIn, Eye, EyeOff, ArrowRight, ChevronDown } from 'lucide-react';
 import { Autoplay } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
-import doctorFemale from '../../assets/c73eee5a-084b-40b7-8008-12cf4b733b52-removebg-preview.png';
-import doctorMale from '../../assets/e0430cf0-bc12-4225-9bbb-6ef7153a17cd-removebg-preview.png';
+import authService from '../../services/authService';
+import kid1 from '../../assets/ef5322cd-3a7f-40df-ade9-73fab97f6a41-removebg-preview.png';
+import kid2 from '../../assets/f8c467e2-1d27-4e1a-8c9d-121ff72f66fc-removebg-preview.png';
 
 const REGISTERED_USER_KEY = 'registered_user';
 
@@ -15,13 +16,28 @@ const accountTypes = [
   { value: 'specialist', label: 'أخصائي' },
 ];
 
+const countryCodes = [
+  { code: '+20', label: 'مصر', flagCode: 'eg' },
+  { code: '+249', label: 'السودان', flagCode: 'sd' },
+  { code: '+966', label: 'السعودية', flagCode: 'sa' },
+  { code: '+971', label: 'الإمارات', flagCode: 'ae' },
+  { code: '+965', label: 'الكويت', flagCode: 'kw' },
+  { code: '+974', label: 'قطر', flagCode: 'qa' },
+  { code: '+973', label: 'البحرين', flagCode: 'bh' },
+  { code: '+968', label: 'عمان', flagCode: 'om' },
+  { code: '+962', label: 'الأردن', flagCode: 'jo' },
+  { code: '+1', label: 'أمريكا', flagCode: 'us' },
+];
+
 const initialRegisterForm = {
   firstName: '',
   lastName: '',
   name: '',
+  phoneCountryCode: '+20',
   phone: '',
   email: '',
   password: '',
+  confirmPassword: '',
   accountType: 'parent',
 };
 
@@ -31,8 +47,8 @@ const initialStaffForm = {
 };
 
 const heroDoctors = [
-  { src: doctorFemale, alt: 'أخصائية علاج نطق' },
-  { src: doctorMale, alt: 'أخصائي علاج نطق' },
+  { src: kid1, alt: 'مستفيد' },
+  { src: kid2, alt: 'مستفيدة' },
 ];
 
 const brandPhrases = [
@@ -42,9 +58,9 @@ const brandPhrases = [
     dir: 'rtl',
   },
   {
-    title: 'Speech Therapy Games',
-    subtitle: 'Care, play, and a tailored plan',
-    dir: 'ltr',
+    title: 'العيادة السودانية',
+    subtitle: 'لأمراض التخاطب والعلاج النمائي التكاملي',
+    dir: 'rtl',
   },
 ];
 
@@ -111,11 +127,19 @@ const AuthLanding = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirm, setShowRegisterConfirm] = useState(false);
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState('');
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
 
   const isWelcome = mode === 'welcome';
   const isRegister = mode === 'register';
   const isStudent = mode === 'student';
   const isStaff = mode === 'staff';
+  const selectedCountry = countryCodes.find((country) => country.code === registerForm.phoneCountryCode) || countryCodes[0];
 
   useEffect(() => {
     if (location.state?.mode) {
@@ -134,9 +158,24 @@ const AuthLanding = () => {
     setError('');
   };
 
-  const handleRegister = (event) => {
+  const handleForgotPassword = (event) => {
+    event.preventDefault();
+    const email = forgotPasswordEmail.trim() || staffForm.email.trim();
+
+    if (!email) {
+      setForgotPasswordMessage('اكتب البريد الإلكتروني أولًا ليتم مراجعة طلب استعادة كلمة المرور.');
+      return;
+    }
+
+    setForgotPasswordEmail(email);
+    setForgotPasswordMessage('تم استلام طلب استعادة كلمة المرور. سيتم التواصل معك من الإدارة.');
+  };
+
+  const handleRegister = async (event) => {
     event.preventDefault();
     const fullName = `${registerForm.firstName.trim()} ${registerForm.lastName.trim()}`.trim();
+    const normalizedPhone = registerForm.phone.trim().replace(/^\+/, '').replace(/^0+/, '');
+    const fullPhone = `${registerForm.phoneCountryCode}${normalizedPhone}`;
 
     if (
       !registerForm.firstName.trim() ||
@@ -149,6 +188,47 @@ const AuthLanding = () => {
       return;
     }
 
+    if (registerForm.password !== registerForm.confirmPassword) {
+      setError('كلمتا المرور غير متطابقتين.');
+      return;
+    }
+
+    if (registerForm.password.length < 6) {
+      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+      return;
+    }
+
+    if (registerForm.accountType === 'parent') {
+      try {
+        setSubmitting(true);
+        await authService.registerParent({
+          name: fullName,
+          phone: fullPhone,
+          email: registerForm.email.trim(),
+          password: registerForm.password,
+        });
+
+        const result = await loginAdmin(registerForm.email.trim(), registerForm.password);
+        if (result.success) {
+          navigate('/parent/dashboard', { replace: true });
+          return;
+        }
+
+        setSuccessMessage('تم إنشاء الحساب بنجاح. يمكنك تسجيل الدخول وربط طفل بالكود أو تقديم طلب لطفل جديد.');
+        setRegisterForm(initialRegisterForm);
+        return;
+      } catch (err) {
+        setError(
+          err?.response?.data?.message ||
+            err?.response?.data?.error ||
+            'تعذر إنشاء حساب ولي الأمر. تأكد من البيانات وحاول مرة أخرى.'
+        );
+        return;
+      } finally {
+        setSubmitting(false);
+      }
+    }
+
     localStorage.setItem(
       REGISTERED_USER_KEY,
       JSON.stringify({
@@ -156,7 +236,7 @@ const AuthLanding = () => {
         firstName: registerForm.firstName.trim(),
         lastName: registerForm.lastName.trim(),
         name: fullName,
-        phone: registerForm.phone.trim(),
+        phone: fullPhone,
         email: registerForm.email.trim(),
         role: 'registered_user',
         status: 'pending_review',
@@ -165,7 +245,7 @@ const AuthLanding = () => {
       })
     );
 
-    setSuccessMessage('تم إنشاء الحساب بنجاح. سيتم مراجعة بياناتك من المختص.');
+    setSuccessMessage('تم إنشاء الحساب بنجاح. سيتم مراجعة بياناتك من الإدارة.');
     setError('');
     setRegisterForm(initialRegisterForm);
   };
@@ -204,18 +284,25 @@ const AuthLanding = () => {
     setSubmitting(false);
 
     if (!result.success) {
-      setError(result.message || 'تعذر تسجيل دخول الكادر.');
+      setError(result.message || 'تعذر تسجيل دخول الفريق.');
       return;
     }
 
     const role = result.session?.user?.role;
-    navigate(role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/admin/patients', { replace: true });
+    
+    if (role === 'PARENT') {
+      navigate('/parent/dashboard', { replace: true });
+    } else {
+      navigate(role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/admin/patients', { replace: true });
+    }
   };
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
     setError('');
     setSuccessMessage('');
+    setForgotPasswordOpen(false);
+    setForgotPasswordMessage('');
   };
 
   const inputClass =
@@ -230,7 +317,7 @@ const AuthLanding = () => {
         <header className="flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-4 md:gap-5">
             <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[1.35rem] bg-white p-2.5 shadow-[0_12px_30px_rgba(15,111,166,0.14)] ring-2 ring-[#D9EAF2] md:h-16 md:w-16">
-              <img src="/logo.png" alt="شعار المنصة" className="h-full w-full object-contain" />
+              <img src="/logo.png" alt="شعار العيادة" className="h-full w-full object-contain" />
             </span>
             <TypewriterBrand />
           </Link>
@@ -240,8 +327,8 @@ const AuthLanding = () => {
             onClick={() => switchMode('staff')}
             className="hidden"
           >
-            <Stethoscope size={18} />
-            الفريق الطبي
+            <LogIn size={18} />
+            تسجيل الدخول
           </button>
         </header>
 
@@ -287,7 +374,7 @@ const AuthLanding = () => {
                     isStaff ? 'bg-white text-[#1584C3] shadow-sm' : 'text-[#64748B] hover:bg-white/65 hover:text-[#1584C3]'
                   }`}
                 >
-                  الفريق الطبي
+                  تسجيل الدخول
                 </button>
               </div>
               )}
@@ -296,13 +383,13 @@ const AuthLanding = () => {
                 {isWelcome ? (
                   <div className="flex min-h-[320px] flex-col justify-center text-right sm:min-h-[430px]">
                     <p className="mb-2 text-xs font-black tracking-[0.08em] text-[#20B7B5] sm:mb-4 sm:text-sm sm:tracking-[0.18em]">
-                      منصة علاجية تفاعلية
+                      منصة العلاج التفاعلي
                     </p>
                     <h1 className="max-w-lg text-[1.625rem] font-black leading-[1.2] text-[#073B5C] sm:text-5xl sm:leading-[1.25]">
-                      رحلتك العلاجية تبدأ بخطوة بسيطة
+                      تجربة علاجية ألطف لطفلك
                     </h1>
                     <p className="mt-3 max-w-lg text-xs font-bold leading-5 text-[#64748B] sm:mt-5 sm:text-lg sm:leading-8">
-                      ألعاب نطق مصممة بعناية، متابعة واضحة، وتجربة سهلة للمستفيدين والفريق الطبي.
+                      ألعاب علاجية منظمة، متابعة مرنة، وتجربة سهلة للأخصائيين وأولياء الأمور.
                     </p>
 
                     <div className="mt-6 grid w-full max-w-lg gap-2.5 sm:mt-8 sm:grid-cols-2 sm:gap-3">
@@ -327,7 +414,7 @@ const AuthLanding = () => {
                       onClick={() => switchMode('staff')}
                       className="mt-4 w-fit text-xs font-black text-[#64748B] transition hover:text-[#0F6FA6] sm:mt-5 sm:text-sm"
                     >
-                      دخول الفريق الطبي
+                      تسجيل الدخول (أخصائي / ولي أمر)
                     </button>
                   </div>
                 ) : isRegister ? (
@@ -348,9 +435,76 @@ const AuthLanding = () => {
                       <input value={registerForm.firstName} onChange={(event) => updateRegisterField('firstName', event.target.value)} placeholder="الاسم الأول" className={`${inputClass} sm:flex-1`} />
                       <input value={registerForm.lastName} onChange={(event) => updateRegisterField('lastName', event.target.value)} placeholder="الاسم الأخير" className={`${inputClass} sm:flex-1`} />
                     </div>
-                    <input value={registerForm.phone} onChange={(event) => updateRegisterField('phone', event.target.value)} placeholder="رقم الهاتف" className={inputClass} />
+                    <div dir="ltr" className="relative flex min-h-10 w-full overflow-visible rounded-2xl border border-[#D9EAF2] bg-[#F8FBFD] text-sm font-bold outline-none transition-colors focus-within:border-[#1584C3] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#1584C3]/15 sm:min-h-12 sm:text-base">
+                      <button
+                        type="button"
+                        onClick={() => setCountryDropdownOpen((current) => !current)}
+                        className="phone-country-button flex min-w-[6.75rem] shrink-0 items-center justify-center gap-2 rounded-l-2xl border-r border-[#D9EAF2] bg-[#EAF7FD] px-3 font-black text-[#0F172A] transition hover:bg-[#DDF2FA] sm:min-w-[7.5rem]"
+                        aria-label="كود البلد"
+                        aria-expanded={countryDropdownOpen}
+                      >
+                        <img
+                          src={`https://flagcdn.com/w40/${selectedCountry.flagCode}.png`}
+                          alt=""
+                          className="h-4 w-6 rounded-[0.25rem] object-cover shadow-sm"
+                        />
+                        <span dir="ltr" className="leading-none">{selectedCountry.code}</span>
+                        <span className="text-[#1584C3]">⌄</span>
+                        <ChevronDown size={16} strokeWidth={3} className="-translate-y-0.5 text-[#1584C3]" />
+                      </button>
+
+                      {countryDropdownOpen && (
+                        <div className="absolute left-0 top-[calc(100%+0.45rem)] z-50 w-[7.75rem] overflow-hidden rounded-2xl border border-[#D9EAF2] bg-white shadow-[0_18px_40px_rgba(15,111,166,0.16)]">
+                          {countryCodes.map((country) => {
+                            const isSelected = country.code === registerForm.phoneCountryCode;
+
+                            return (
+                              <button
+                                key={country.code}
+                                type="button"
+                                onClick={() => {
+                                  updateRegisterField('phoneCountryCode', country.code);
+                                  setCountryDropdownOpen(false);
+                                }}
+                                className={`flex w-full items-center justify-center gap-2 px-3 py-2.5 text-sm font-black transition ${
+                                  isSelected
+                                    ? 'bg-[#EAF7FD] text-[#0F172A]'
+                                    : 'bg-white text-[#0F172A] hover:bg-[#F3FAFD] hover:text-[#0F172A]'
+                                }`}
+                              >
+                                <img
+                                  src={`https://flagcdn.com/w40/${country.flagCode}.png`}
+                                  alt=""
+                                  className="h-4 w-6 rounded-[0.25rem] object-cover shadow-sm"
+                                />
+                                <span dir="ltr">{country.code}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <input
+                        value={registerForm.phone}
+                        onChange={(event) => updateRegisterField('phone', event.target.value.replace(/[^\d+]/g, ''))}
+                        placeholder="رقم الهاتف"
+                        inputMode="tel"
+                        dir="rtl"
+                        className="min-w-0 flex-1 bg-transparent px-4 text-right font-black text-[#0F172A] outline-none placeholder:font-bold placeholder:text-[#8A94A6]"
+                      />
+                    </div>
                     <input type="email" value={registerForm.email} onChange={(event) => updateRegisterField('email', event.target.value)} placeholder="البريد الإلكتروني" className={inputClass} />
-                    <input type="password" value={registerForm.password} onChange={(event) => updateRegisterField('password', event.target.value)} placeholder="كلمة المرور" className={inputClass} />
+                    <div className="relative">
+                      <input type={showRegisterPassword ? 'text' : 'password'} value={registerForm.password} onChange={(event) => updateRegisterField('password', event.target.value)} placeholder="كلمة المرور" className={`${inputClass} pl-12`} />
+                      <button type="button" onClick={() => setShowRegisterPassword(!showRegisterPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-[#94A3B8] hover:text-[#1584C3] hover:bg-[#EAF7FD] transition-colors">
+                        {showRegisterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input type={showRegisterConfirm ? 'text' : 'password'} value={registerForm.confirmPassword} onChange={(event) => updateRegisterField('confirmPassword', event.target.value)} placeholder="تأكيد كلمة المرور" className={`${inputClass} pl-12`} />
+                      <button type="button" onClick={() => setShowRegisterConfirm(!showRegisterConfirm)} className="absolute left-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-[#94A3B8] hover:text-[#1584C3] hover:bg-[#EAF7FD] transition-colors">
+                        {showRegisterConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       {accountTypes.map((type) => {
                         const isSelected = registerForm.accountType === type.value;
@@ -393,22 +547,79 @@ const AuthLanding = () => {
 
                     <button
                       type="submit"
-                      className="min-h-11 w-full rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-2.5 text-xs font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)] sm:min-h-12 sm:py-3 sm:text-base"
+                      disabled={submitting}
+                      className="min-h-11 w-full rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-2.5 text-xs font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-12 sm:py-3 sm:text-base"
                     >
-                      إنشاء الحساب
+                      {submitting ? 'جارٍ إنشاء الحساب...' : 'إنشاء الحساب'}
                     </button>
+                  </form>
+                ) : isStaff && forgotPasswordOpen ? (
+                  <form onSubmit={handleForgotPassword} className="space-y-4 sm:space-y-6">
+                    <div className="mb-3 text-right sm:mb-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="grid h-8 w-8 place-items-center rounded-xl border border-[#D9EAF2] bg-[#EAF7FD] text-[#1584C3]">
+                          <LogIn size={16} />
+                        </span>
+                        <h1 className="text-base font-black text-[#073B5C] sm:text-2xl">استعادة كلمة المرور</h1>
+                      </div>
+                      <p className="mt-1 text-[11px] font-bold leading-5 text-[#64748B] sm:text-sm sm:leading-6">
+                        أدخل البريد الإلكتروني المسجل، وسيتم إرسال طلب الاستعادة للإدارة.
+                      </p>
+                    </div>
+
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-black text-[#0F172A] sm:mb-3 sm:text-sm">البريد الإلكتروني</span>
+                      <input
+                        type="email"
+                        value={forgotPasswordEmail}
+                        onChange={(event) => {
+                          setForgotPasswordEmail(event.target.value);
+                          setForgotPasswordMessage('');
+                        }}
+                        placeholder="البريد الإلكتروني"
+                        dir="auto"
+                        autoComplete="email"
+                        className={`${inputClass} text-right`}
+                      />
+                    </label>
+
+                    {forgotPasswordMessage && (
+                      <p className="px-1 text-sm font-bold leading-6 text-[#0F6FA6]">
+                        {forgotPasswordMessage}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotPasswordOpen(false);
+                          setForgotPasswordMessage('');
+                        }}
+                        className="inline-flex h-10 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#D9EAF2] bg-[#EAF7FD] text-[#1584C3] transition hover:bg-white sm:h-12 sm:w-14"
+                        aria-label="الرجوع لتسجيل الدخول"
+                      >
+                        <ArrowRight size={18} />
+                      </button>
+                      <button
+                        type="submit"
+                        className="min-h-10 flex-1 rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-2 text-xs font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)] sm:min-h-12 sm:py-3 sm:text-base"
+                      >
+                        إرسال طلب الاستعادة
+                      </button>
+                    </div>
                   </form>
                 ) : isStaff ? (
                   <form onSubmit={handleStaffLogin} className="space-y-4 sm:space-y-6">
                     <div className="mb-3 text-right sm:mb-4">
                       <div className="mb-2 flex items-center gap-2">
                         <span className="grid h-8 w-8 place-items-center rounded-xl border border-[#D9EAF2] bg-[#EAF7FD] text-[#1584C3]">
-                          <Stethoscope size={16} />
+                          <LogIn size={16} />
                         </span>
-                        <h1 className="text-base font-black text-[#073B5C] sm:text-2xl">تسجيل دخول الفريق الطبي</h1>
+                        <h1 className="text-base font-black text-[#073B5C] sm:text-2xl">تسجيل الدخول</h1>
                       </div>
                       <p className="mt-1 text-[11px] font-bold leading-5 text-[#64748B] sm:text-sm sm:leading-6">
-                        سجل دخول الطبيب أو الأخصائي لإدارة المستفيدين والجلسات من نفس الصفحة.
+                        سجل دخولك كأخصائي أو ولي أمر لإدارة الحساب ومتابعة المستفيدين.
                       </p>
                     </div>
 
@@ -427,15 +638,34 @@ const AuthLanding = () => {
 
                     <label className="block">
                       <span className="mb-2 block text-xs font-black text-[#0F172A] sm:mb-3 sm:text-sm">كلمة المرور</span>
-                      <input
-                        type="password"
-                        value={staffForm.password}
-                        onChange={(event) => updateStaffField('password', event.target.value)}
-                        placeholder="كلمة المرور"
-                        autoComplete="current-password"
-                        className={inputClass}
-                      />
+                      <div className="relative">
+                        <input
+                          type={showStaffPassword ? 'text' : 'password'}
+                          value={staffForm.password}
+                          onChange={(event) => updateStaffField('password', event.target.value)}
+                          placeholder="كلمة المرور"
+                          autoComplete="current-password"
+                          className={`${inputClass} pl-12`}
+                        />
+                        <button type="button" onClick={() => setShowStaffPassword(!showStaffPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-[#94A3B8] hover:text-[#1584C3] hover:bg-[#EAF7FD] transition-colors">
+                          {showStaffPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </label>
+
+                    <div className="-mt-2 text-left">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotPasswordOpen(true);
+                          setForgotPasswordEmail(staffForm.email);
+                          setForgotPasswordMessage('');
+                        }}
+                        className="text-xs font-black text-[#1584C3] transition hover:text-[#0F6FA6] hover:underline sm:text-sm"
+                      >
+                        نسيت كلمة المرور؟
+                      </button>
+                    </div>
 
                     {error && (
                       <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
@@ -448,7 +678,7 @@ const AuthLanding = () => {
                       disabled={submitting}
                       className="min-h-10 w-full rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-5 py-2 text-xs font-black text-white shadow-[0_12px_28px_rgba(21,132,195,0.28)] transition hover:-translate-y-0.5 hover:bg-[linear-gradient(135deg,#0F6FA6,#168D8B)] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-12 sm:py-3 sm:text-base"
                     >
-                      دخول لوحة التحكم
+                      دخول لوحة الحساب
                     </button>
                   </form>
                 ) : isStudent ? (
@@ -461,7 +691,7 @@ const AuthLanding = () => {
                         <h1 className="text-base font-black text-[#073B5C] sm:text-2xl">دخول المستفيد</h1>
                       </div>
                       <p className="mt-1 text-[11px] font-bold leading-5 text-[#64748B] sm:text-sm sm:leading-6">
-                        لا نطلب كلمة مرور أو PIN. أدخل كود الدخول وابدأ الأنشطة مباشرة.
+                        لا تحتاج كلمة مرور أو PIN. أدخل كود الدخول وابدأ الأنشطة مباشرة.
                       </p>
                     </div>
 
@@ -513,7 +743,7 @@ const AuthLanding = () => {
 
           <div
             className={`order-1 mx-auto w-full min-w-0 pt-0 sm:pt-6 lg:order-2 ${
-              isWelcome ? 'max-w-xl lg:min-h-[560px]' : 'max-w-xl lg:min-h-[560px] lg:-translate-y-8 xl:-translate-y-10'
+              isWelcome ? 'max-w-xl lg:min-h-[560px] lg:-translate-y-12' : 'max-w-xl lg:min-h-[560px] lg:-translate-y-16 xl:-translate-y-20'
             }`}
           >
             <aside

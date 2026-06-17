@@ -14,6 +14,7 @@ const imageRoutes = require('./routes/image.routes');
 const sessionRoutes = require('./routes/session.routes');
 const reportRoutes = require('./routes/report.routes');
 const uploadRoutes = require('./routes/upload.routes');
+const parentRoutes = require('./routes/parent.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/error.middleware');
 
 const app = express();
@@ -86,6 +87,7 @@ app.use(imageRoutes);
 app.use(sessionRoutes);
 app.use(reportRoutes);
 app.use(uploadRoutes);
+app.use(parentRoutes);
 
 
 app.get('/api/test-db-url', (req, res) => {

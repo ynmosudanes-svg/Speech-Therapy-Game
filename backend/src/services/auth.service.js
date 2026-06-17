@@ -41,6 +41,49 @@ async function loginWithEmail({ email, password }) {
   };
 }
 
+async function registerParent({ name, email, password }) {
+  const normalizedEmail = email.toLowerCase();
+  const existingUser = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (existingUser) {
+    throw new ApiError(409, 'A user with this email already exists.');
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = await prisma.user.create({
+    data: {
+      name,
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: 'PARENT',
+      isActive: true,
+    },
+  });
+
+  const role = normalizeRole(user.role);
+  const token = signToken({
+    sub: user.id,
+    userId: user.id,
+    role,
+    email: user.email,
+  });
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    },
+  };
+}
+
 async function loginWithAccessCode({ accessCode }) {
   const student = await prisma.student.findUnique({
     where: { accessCode: accessCode.toUpperCase() },
@@ -83,5 +126,6 @@ async function loginWithAccessCode({ accessCode }) {
 
 module.exports = {
   loginWithEmail,
+  registerParent,
   loginWithAccessCode,
 };

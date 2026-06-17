@@ -4,6 +4,7 @@ const gameOptionSchema = new mongoose.Schema(
   {
     text: { type: String, trim: true, default: '' },
     textAr: { type: String, trim: true, default: '' },
+    label: { type: String, trim: true, default: '' },
     image: { type: String, trim: true, default: '' },
     isCorrect: { type: Boolean, default: false },
   },
@@ -43,7 +44,22 @@ const gameSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ['listen_choose', 'action_drag_drop'],
+      enum: [
+        'listen_choose',
+        'action_drag_drop',
+        'matching.similar',
+        'matching.different',
+        'matching.find',
+        'matching.shadow',
+        'sequence.order',
+        'action.drag_to_target',
+        'navigation.move_to_target',
+        'navigation.maze',
+        'text.missing_word',
+        'cards.audio_flashcards',
+        'puzzle.jigsaw',
+        'matching.connect',
+      ],
     },
     level: {
       type: Number,

@@ -11,6 +11,7 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   THERAPIST
+  PARENT
 }
 
 enum SessionType {
@@ -38,7 +39,8 @@ model User {
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  students        Student[]
+  students        Student[] @relation("StudentTherapist")
+  children        Student[] @relation("StudentParent")
   sessions        Session[]
 }
 
@@ -51,9 +53,11 @@ model Student {
   currentLevel    Int           @default(1)
   planName        String?
   therapistId     String
+  parentId        String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
-  therapist       User          @relation(fields: [therapistId], references: [id], onDelete: Restrict)
+  therapist       User          @relation("StudentTherapist", fields: [therapistId], references: [id], onDelete: Restrict)
+  parent          User?         @relation("StudentParent", fields: [parentId], references: [id], onDelete: SetNull)
   sessions        Session[]
   assignedGames   StudentGame[]
 }

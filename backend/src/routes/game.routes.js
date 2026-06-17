@@ -16,11 +16,15 @@ const supportedTypes = [
   'matching.similar',
   'matching.different',
   'matching.find',
+  'matching.shadow',
   'sequence.order',
   'action.drag_to_target',
   'navigation.move_to_target',
   'navigation.maze',
   'text.missing_word',
+  'cards.audio_flashcards',
+  'puzzle.jigsaw',
+  'matching.connect',
 ];
 
 router.get('/api/games', getGames);

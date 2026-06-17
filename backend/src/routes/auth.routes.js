@@ -1,6 +1,6 @@
 ﻿const express = require('express');
 const { body } = require('express-validator');
-const { login, studentLogin, patientLogin } = require('../controllers/auth.controller');
+const { login, registerParent, studentLogin, patientLogin } = require('../controllers/auth.controller');
 const { validateRequest } = require('../middleware/validate.middleware');
 
 const router = express.Router();
@@ -13,6 +13,17 @@ router.post(
     validateRequest,
   ],
   login
+);
+
+router.post(
+  '/api/auth/register-parent',
+  [
+    body('name').trim().notEmpty().withMessage('Name is required.'),
+    body('email').isEmail().withMessage('A valid email is required.'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long.'),
+    validateRequest,
+  ],
+  registerParent
 );
 
 router.post(

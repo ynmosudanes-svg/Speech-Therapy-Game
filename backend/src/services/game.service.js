@@ -60,6 +60,8 @@ async function updateGame(gameId, payload) {
     throw new ApiError(404, 'Game not found.');
   }
 
+  console.log("PAYLOAD RECEIVED:", JSON.stringify(payload.config?.levels?.[0]?.activities?.[0], null, 2));
+  
   const config = buildConfigFromPayload({
     ...existingGame,
     ...payload,

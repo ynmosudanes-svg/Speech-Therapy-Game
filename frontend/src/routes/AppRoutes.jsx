@@ -16,6 +16,8 @@ import ReportsPage from '../pages/admin/ReportsPage';
 import StudentForm from '../pages/admin/StudentForm';
 import TherapistsList from '../pages/admin/TherapistsList';
 import TherapistForm from '../pages/admin/TherapistForm';
+import ParentsList from '../pages/admin/ParentsList';
+import ParentForm from '../pages/admin/ParentForm';
 
 import AuthLanding from '../pages/auth/AuthLanding';
 import GamePlay from '../pages/student/GamePlay';
@@ -23,6 +25,7 @@ import Result from '../pages/student/Result';
 import StudentHome from '../pages/student/StudentHome';
 import StudentWorkspaceSection from '../pages/student/StudentWorkspaceSection';
 import GamesLibrary from '../pages/student/GamesLibrary';
+import ParentDashboard from '../pages/parent/ParentDashboard';
 import { useTherapyStore } from '../hooks/useTherapyStore';
 
 const AppRoutes = () => {
@@ -33,6 +36,7 @@ const AppRoutes = () => {
       <Route path="/" element={<AuthLanding />} />
       <Route path="/auth/register" element={<Navigate to="/" replace state={{ mode: 'register' }} />} />
       <Route path="/auth/staff-login" element={<Navigate to="/" replace state={{ mode: 'staff' }} />} />
+      <Route path="/parent/dashboard" element={<ParentDashboard />} />
       <Route path="/account/dashboard" element={<Navigate to="/" replace />} />
       <Route path="/trial/dashboard" element={<Navigate to="/" replace />} />
       <Route
@@ -108,6 +112,10 @@ const AppRoutes = () => {
           <Route path="therapists/create" element={<TherapistForm mode="create" />} />
           <Route path="therapists/edit/:therapistId" element={<TherapistForm mode="edit" />} />
         </Route>
+
+        <Route path="parents" element={<ParentsList />} />
+        <Route path="parents/create" element={<ParentForm mode="create" />} />
+        <Route path="parents/edit/:parentId" element={<ParentForm mode="edit" />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

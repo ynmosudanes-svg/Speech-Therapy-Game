@@ -1,15 +1,22 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, CalendarDays, FileText, Gamepad2, Home, LogOut, Menu, X, UserRound } from 'lucide-react';
+import { CalendarDays, FileText, Gamepad2, Home, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { useTherapyStore } from '../hooks/useTherapyStore';
 
 const PAGE_TITLES = {
   '/student/home': 'الرئيسية',
+  '/student/library': 'الألعاب',
   '/student/sessions': 'الجلسات',
   '/student/reports': 'التقارير',
-  '/student/games': 'الألعاب',
   '/student/medical': 'الملف الطبي',
 };
+
+const navItems = [
+  { to: '/student/home', label: 'الرئيسية', icon: Home },
+  { to: '/student/library', label: 'الألعاب', icon: Gamepad2 },
+  { to: '/student/sessions', label: 'الجلسات', icon: CalendarDays },
+  { to: '/student/reports', label: 'التقارير', icon: FileText },
+];
 
 const StudentLayout = () => {
   const location = useLocation();
@@ -17,20 +24,18 @@ const StudentLayout = () => {
   const { activeMode, currentStudent, logoutStudent } = useTherapyStore();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isLoginRoute = location.pathname === '/student/login';
-
   const isGameScreen = location.pathname.includes('/student/game/');
-
-  const navItems = [
-    { to: '/student/home', label: 'خطتي العلاجية', icon: Home },
-    { to: '/student/library', label: 'مكتبة الألعاب', icon: Gamepad2 },
-    { to: '/student/sessions', label: 'الجلسات', icon: CalendarDays },
-    { to: '/student/reports', label: 'التقارير', icon: FileText },
-  ];
 
   const currentTitle = useMemo(() => {
     const match = Object.keys(PAGE_TITLES).find((path) => location.pathname.startsWith(path));
     return match ? PAGE_TITLES[match] : 'بوابة المستفيد';
   }, [location.pathname]);
+
+  const handleLogout = () => {
+    logoutStudent();
+    setMobileNavOpen(false);
+    navigate('/', { replace: true, state: { mode: 'student' } });
+  };
 
   if (isLoginRoute) {
     if (currentStudent) {
@@ -46,8 +51,8 @@ const StudentLayout = () => {
 
   if (isGameScreen) {
     return (
-      <div dir="rtl" className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#eaf7fb,_#f7fcfd_34%,_#ffffff_75%)] text-slate-800 font-arabic">
-        <div className="min-h-screen px-3 md:px-6 py-4 md:py-5">
+      <div dir="rtl" className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#eaf7fb,_#f7fcfd_34%,_#ffffff_75%)] font-arabic text-slate-800">
+        <div className="min-h-screen px-3 py-4 md:px-6 md:py-5">
           <Outlet />
         </div>
       </div>
@@ -55,39 +60,70 @@ const StudentLayout = () => {
   }
 
   return (
-    <div dir="rtl" className="relative h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#eaf7fb,_#f7fcfd_34%,_#ffffff_75%)] text-slate-800 font-arabic">
-      <header className="fixed top-0 left-0 right-0 lg:right-[74px] z-[80] border-b border-[#dbe7f3] bg-white/92 backdrop-blur-md shadow-[0_8px_20px_rgba(15,23,42,0.08)]">
-        <div className="w-full px-3 md:px-6 py-2 md:py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+    <div dir="rtl" className="relative h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#eaf7fb,_#f7fcfd_34%,_#ffffff_75%)] font-arabic text-slate-800">
+      <header className="app-nav-shell fixed inset-x-0 top-0 z-[80] border-b backdrop-blur-md">
+        <div dir="rtl" className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() => navigate('/student/home')}
+            className="flex shrink-0 items-center gap-3"
+          >
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-[#dbe7f3]">
+              <img src="/logo.png" alt="العيادة السودانية" className="h-7 w-7 object-contain" />
+            </span>
+            <span className="app-brand-text font-arabic text-right text-base leading-none tracking-normal sm:text-lg" dir="rtl">
+              العيادة السودانية
+            </span>
+          </button>
+
+          <nav className="hidden items-center gap-2 lg:flex">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `app-nav-link ${isActive ? 'app-nav-link-active' : ''}`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="hidden min-w-0 items-center gap-2 rounded-2xl bg-white/80 px-3 py-2 ring-1 ring-[#dbe7f3] lg:flex">
+              <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-[var(--primary-soft)] text-[var(--primary)]">
+                {currentStudent?.avatarUrl ? (
+                  <img src={currentStudent.avatarUrl} alt="صورة المستفيد" className="h-full w-full object-cover" />
+                ) : (
+                  <UserRound size={21} strokeWidth={2} />
+                )}
+              </div>
+              <div className="min-w-0 text-right">
+                <p className="text-[10px] font-black text-[var(--primary)]">
+                  {activeMode === 'therapist' ? 'جلسة علاجية' : currentTitle}
+                </p>
+                <p className="max-w-[130px] truncate text-sm font-black text-slate-800">
+                  {currentStudent?.name || 'المستفيد'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-red-500 ring-1 ring-red-100 transition hover:bg-red-50 lg:inline-flex"
+              title="خروج"
+            >
+              <LogOut size={19} />
+            </button>
             <button
               type="button"
               onClick={() => setMobileNavOpen((value) => !value)}
-              className="lg:hidden inline-flex items-center justify-center h-10 w-10 md:h-12 md:w-12 rounded-xl border border-[#dbe7f3] bg-white hover:bg-slate-50 shrink-0"
+              className="app-icon-button inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition lg:hidden"
               title="تبديل القائمة"
             >
-              {mobileNavOpen ? <X size={18} /> : <Menu size={18} />}
+              {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-
-            <div className="hidden sm:flex items-center gap-2 rounded-xl border border-[#dbe7f3] bg-white px-3 py-1.5 md:px-4 md:py-2">
-              <span className="font-black text-slate-800 text-sm md:text-base">{currentTitle}</span>
-              {location.pathname.startsWith('/student/sessions') && <CalendarDays size={14} className="text-slate-500 md:w-4 md:h-4" />}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2.5 md:gap-3 rounded-[1.1rem] md:rounded-2xl border border-blue-100/60 bg-white px-2.5 py-1.5 md:px-4 md:py-2 shadow-sm shrink-0 group hover:border-[#138fbc]/30 transition-colors cursor-default">
-              <div className="text-right flex flex-col justify-center">
-                <div className="hidden sm:block text-[10px] md:text-xs text-[#138fbc] font-bold mb-0.5">{activeMode === 'therapist' ? 'جلسة علاجية' : 'مرحباً بك،'}</div>
-                <div className="text-sm md:text-base font-black text-slate-800 truncate max-w-[100px] sm:max-w-[140px] md:max-w-[200px] leading-tight">{currentStudent?.name || 'المستفيد'}</div>
-              </div>
-              <div className="w-9 h-9 md:w-12 md:h-12 rounded-[0.8rem] md:rounded-[1.1rem] overflow-hidden bg-gradient-to-br from-[#f0f9fb] to-[#e1f4f9] border border-[#d3edf5] flex items-center justify-center shrink-0 shadow-inner group-hover:shadow-md transition-shadow">
-                {currentStudent?.avatarUrl ? (
-                  <img src={currentStudent.avatarUrl} alt="صورة المستفيد" className="w-full h-full object-cover" />
-                ) : (
-                  <UserRound size={24} className="text-sky-600 drop-shadow-sm" strokeWidth={2} />
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </header>
@@ -97,24 +133,18 @@ const StudentLayout = () => {
           type="button"
           aria-label="إغلاق القائمة"
           onClick={() => setMobileNavOpen(false)}
-          className="lg:hidden fixed inset-0 top-0 bg-slate-900/35 backdrop-blur-[1px] z-30"
+          className="fixed inset-0 z-30 bg-slate-900/35 backdrop-blur-[1px] lg:hidden"
         />
       )}
 
       <aside
-        className={`fixed right-0 top-0 z-30 border-l border-b border-[#dbe7f3] bg-white/92 backdrop-blur-md transition-all
-          pt-[70px] md:pt-[86px] lg:pt-0
-          lg:bottom-4 lg:w-[74px] lg:rounded-bl-2xl
-          ${mobileNavOpen ? 'bottom-0 w-[78vw] max-w-[320px] opacity-100 translate-x-0' : 'bottom-0 w-[78vw] max-w-[320px] opacity-0 translate-x-full pointer-events-none'}
-          lg:opacity-100 lg:translate-x-0 lg:pointer-events-auto`}
+        className={`fixed right-0 top-0 z-40 border-l border-[#dbe7f3] bg-white/95 pt-24 shadow-2xl backdrop-blur-md transition-all lg:hidden ${
+          mobileNavOpen
+            ? 'bottom-0 w-[78vw] max-w-[320px] translate-x-0 opacity-100'
+            : 'bottom-0 w-[78vw] max-w-[320px] translate-x-full opacity-0 pointer-events-none'
+        }`}
       >
-        <nav className="h-full flex flex-col p-2 pt-5 lg:pt-6 gap-2 overflow-visible">
-          <div className="hidden lg:flex items-center justify-center mb-3">
-            <div className="w-12 h-12 rounded-2xl border border-[#dbe7f3] bg-white/85 flex items-center justify-center shadow-sm">
-              <img src="/logo.png" alt="logo" className="w-8 h-8 object-contain opacity-90" />
-            </div>
-          </div>
-
+        <nav className="flex h-full flex-col gap-2 overflow-visible p-3">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -123,43 +153,32 @@ const StudentLayout = () => {
                 to={item.to}
                 onClick={() => setMobileNavOpen(false)}
                 className={({ isActive }) =>
-                  `group relative flex items-center justify-start lg:justify-center gap-3 px-3 lg:px-2 py-3 rounded-xl border transition-all duration-200 ${
+                  `flex items-center justify-start gap-3 rounded-xl border px-3 py-3 transition-all duration-200 ${
                     isActive
-                      ? 'bg-[#e9f4fb] text-[#138fbc] border-[#cfe5f3] shadow-sm'
-                      : 'text-slate-700 border-transparent hover:bg-slate-50 hover:border-[#e2edf6]'
+                      ? 'border-[var(--border)] bg-[var(--primary-soft)] text-[var(--primary)] shadow-sm'
+                      : 'border-transparent text-slate-700 hover:border-[#e2edf6] hover:bg-slate-50'
                   }`
                 }
               >
                 <Icon size={19} />
-                <span className="text-sm font-bold lg:hidden">{item.label}</span>
-                <span className="pointer-events-none hidden lg:block absolute z-[120] right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#138fbc] px-3 py-1.5 text-xs font-bold text-white opacity-0 translate-x-2 transition-all duration-200 shadow-lg shadow-cyan-900/25 group-hover:opacity-100 group-hover:translate-x-0">
-                  {item.label}
-                  <span className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-0 h-0 border-y-[6px] border-y-transparent border-l-[6px] border-l-[#138fbc]" />
-                </span>
+                <span className="text-sm font-bold">{item.label}</span>
               </NavLink>
             );
           })}
 
           <button
-            onClick={() => {
-              logoutStudent();
-              setMobileNavOpen(false);
-              navigate('/', { replace: true, state: { mode: 'student' } });
-            }}
-            className="group relative mt-2 flex items-center justify-start lg:justify-center gap-3 px-3 lg:px-2 py-3 rounded-xl border border-red-300/80 bg-red-50/40 font-bold text-red-600 hover:bg-red-50 transition-all duration-200"
+            type="button"
+            onClick={handleLogout}
+            className="mt-2 flex items-center justify-start gap-3 rounded-xl border border-red-300/80 bg-red-50/40 px-3 py-3 font-bold text-red-600 transition-all duration-200 hover:bg-red-50"
           >
             <LogOut size={19} />
-            <span className="text-sm font-bold lg:hidden">خروج</span>
-            <span className="pointer-events-none hidden lg:block absolute z-[120] right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#138fbc] px-3 py-1.5 text-xs font-bold text-white opacity-0 translate-x-2 transition-all duration-200 shadow-lg shadow-cyan-900/25 group-hover:opacity-100 group-hover:translate-x-0">
-              خروج
-              <span className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-0 h-0 border-y-[6px] border-y-transparent border-l-[6px] border-l-[#138fbc]" />
-            </span>
+            <span className="text-sm font-bold">خروج</span>
           </button>
         </nav>
       </aside>
 
-      <main className="relative z-0 h-full overflow-y-auto page-scroll-left transition-all mr-0 lg:mr-[74px]">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-[106px] pb-24 md:pt-[112px] md:pb-8">
+      <main className="relative z-0 h-full overflow-y-auto page-scroll-right transition-all">
+        <div className="mx-auto max-w-6xl px-4 pb-24 pt-[112px] md:px-6 md:pb-8">
           <Outlet />
         </div>
       </main>

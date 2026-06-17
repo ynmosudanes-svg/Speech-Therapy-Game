@@ -7,6 +7,10 @@ function canAccessStudent(currentUser, student) {
     return true;
   }
 
+  if (currentUser.role === 'PARENT') {
+    return student.parentId === currentUser.userId;
+  }
+
   return student.therapistId === currentUser.userId;
 }
 
@@ -57,9 +61,9 @@ async function listStudents(currentUser) {
   const where =
     currentUser.role === 'SUPER_ADMIN'
       ? {}
-      : {
-          therapistId: currentUser.userId,
-        };
+      : currentUser.role === 'PARENT'
+        ? { parentId: currentUser.userId }
+        : { therapistId: currentUser.userId };
 
   const students = await prisma.student.findMany({
     where,
@@ -75,6 +79,13 @@ async function listStudents(currentUser) {
         orderBy: { order: 'asc' },
         include: {
           game: true,
+        },
+      },
+      parent: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
         },
       },
     },
@@ -103,6 +114,7 @@ async function createStudent(currentUser, payload) {
       currentLevel: payload.currentLevel ?? 1,
       accessCode,
       therapistId,
+      parentId: payload.parentId || null,
       assignedGames: {
         create: (payload.assignedGames || []).map((game) => ({
           gameId: game.gameId,
@@ -164,6 +176,7 @@ async function updateStudent(currentUser, studentId, payload) {
         planName: payload.planName !== undefined ? payload.planName : existingStudent.planName,
         currentLevel: payload.currentLevel ?? existingStudent.currentLevel,
         therapistId,
+        parentId: payload.parentId !== undefined ? payload.parentId : existingStudent.parentId,
       },
     });
 

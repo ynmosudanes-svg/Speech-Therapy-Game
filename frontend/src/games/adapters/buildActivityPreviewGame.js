@@ -4,15 +4,24 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'matching.similar') return 'اختر الصورة المطابقة';
   if (type === 'matching.different') return 'أوجد المختلف';
   if (type === 'matching.find') return 'أوجد الصورة المطلوبة';
+  if (type === 'matching.shadow') return 'انظر إلى الظل واختر الصورة المناسبة';
   return 'اكتب السؤال هنا';
 };
 
 const createMatchingOption = (id, isCorrect = false) => ({
   id,
+  label: '',
   image: '',
   textAr: '',
   isCorrect,
 });
+
+const createShadowPreviewOptions = () => [
+  { id: 'elephant', label: 'فيل', textAr: 'فيل', image: '', isCorrect: true },
+  { id: 'lion', label: 'أسد', textAr: 'أسد', image: '', isCorrect: false },
+  { id: 'giraffe', label: 'زرافة', textAr: 'زرافة', image: '', isCorrect: false },
+  { id: 'horse', label: 'حصان', textAr: 'حصان', image: '', isCorrect: false },
+];
 
 const createDragItem = (id, startPosition = 'bottom', isCorrect = false) => ({
   id,
@@ -73,6 +82,19 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       difficulty: 'easy',
       heroImage: '',
       options: [createMatchingOption('option_1', true), createMatchingOption('option_2')],
+    };
+  }
+
+  if (type === 'matching.shadow') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      heroImage: '',
+      options: createShadowPreviewOptions(),
     };
   }
 
@@ -300,7 +322,7 @@ export const buildActivityRuntimeGame = ({
 }) => {
   const titleAr = nameAr || activity?.titleAr || fallbackName;
 
-  if (templateType === 'matching.similar' || templateType === 'matching.different' || templateType === 'matching.find') {
+  if (templateType === 'matching.similar' || templateType === 'matching.different' || templateType === 'matching.find' || templateType === 'matching.shadow') {
     return {
       id: gameId,
       type: templateType,

@@ -37,6 +37,11 @@ const studentSchema = new mongoose.Schema(
         ref: 'Game',
       },
     ],
+    parent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+      default: null,
+    },
   },
   {
     timestamps: true,

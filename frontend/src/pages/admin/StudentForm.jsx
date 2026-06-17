@@ -7,6 +7,7 @@ import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 import gameLibraryService from '../../services/gameLibraryService';
 import therapistService from '../../services/therapistService';
+import parentService from '../../services/parentService';
 
 const defaultForm = {
   name: '',
@@ -15,6 +16,7 @@ const defaultForm = {
   planName: '',
   currentLevel: 1,
   therapistId: '',
+  parentId: '',
   assignedGameIds: [],
 };
 
@@ -27,6 +29,7 @@ const StudentForm = ({ mode = 'create' }) => {
   const [availableGames, setAvailableGames] = useState([]);
   const [libraries, setLibraries] = useState([]);
   const [therapists, setTherapists] = useState([]);
+  const [parents, setParents] = useState([]);
   const [loadingGames, setLoadingGames] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -112,6 +115,13 @@ const StudentForm = ({ mode = 'create' }) => {
         setLibraries([]);
       }
 
+      try {
+        const parentsResponse = await parentService.getParents(adminSession?.token);
+        setParents(Array.isArray(parentsResponse?.data) ? parentsResponse.data : []);
+      } catch (_parentsError) {
+        setParents([]);
+      }
+
       if (adminSession?.user?.role === 'SUPER_ADMIN' && adminSession?.token) {
         const adminOption = adminSession?.user
           ? [
@@ -169,6 +179,7 @@ const StudentForm = ({ mode = 'create' }) => {
         planName: student.planName || '',
         currentLevel: student.currentLevel || 1,
         therapistId: student.therapistId || '',
+        parentId: student.parentId || '',
         assignedGameIds: Array.isArray(student.assignedGames)
           ? student.assignedGames.map((game) => String(game.id))
           : [],
@@ -233,6 +244,7 @@ const StudentForm = ({ mode = 'create' }) => {
       planName: formData.planName.trim() || undefined,
       currentLevel: Number(formData.currentLevel),
       therapistId: formData.therapistId || undefined,
+      parentId: formData.parentId || undefined,
       assignedGames: formData.assignedGameIds.map((id, index) => ({
         gameId: id,
         order: index,
@@ -389,6 +401,23 @@ const StudentForm = ({ mode = 'create' }) => {
                   </select>
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">ولي الأمر (اختياري)</label>
+                <select 
+                  name="parentId"
+                  value={formData.parentId}
+                  onChange={handleChange}
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
+                >
+                  <option value="">اختار ولي الأمر</option>
+                  {parents.map((parent) => (
+                    <option key={parent.id} value={parent.id}>
+                      {parent.name} - {parent.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -435,7 +464,7 @@ const StudentForm = ({ mode = 'create' }) => {
                   className="bg-white border border-gray-200 text-gray-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all w-24 sm:w-32 flex items-center justify-between"
                 >
                   {selectedTag ? (
-                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100">
+                     <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100">
                       {selectedTag}
                     </span>
                   ) : (

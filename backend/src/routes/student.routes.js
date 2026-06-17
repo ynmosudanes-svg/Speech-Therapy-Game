@@ -12,12 +12,16 @@ const { validateRequest } = require('../middleware/validate.middleware');
 
 const router = express.Router();
 
-router.use('/api/students', authenticate, authorize('SUPER_ADMIN', 'THERAPIST'));
+router.use('/api/students', authenticate, authorize('SUPER_ADMIN', 'THERAPIST', 'PARENT'));
 
 router.get('/api/students', getStudents);
 
+// Protect mutation routes
+const staffOnly = authorize('SUPER_ADMIN', 'THERAPIST');
+
 router.post(
   '/api/students',
+  staffOnly,
   [
     body('name').trim().notEmpty().withMessage('Student name is required.'),
     body('age').isInt({ min: 1, max: 25 }).withMessage('Age must be between 1 and 25.'),
@@ -35,6 +39,7 @@ router.post(
 
 router.put(
   '/api/students/:id',
+  staffOnly,
   [
     param('id').notEmpty().withMessage('Student id is required.'),
     body('name').optional().trim().notEmpty().withMessage('Student name cannot be empty.'),
@@ -53,12 +58,14 @@ router.put(
 
 router.patch(
   '/api/students/:id/access-code',
+  staffOnly,
   [param('id').notEmpty().withMessage('Student id is required.'), validateRequest],
   regenerateAccessCode
 );
 
 router.delete(
   '/api/students/:id',
+  staffOnly,
   [param('id').notEmpty().withMessage('Student id is required.'), validateRequest],
   deleteStudent
 );

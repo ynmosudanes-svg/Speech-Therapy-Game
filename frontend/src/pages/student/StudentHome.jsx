@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Star, Lock, Medal, Gamepad2, Check, RotateCcw, Sparkles, Trophy, Lightbulb, GraduationCap } from 'lucide-react';
+import { Play, Star, Lock, Medal, Gamepad2, Check, RotateCcw, Sparkles, Trophy, Lightbulb } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
+import therapyKidsImage from '../../assets/c31abac0-aadc-4c2c-b91a-d9a7dad25370-removebg-preview.png';
 
 const StudentHome = () => {
   const navigate = useNavigate();
@@ -75,16 +76,12 @@ const StudentHome = () => {
               {/* Slide 1: Welcome Slide */}
               <SwiperSlide>
                 <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
-                  <div className="w-40 h-40 bg-white/20 backdrop-blur-sm rounded-[2rem] border-4 border-white/30 flex items-center justify-center shrink-0 overflow-hidden">
-                    {currentStudent?.avatarUrl ? (
-                      <img
-                        src={currentStudent.avatarUrl}
-                        alt="student avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <GraduationCap size={84} className="text-white drop-shadow-sm" strokeWidth={1.9} />
-                    )}
+                  <div className="flex h-40 w-40 shrink-0 items-end justify-center overflow-hidden rounded-[2rem] border-4 border-white/30 bg-white/15 p-0 backdrop-blur-sm md:h-40 md:w-40">
+                    <img
+                      src={therapyKidsImage}
+                      alt="جلسة علاجية للأطفال"
+                      className="h-full w-[118%] max-w-none translate-y-1 object-contain object-bottom drop-shadow-[0_18px_26px_rgba(7,59,92,0.18)]"
+                    />
                   </div>
                   <div className="flex-1 text-center md:text-right">
                     <h3 className="text-3xl font-extrabold mb-3 text-white drop-shadow-sm">

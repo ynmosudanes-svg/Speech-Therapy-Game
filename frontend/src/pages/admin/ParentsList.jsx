@@ -174,13 +174,20 @@ const ParentsList = () => {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-visible">
           {displayedParents.map((parent) => (
-            <div key={parent.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden cursor-default">
+            <div
+              key={parent.id}
+              className={`bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-visible group cursor-default ${
+                activeMenuId === parent.id ? 'z-[80]' : 'z-0'
+              }`}
+            >
               
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-50 to-transparent rounded-bl-full opacity-50 group-hover:scale-110 transition-transform duration-500 pointer-events-none"></div>
 
-              <div className="flex justify-between items-start mb-8 relative z-10">
+              <div className={`flex justify-between items-start mb-8 relative ${
+                activeMenuId === parent.id ? 'z-[95]' : 'z-10'
+              }`}>
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-gradient-to-br from-[#178bb6] to-cyan-400 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-md transform group-hover:rotate-3 transition-transform duration-300 flex-shrink-0">
                     {parent.name.charAt(0).toUpperCase()}
@@ -191,7 +198,7 @@ const ParentsList = () => {
                   </div>
                 </div>
 
-                <div className="relative z-20" ref={activeMenuId === parent.id ? menuRef : null}>
+                <div className="relative z-[90]" ref={activeMenuId === parent.id ? menuRef : null}>
                   <button 
                     onClick={(e) => toggleMenu(parent.id, e)}
                     className={`p-2 rounded-xl transition-all ${activeMenuId === parent.id ? 'bg-cyan-50 text-[#178bb6]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
@@ -200,7 +207,7 @@ const ParentsList = () => {
                   </button>
 
                   {activeMenuId === parent.id && (
-                    <div className="absolute left-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-30 animate-fade-in py-1">
+                    <div className="absolute left-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-[100] animate-fade-in py-1">
                       <button 
                         onClick={() => {
                           setActiveMenuId(null);
@@ -234,7 +241,9 @@ const ParentsList = () => {
                 </div>
               </div>
 
-              <div className="mt-auto pt-4 border-t border-slate-50 flex flex-wrap gap-2 relative z-10 justify-between items-center">
+              <div className={`mt-auto pt-4 border-t border-slate-50 flex flex-wrap gap-2 relative justify-between items-center ${
+                activeMenuId === parent.id ? 'z-0' : 'z-10'
+              }`}>
                 {parent.isActive ? (
                   <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-600 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
                     <UserCheck size={14} strokeWidth={2.5} />

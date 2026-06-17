@@ -36,6 +36,7 @@ const MatchingGame = ({
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [shadowRevealed, setShadowRevealed] = useState(false);
   const [startTime] = useState(Date.now());
 
   /* ── Visual hint states ── */
@@ -52,11 +53,13 @@ const MatchingGame = ({
   );
   const successSound = config?.feedback?.successSound || game?.successSound || '';
   const failSound = config?.feedback?.failSound || game?.failSound || '';
-  const isDifferentMode = config?.gameType === 'matching.different';
-  const isFindMode = config?.gameType === 'matching.find';
+  const gameType = config?.gameType || game?.type;
+  const isDifferentMode = gameType === 'matching.different';
+  const isFindMode = gameType === 'matching.find';
+  const isShadowMode = gameType === 'matching.shadow';
   const gridClassName = isDifferentMode
     ? 'grid-cols-2 max-w-2xl mx-auto'
-    : isFindMode
+    : isFindMode || isShadowMode
       ? options.length <= 2
         ? 'grid-cols-2 max-w-2xl mx-auto'
         : options.length === 3
@@ -136,6 +139,11 @@ const MatchingGame = ({
     setIsCorrect(Boolean(option.isCorrect));
     setShowFeedback(true);
 
+    // Reveal shadow on correct answer
+    if (isShadowMode && option.isCorrect) {
+      setShadowRevealed(true);
+    }
+
     // Clear any hints
     setVisualPulse(false);
     setGestureArrow(false);
@@ -194,6 +202,7 @@ const MatchingGame = ({
     setShowFeedback(false);
     setIsCorrect(false);
     setAttempts(0);
+    setShadowRevealed(false);
   };
 
   const shellClassName = previewMode
@@ -234,17 +243,36 @@ const MatchingGame = ({
         />
 
         {!isFindMode && (
-          <div className="rounded-[1.65rem] md:rounded-[2rem] border border-white/80 bg-white/70 p-3 md:p-5 shadow-[0_18px_40px_-26px_rgba(71,85,105,0.55)] backdrop-blur-xl flex flex-col items-center justify-center w-full max-w-2xl mx-auto">
-            <div className="w-full max-w-sm relative z-10">
+          <div
+            className={
+              isShadowMode
+                ? 'flex min-h-44 w-full max-w-sm flex-col items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/85 p-3 shadow-[0_16px_34px_-22px_rgba(71,85,105,0.6)] backdrop-blur-xl sm:min-h-52 md:min-h-72 md:rounded-[2.25rem] md:p-6 mx-auto'
+                : 'rounded-[1.65rem] md:rounded-[2rem] border border-white/80 bg-white/70 p-3 md:p-5 shadow-[0_18px_40px_-26px_rgba(71,85,105,0.55)] backdrop-blur-xl flex flex-col items-center justify-center w-full max-w-2xl mx-auto'
+            }
+          >
+            <div
+              className={
+                isShadowMode
+                  ? 'relative z-10 flex h-28 w-full items-center justify-center overflow-hidden rounded-[1.2rem] bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.98),_rgba(248,250,252,0.9)_62%,_rgba(241,245,249,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] sm:h-32 md:h-52 md:rounded-[1.5rem]'
+                  : 'w-full max-w-sm relative z-10'
+              }
+            >
+              {isShadowMode && <div className="absolute inset-3 rounded-[1rem] bg-white/28 blur-md" />}
               {heroImage ? (
                 <img
                   src={heroImage}
                   alt={game?.titleAr || game?.name || 'Hero'}
-                  className="w-full h-28 sm:h-36 md:h-56 object-contain rounded-[1.3rem] md:rounded-[1.5rem] drop-shadow-md mix-blend-multiply"
+                  className={
+                    isShadowMode
+                      ? `relative z-10 max-h-full w-full scale-[1.06] object-contain drop-shadow-sm transition-all duration-500 ${
+                          !shadowRevealed ? 'grayscale contrast-125 brightness-75 mix-blend-multiply' : 'mix-blend-multiply'
+                        }`
+                      : 'w-full h-28 sm:h-36 md:h-56 object-contain rounded-[1.3rem] md:rounded-[1.5rem] drop-shadow-md mix-blend-multiply'
+                  }
                 />
               ) : (
-                <div className="w-full h-28 sm:h-36 md:h-56 rounded-[1.3rem] md:rounded-[1.5rem] bg-slate-50/70 border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 font-black text-center px-4 leading-7">
-                  الصورة الرئيسية
+                <div className={`${isShadowMode ? 'h-full' : 'h-28 sm:h-36 md:h-56'} flex w-full items-center justify-center rounded-[1.3rem] border-2 border-dashed border-slate-200 bg-slate-50/70 px-4 text-center font-black leading-7 text-slate-400 md:rounded-[1.5rem]`}>
+                  {isShadowMode ? 'صورة الظل' : 'الصورة الرئيسية'}
                 </div>
               )}
             </div>

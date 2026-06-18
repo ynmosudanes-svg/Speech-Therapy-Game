@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
+import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playSuccessSound, playErrorSound, playAudioUrl } from '../utils/soundEffects';
 
@@ -89,7 +90,7 @@ const FindSimilarGame = ({
       {/* Target Image */}
       <div className="text-center">
         <div className="inline-block p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] border-4 border-blue-200 shadow-lg">
-          <img
+          <GameImage
             src={game.targetImage}
             alt="الصورة المطلوبة"
             className="w-44 h-44 md:w-56 md:h-56 object-contain rounded-[1.5rem] bg-white"
@@ -114,7 +115,7 @@ const FindSimilarGame = ({
                 : 'border-transparent hover:border-blue-200'
             }`}
           >
-            <img
+            <GameImage
               src={option.image}
               alt={`خيار ${option.id}`}
               className="w-full h-32 md:h-44 object-contain bg-white rounded-[1.4rem] pointer-events-none"

@@ -144,7 +144,25 @@ const StudentLayout = () => {
             : 'bottom-0 w-[78vw] max-w-[320px] translate-x-full opacity-0 pointer-events-none'
         }`}
       >
-        <nav className="flex h-full flex-col gap-2 overflow-visible p-3">
+        <div className="flex h-full flex-col overflow-hidden rounded-l-[2rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,251,255,0.96))]">
+          <div className="border-b border-[#e4eef6] px-4 pb-4 pt-3">
+            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#d8e8f3]" />
+            <div className="flex items-center gap-3 rounded-[1.4rem] border border-[#dbe7f3] bg-white/90 px-3 py-3 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.22)]">
+              <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-[1rem] bg-[var(--primary-soft)] text-[var(--primary)]">
+                {currentStudent?.avatarUrl ? (
+                  <img src={currentStudent.avatarUrl} alt="صورة المستفيد" className="h-full w-full object-cover" />
+                ) : (
+                  <UserRound size={22} strokeWidth={2} />
+                )}
+              </div>
+              <div className="min-w-0 text-right">
+                <p className="text-[11px] font-black text-[#1584C3]">{activeMode === 'therapist' ? 'جلسة علاجية' : 'مساحة الطالب'}</p>
+                <p className="truncate text-sm font-black text-slate-800">{currentStudent?.name || 'المستفيد'}</p>
+              </div>
+            </div>
+          </div>
+
+        <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-4">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -153,14 +171,18 @@ const StudentLayout = () => {
                 to={item.to}
                 onClick={() => setMobileNavOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center justify-start gap-3 rounded-xl border px-3 py-3 transition-all duration-200 ${
+                  `flex items-center justify-start gap-3 rounded-[1.15rem] border px-3.5 py-3 transition-all duration-200 ${
                     isActive
-                      ? 'border-[var(--border)] bg-[var(--primary-soft)] text-[var(--primary)] shadow-sm'
-                      : 'border-transparent text-slate-700 hover:border-[#e2edf6] hover:bg-slate-50'
+                      ? 'border-[#cfe3f3] bg-[linear-gradient(135deg,#eef8fd,#f7fbff)] text-[#1584C3] shadow-[0_12px_26px_-22px_rgba(21,132,195,0.42)]'
+                      : 'border-transparent text-slate-700 hover:border-[#e2edf6] hover:bg-slate-50/90'
                   }`
                 }
               >
-                <Icon size={19} />
+                <span className={`grid h-9 w-9 place-items-center rounded-xl ${
+                  location.pathname.startsWith(item.to) ? 'bg-[#e9f6fc] text-[#1584C3]' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  <Icon size={18} />
+                </span>
                 <span className="text-sm font-bold">{item.label}</span>
               </NavLink>
             );
@@ -169,12 +191,15 @@ const StudentLayout = () => {
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-2 flex items-center justify-start gap-3 rounded-xl border border-red-300/80 bg-red-50/40 px-3 py-3 font-bold text-red-600 transition-all duration-200 hover:bg-red-50"
+            className="mt-auto flex items-center justify-start gap-3 rounded-[1.15rem] border border-red-200 bg-[linear-gradient(135deg,#fff8f8,#fffdfd)] px-3.5 py-3 font-bold text-red-500 transition-all duration-200 hover:bg-red-50/80"
           >
-            <LogOut size={19} />
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-red-50 text-red-500">
+              <LogOut size={18} />
+            </span>
             <span className="text-sm font-bold">خروج</span>
           </button>
         </nav>
+        </div>
       </aside>
 
       <main className="relative z-0 h-full overflow-y-auto page-scroll-right transition-all">

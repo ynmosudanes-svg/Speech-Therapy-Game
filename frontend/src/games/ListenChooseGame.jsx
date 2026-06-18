@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Volume2 } from 'lucide-react';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
+import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl } from '../utils/soundEffects';
 
@@ -88,7 +89,7 @@ const ListenChooseGame = ({
               selectedOption?.id === option.id ? 'border-blue-300' : 'border-transparent'
             }`}
           >
-            <img
+            <GameImage
               src={option.image}
               alt={option.textAr}
               className="w-full h-32 md:h-52 object-contain bg-white rounded-[1rem] md:rounded-[1.5rem] mb-2 md:mb-3 pointer-events-none"

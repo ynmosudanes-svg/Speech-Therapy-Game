@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
+import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl } from '../utils/soundEffects';
 
@@ -102,7 +103,7 @@ const FindDifferentGame = ({
               }`}
             >
               <div className="relative">
-                <img
+                <GameImage
                   src={option.image}
                   alt={`خيار ${option.id}`}
                   className="w-full h-32 md:h-44 object-contain bg-white rounded-[1.4rem] pointer-events-none"

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, ArrowRight, Volume2, CheckCircle2, PlayCircle } from 'lucide-react';
 import Button from '../components/Button';
+import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl, playSpokenArabic } from '../utils/soundEffects';
 
@@ -198,7 +199,7 @@ const AudioCardsGame = ({
           >
             {currentCard?.image ? (
               <div className="w-full h-full p-6 md:p-10 flex items-center justify-center pb-20 md:pb-24">
-                <img 
+                <GameImage 
                   src={currentCard.image} 
                   alt="Card" 
                   className="max-w-full max-h-full object-contain transition-transform duration-700 group-hover/card:scale-110 drop-shadow-md" 
@@ -224,7 +225,7 @@ const AudioCardsGame = ({
           >
             {currentCard?.image && (
               <div className="w-32 h-32 md:w-48 md:h-48 rounded-2xl border-[6px] border-white shadow-lg overflow-hidden mb-4 md:mb-6 flex-shrink-0 bg-white transform transition-transform duration-500 hover:scale-105 flex items-center justify-center">
-                <img src={currentCard.image} alt="Card Flipped" className="max-w-full max-h-full object-contain p-1" />
+                <GameImage src={currentCard.image} alt="Card Flipped" className="max-w-full max-h-full object-contain p-1" />
               </div>
             )}
             

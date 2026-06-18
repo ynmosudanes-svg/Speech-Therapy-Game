@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowRight,
@@ -427,6 +427,43 @@ const SectionTitle = ({ children, action }) => (
   </div>
 );
 
+const GAME_FORM_DRAFT_VERSION = 1;
+
+const buildGameFormDraftKey = (mode, gameId) => `game-form-draft:${mode}:${gameId || 'new'}`;
+
+const readGameFormDraft = (storageKey) => {
+  try {
+    const rawDraft = localStorage.getItem(storageKey);
+    return rawDraft ? JSON.parse(rawDraft) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeGameFormDraft = (storageKey, draft) => {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(draft));
+  } catch {
+    // Ignore storage failures to avoid blocking editing.
+  }
+};
+
+const clearGameFormDraft = (storageKey) => {
+  try {
+    localStorage.removeItem(storageKey);
+  } catch {
+    // Ignore storage failures to avoid blocking editing.
+  }
+};
+
+const buildGameFormSnapshot = ({ builderState, selectedLevel, selectedActivity, searchQuery }) =>
+  JSON.stringify({
+    builderState,
+    selectedLevel,
+    selectedActivity,
+    searchQuery,
+  });
+
 const GameForm = ({ mode = 'create' }) => {
   const navigate = useNavigate();
   const { gameId } = useParams();
@@ -448,7 +485,12 @@ const GameForm = ({ mode = 'create' }) => {
   const [savedGameId, setSavedGameId] = useState(gameId || '');
   const [formError, setFormError] = useState('');
   const [saveNotice, setSaveNotice] = useState('');
+  const [draftNotice, setDraftNotice] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [mazeDrawTool, setMazeDrawTool] = useState('wall');
+  const hasHydratedDraftRef = useRef(false);
+  const lastSavedSnapshotRef = useRef('');
+  const draftStorageKey = useMemo(() => buildGameFormDraftKey(mode, gameId), [gameId, mode]);
 
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -525,6 +567,89 @@ const GameForm = ({ mode = 'create' }) => {
 
     fetchGame();
   }, [adminSession?.token, gameId, isEdit, navigate]);
+
+  useEffect(() => {
+    if (loading || hasHydratedDraftRef.current) {
+      return;
+    }
+
+    const storedDraft = readGameFormDraft(draftStorageKey);
+
+    if (storedDraft?.version === GAME_FORM_DRAFT_VERSION && storedDraft?.data?.builderState) {
+      setBuilderState(storedDraft.data.builderState);
+      setSelectedLevel(Math.max(Number(storedDraft.data.selectedLevel) || 0, 0));
+      setSelectedActivity(Math.max(Number(storedDraft.data.selectedActivity) || 0, 0));
+      setSearchQuery(storedDraft.data.searchQuery || '');
+      setSavedGameId(storedDraft.data.savedGameId || gameId || '');
+      setDraftNotice('تم استرجاع آخر مسودة بعد التحديث.');
+      setHasUnsavedChanges(true);
+    } else {
+      lastSavedSnapshotRef.current = buildGameFormSnapshot({
+        builderState,
+        selectedLevel,
+        selectedActivity,
+        searchQuery,
+      });
+      setHasUnsavedChanges(false);
+    }
+
+    hasHydratedDraftRef.current = true;
+  }, [builderState, draftStorageKey, gameId, loading, searchQuery, selectedActivity, selectedLevel]);
+
+  useEffect(() => {
+    if (loading || !hasHydratedDraftRef.current) {
+      return;
+    }
+
+    const snapshot = buildGameFormSnapshot({
+      builderState,
+      selectedLevel,
+      selectedActivity,
+      searchQuery,
+    });
+    const isDirty = snapshot !== lastSavedSnapshotRef.current;
+
+    setHasUnsavedChanges(isDirty);
+
+    if (!isDirty) {
+      clearGameFormDraft(draftStorageKey);
+      return;
+    }
+
+    writeGameFormDraft(draftStorageKey, {
+      version: GAME_FORM_DRAFT_VERSION,
+      updatedAt: new Date().toISOString(),
+      data: {
+        builderState,
+        selectedLevel,
+        selectedActivity,
+        searchQuery,
+        savedGameId,
+      },
+    });
+  }, [
+    builderState,
+    draftStorageKey,
+    loading,
+    savedGameId,
+    searchQuery,
+    selectedActivity,
+    selectedLevel,
+  ]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      return undefined;
+    }
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const levels = builderState.config?.levels || [];
   const currentLevel = levels[selectedLevel] || levels[0];
@@ -1162,6 +1287,16 @@ const GameForm = ({ mode = 'create' }) => {
         }
       }
 
+      lastSavedSnapshotRef.current = buildGameFormSnapshot({
+        builderState,
+        selectedLevel,
+        selectedActivity,
+        searchQuery,
+      });
+      setHasUnsavedChanges(false);
+      setDraftNotice('');
+      clearGameFormDraft(draftStorageKey);
+
       if (stayOnPage) {
         setSaveNotice('تم تحديث آخر الإضافات بنجاح.');
         return true;
@@ -1237,6 +1372,16 @@ const GameForm = ({ mode = 'create' }) => {
               {saveNotice && (
                 <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700">
                   {saveNotice}
+                </div>
+              )}
+              {draftNotice && (
+                <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700">
+                  {draftNotice}
+                </div>
+              )}
+              {!draftNotice && hasUnsavedChanges && (
+                <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-4 py-2 text-sm font-black text-amber-700">
+                  توجد تعديلات غير محفوظة على السيرفر، لكن المسودة محفوظة تلقائيًا على هذا الجهاز.
                 </div>
               )}
             </div>

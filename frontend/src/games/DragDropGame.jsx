@@ -12,6 +12,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Volume2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
+import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl, playErrorSound, playSuccessSound } from '../utils/soundEffects';
 
@@ -71,7 +72,7 @@ function DraggableCard({ item, disabled, matched }) {
         </div>
       )}
       {item.image ? (
-        <img
+        <GameImage
           src={item.image}
           alt={item.labelAr || item.id}
           className="w-full h-20 md:h-24 object-contain rounded-xl bg-slate-50"
@@ -117,7 +118,7 @@ function SceneDropZone({ sceneImage, title, isOverScene, feedback }) {
       }`}
     >
       {sceneImage ? (
-        <img
+        <GameImage
           src={sceneImage}
           alt={title || 'scene'}
           className="w-full h-[250px] md:h-[300px] object-contain rounded-[2rem] bg-white p-4 md:p-6"

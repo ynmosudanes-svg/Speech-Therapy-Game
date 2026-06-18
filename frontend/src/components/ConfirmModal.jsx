@@ -17,12 +17,12 @@ const ConfirmModal = ({
 
   const containerClassName =
     position === 'top'
-      ? 'fixed inset-0 z-50 flex items-start justify-center p-3 pt-3 md:p-4 md:pt-8'
+      ? 'fixed inset-0 z-50 flex items-start justify-center p-3 pt-4 md:p-5 md:pt-8'
       : 'fixed inset-0 z-50 flex items-center justify-center p-4';
 
   const modalClassName =
     position === 'top'
-      ? 'relative bg-white rounded-[1.6rem] md:rounded-[2rem] p-4 md:p-5 max-w-2xl w-full shadow-2xl animate-fade-in-up font-sans border border-[#dbe7f3]'
+      ? 'relative w-full max-w-[29rem] overflow-hidden rounded-[2rem] border border-[#d9eaf2] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(247,251,255,0.96))] p-4 md:p-5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.35)] animate-fade-in-up font-sans backdrop-blur-xl'
       : 'relative bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl animate-fade-in-up font-sans';
 
   return (
@@ -35,24 +35,29 @@ const ConfirmModal = ({
 
       {/* Modal */}
       <div className={modalClassName} dir="rtl">
+        {position === 'top' && <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(21,132,195,0.22),transparent)]" />}
         <button 
           onClick={onClose}
-          className="absolute top-3 left-3 md:top-4 md:left-4 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          className={`absolute z-10 flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+            position === 'top'
+              ? 'left-3 top-3 text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+              : 'left-3 top-3 text-slate-400 hover:bg-slate-100 hover:text-slate-600 md:top-4 md:left-4'
+          }`}
         >
           <X size={20} />
         </button>
 
-        <div className={`flex ${position === 'top' ? 'items-start text-right gap-3 md:gap-5' : 'flex-col items-center text-center'}`}>
-          <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center ${position === 'top' ? 'shrink-0 mt-1' : 'mb-6'} shadow-inner ${isDestructive ? 'bg-red-50 text-red-500' : 'bg-cyan-50 text-[#178bb6]'}`}>
+        <div className={`flex ${position === 'top' ? 'items-start text-right gap-3.5 md:gap-4' : 'flex-col items-center text-center'}`}>
+          <div className={`flex items-center justify-center rounded-full ${position === 'top' ? 'mt-0.5 h-12 w-12 shrink-0 border border-[#d8edf8] bg-[#eef8fd] text-[#1584C3]' : 'mb-6 h-12 w-12 md:h-16 md:w-16 shadow-inner'} ${position !== 'top' ? (isDestructive ? 'bg-red-50 text-red-500' : 'bg-cyan-50 text-[#178bb6]') : ''}`}>
             <AlertTriangle size={position === 'top' ? 24 : 32} strokeWidth={2} />
           </div>
 
           <div className="flex-1">
-            <h3 className={`font-black text-slate-900 ${position === 'top' ? 'text-lg md:text-2xl mb-2' : 'text-2xl mb-2'}`}>
+            <h3 className={`font-black text-slate-900 ${position === 'top' ? 'mb-1.5 pr-8 text-xl md:text-[1.65rem] leading-tight text-[#12344d]' : 'text-2xl mb-2'}`}>
               {title}
             </h3>
 
-            <p className={`text-slate-500 leading-relaxed ${position === 'top' ? 'text-sm md:text-base mb-4 md:mb-6' : 'text-base mb-8'}`}>
+            <p className={`leading-relaxed ${position === 'top' ? 'mb-4 text-[0.95rem] font-semibold text-slate-500 md:mb-5 md:text-[1rem]' : 'text-base mb-8 text-slate-500'}`}>
               {message}
             </p>
 
@@ -60,14 +65,20 @@ const ConfirmModal = ({
               {!hideCancelButton && cancelText && (
                 <button 
                   onClick={onClose}
-                  className="w-full sm:w-auto px-5 py-2.5 md:px-6 md:py-3 rounded-xl font-bold text-sm md:text-base text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all active:scale-95"
+                  className="w-full sm:w-auto rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-200 active:scale-95 md:px-6 md:py-3 md:text-base"
                 >
                   {cancelText}
                 </button>
               )}
               <button 
                 onClick={onConfirm}
-                className={`w-full sm:w-auto px-5 py-2.5 md:px-6 md:py-3 rounded-xl font-bold text-sm md:text-base text-white transition-all active:scale-95 ${isDestructive ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30' : 'bg-[#178bb6] hover:bg-[#126d8f] shadow-lg shadow-cyan-500/30'}`}
+                className={`w-full sm:w-auto rounded-[1rem] px-5 py-3 text-sm font-black text-white transition-all active:scale-95 md:px-6 md:text-base ${
+                  position === 'top'
+                    ? 'bg-[linear-gradient(135deg,#1584C3,#1BA3D6)] shadow-[0_14px_28px_-14px_rgba(21,132,195,0.55)] hover:brightness-[0.97]'
+                    : isDestructive
+                      ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30'
+                      : 'bg-[#178bb6] hover:bg-[#126d8f] shadow-lg shadow-cyan-500/30'
+                }`}
               >
                 {confirmText}
               </button>

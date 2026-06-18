@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 
 export default function MatchingConnectGame({ 
@@ -344,7 +345,7 @@ export default function MatchingConnectGame({
                             `}
                         >
                             {item.image && (
-                              <img src={item.image} alt={item.label} className="w-16 h-16 sm:w-28 sm:h-28 object-contain mb-1 sm:mb-3 drop-shadow-md pointer-events-none transition-transform group-hover:scale-110" />
+                              <GameImage src={item.image} alt={item.label} className="w-16 h-16 sm:w-28 sm:h-28 object-contain mb-1 sm:mb-3 drop-shadow-md pointer-events-none transition-transform group-hover:scale-110" />
                             )}
                             {item.label && <span className={`text-base sm:text-2xl font-black ${item.image ? 'text-slate-700' : 'text-slate-600 text-xl sm:text-3xl'}`}>{item.label}</span>}
                             {!item.image && !item.label && (
@@ -383,7 +384,7 @@ export default function MatchingConnectGame({
                             `}
                         >
                             {item.image && (
-                              <img src={item.image} alt={item.label} className="w-16 h-16 sm:w-28 sm:h-28 object-contain mb-1 sm:mb-3 drop-shadow-md pointer-events-none transition-transform group-hover:scale-110" />
+                              <GameImage src={item.image} alt={item.label} className="w-16 h-16 sm:w-28 sm:h-28 object-contain mb-1 sm:mb-3 drop-shadow-md pointer-events-none transition-transform group-hover:scale-110" />
                             )}
                             {item.label && <span className={`text-base sm:text-2xl font-black ${item.image ? 'text-slate-700' : 'text-slate-600 text-xl sm:text-3xl'}`}>{item.label}</span>}
                             {!item.image && !item.label && (

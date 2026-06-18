@@ -57,6 +57,14 @@
   * {
   }
 
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    font-family: inherit;
+  }
+
   h1,
   h2 {
     color: var(--heading-main);

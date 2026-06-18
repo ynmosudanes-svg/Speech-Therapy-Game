@@ -62,6 +62,18 @@ const GAME_TYPE_CARDS = [
     accent: 'from-sky-100 to-teal-100',
   },
   {
+    value: 'picture.reveal',
+    title: 'اكشف الصورة',
+    description: 'صورة مخفية تحت مربعات. يضغط الطفل على المربعات لكشف أجزاء من الصورة ثم يختار الإجابة الصحيحة.',
+    accent: 'from-emerald-100 to-cyan-100',
+  },
+  {
+    value: 'image.complete_part',
+    title: 'كمل الجزء الناقص',
+    description: 'ترفع صورة وتحدد من الشبكة الجزء أو الجزئين الناقصين، والطفل يختار القطعة الصحيحة لإكمال الصورة.',
+    accent: 'from-orange-100 to-amber-100',
+  },
+  {
     value: 'sequence.order',
     title: 'ترتيب الصور',
     description: 'صور خطوات يعيد الطفل ترتيبها بالسحب.',
@@ -762,6 +774,34 @@ const GameForm = ({ mode = 'create' }) => {
     updateCurrentActivity((activity) => ({ ...activity, [field]: value }));
   };
 
+  const toggleCompletePartCell = (cellId) => {
+    updateCurrentActivity((activity) => {
+      const maxSelected = Math.max(1, Math.min(2, Number(activity?.missingPartCount || 1)));
+      const currentIds = Array.isArray(activity?.missingCellIds) ? activity.missingCellIds.map((id) => String(id)) : [];
+      const targetId = String(cellId);
+
+      if (currentIds.includes(targetId)) {
+        const nextIds = currentIds.filter((id) => id !== targetId);
+        return {
+          ...activity,
+          missingCellIds: nextIds.length ? nextIds : [targetId],
+        };
+      }
+
+      if (currentIds.length >= maxSelected) {
+        return {
+          ...activity,
+          missingCellIds: [...currentIds.slice(1), targetId],
+        };
+      }
+
+      return {
+        ...activity,
+        missingCellIds: [...currentIds, targetId],
+      };
+    });
+  };
+
   const changeCurrentActivityType = (newType) => {
     updateCurrentActivity((activity) => {
       const defaults = getDefaultActivityForType(newType, selectedActivity);
@@ -816,7 +856,7 @@ const GameForm = ({ mode = 'create' }) => {
   // Auto-initialize options if empty
   useEffect(() => {
     if (
-      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow'].includes(currentActivityType) && 
+      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal'].includes(currentActivityType) && 
       currentActivity
     ) {
       if (!currentActivity.options || currentActivity.options.length === 0) {
@@ -1132,6 +1172,36 @@ const GameForm = ({ mode = 'create' }) => {
           }
           if ((activity.options || []).some((option) => !option.image?.trim())) {
             return `كل اختيارات بازل الظل تحتاج صورة في المستوى ${level.levelNumber}.`;
+          }
+        }
+
+        if (activityType === 'picture.reveal') {
+          if (!activity.image?.trim()) {
+            return `أضف الصورة المخفية في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.options || []).length < 2) {
+            return `لعبة كشف الصورة تحتاج خيارين على الأقل في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.options || []).filter((option) => option.isCorrect).length !== 1) {
+            return `حدد إجابة صحيحة واحدة فقط في المستوى ${level.levelNumber}.`;
+          }
+          if (Number(activity.gridSize || 0) < 2) {
+            return `حجم الشبكة يجب أن يكون 2x2 أو أكبر في المستوى ${level.levelNumber}.`;
+          }
+        }
+
+        if (activityType === 'image.complete_part') {
+          if (!activity.image?.trim()) {
+            return `أضف الصورة الأساسية في المستوى ${level.levelNumber}.`;
+          }
+          if (Number(activity.gridRows || 0) < 2 || Number(activity.gridCols || 0) < 2) {
+            return `حدد شبكة صالحة للعبة إكمال الجزء في المستوى ${level.levelNumber}.`;
+          }
+          if (!Array.isArray(activity.missingCellIds) || activity.missingCellIds.length < 1) {
+            return `حدد الجزء الناقص من الشبكة في المستوى ${level.levelNumber}.`;
+          }
+          if (activity.missingCellIds.length < Number(activity.missingPartCount || 1)) {
+            return `حدد كل الأجزاء الناقصة المطلوبة في المستوى ${level.levelNumber}.`;
           }
         }
 
@@ -1707,6 +1777,193 @@ const GameForm = ({ mode = 'create' }) => {
                       </div>
                     )}
 
+                    {currentActivityType === 'picture.reveal' && (
+                      <div className="pt-2 space-y-4">
+                        <ImageAssetField
+                          label="الصورة المخفية"
+                          value={currentActivity.image || ''}
+                          onSelect={(value) => setActivityField('image', value)}
+                          token={adminSession?.token}
+                          initialQuery="object isolated white background"
+                        />
+
+                        <div className="rounded-2xl border border-[#D9EAF2] bg-[#EAF7FD] px-4 py-4 space-y-3">
+                          <div className="text-sm font-bold text-[#0F6FA6]">حجم شبكة الكشف</div>
+                          <div className="grid grid-cols-3 gap-3">
+                            {[3, 4, 5].map((size) => (
+                              <button
+                                key={size}
+                                type="button"
+                                onClick={() => setActivityField('gridSize', size)}
+                                className={`rounded-xl border-2 px-4 py-3 font-black transition-all ${
+                                  Number(currentActivity.gridSize || 4) === size
+                                    ? 'border-[#19add6] bg-white text-[#0F6FA6] shadow-sm'
+                                    : 'border-slate-200 bg-white/70 text-slate-500'
+                                }`}
+                              >
+                                {size}x{size}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setActivityField('revealMode', 'manual')}
+                              className={`rounded-xl border-2 px-4 py-3 font-black transition-all ${
+                                (currentActivity.revealMode || 'manual') === 'manual'
+                                  ? 'border-[#19add6] bg-white text-[#0F6FA6] shadow-sm'
+                                  : 'border-slate-200 bg-white/70 text-slate-500'
+                              }`}
+                            >
+                              كشف يدوي
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActivityField('revealMode', 'auto')}
+                              className={`rounded-xl border-2 px-4 py-3 font-black transition-all ${
+                                currentActivity.revealMode === 'auto'
+                                  ? 'border-[#19add6] bg-white text-[#0F6FA6] shadow-sm'
+                                  : 'border-slate-200 bg-white/70 text-slate-500'
+                              }`}
+                            >
+                              كشف تلقائي
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentActivityType === 'image.complete_part' && (
+                      <div className="pt-2 space-y-4">
+                        <ImageAssetField
+                          label="الصورة الأساسية"
+                          value={currentActivity.image || ''}
+                          onSelect={(value) => setActivityField('image', value)}
+                          token={adminSession?.token}
+                          initialQuery="single object white background"
+                        />
+
+                        <div className="rounded-2xl border border-[#D9EAF2] bg-[#EAF7FD] px-4 py-4 space-y-4">
+                          <div className="text-sm font-bold text-[#0F6FA6]">إعداد تقسيم الصورة</div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            {[
+                              { rows: 2, cols: 2, label: '2x2' },
+                              { rows: 3, cols: 3, label: '3x3' },
+                            ].map((gridOption) => {
+                              const isActive =
+                                Number(currentActivity.gridRows || 2) === gridOption.rows &&
+                                Number(currentActivity.gridCols || 2) === gridOption.cols;
+
+                              return (
+                                <button
+                                  key={gridOption.label}
+                                  type="button"
+                                  onClick={() =>
+                                    updateCurrentActivity((activity) => ({
+                                      ...activity,
+                                      gridRows: gridOption.rows,
+                                      gridCols: gridOption.cols,
+                                      missingCellIds: ['0'],
+                                    }))
+                                  }
+                                  className={`rounded-xl border-2 px-4 py-3 font-black transition-all ${
+                                    isActive
+                                      ? 'border-[#19add6] bg-white text-[#0F6FA6] shadow-sm'
+                                      : 'border-slate-200 bg-white/70 text-slate-500'
+                                  }`}
+                                >
+                                  {gridOption.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            {[1, 2].map((count) => (
+                              <button
+                                key={count}
+                                type="button"
+                                onClick={() =>
+                                  updateCurrentActivity((activity) => ({
+                                    ...activity,
+                                    missingPartCount: count,
+                                    missingCellIds: (Array.isArray(activity?.missingCellIds) ? activity.missingCellIds : ['0']).slice(0, count),
+                                  }))
+                                }
+                                className={`rounded-xl border-2 px-4 py-3 font-black transition-all ${
+                                  Number(currentActivity.missingPartCount || 1) === count
+                                    ? 'border-[#19add6] bg-white text-[#0F6FA6] shadow-sm'
+                                    : 'border-slate-200 bg-white/70 text-slate-500'
+                                }`}
+                              >
+                                {count === 1 ? 'جزء واحد ناقص' : 'جزئين ناقصين'}
+                              </button>
+                            ))}
+                          </div>
+
+                          {currentActivity.image ? (
+                            <div className="space-y-3">
+                              <div className="text-sm font-bold text-slate-700">
+                                اضغط على الخانة أو الخانتين اللي عاوزهم يبقوا الجزء الناقص
+                              </div>
+                              <div
+                                dir="ltr"
+                                className="relative mx-auto grid max-w-[320px] overflow-hidden rounded-[1.5rem] border-4 border-white bg-white shadow-[0_12px_28px_-18px_rgba(15,111,166,0.18)]"
+                                style={{ gridTemplateColumns: `repeat(${Number(currentActivity.gridCols || 2)}, minmax(0, 1fr))` }}
+                              >
+                                {Array.from(
+                                  {
+                                    length:
+                                      Number(currentActivity.gridRows || 2) *
+                                      Number(currentActivity.gridCols || 2),
+                                  },
+                                  (_, cellIndex) => {
+                                    const cellId = String(cellIndex);
+                                    const isSelected = (currentActivity.missingCellIds || []).map((id) => String(id)).includes(cellId);
+
+                                    return (
+                                      <button
+                                        key={cellId}
+                                        type="button"
+                                        onClick={() => toggleCompletePartCell(cellId)}
+                                        className={`relative aspect-square overflow-hidden border border-white/80 transition-all ${
+                                          isSelected
+                                            ? 'ring-4 ring-amber-300'
+                                            : 'hover:opacity-90'
+                                        }`}
+                                      >
+                                        <div
+                                          className="h-full w-full bg-cover bg-no-repeat"
+                                          style={{
+                                            backgroundImage: `url(${currentActivity.image})`,
+                                            backgroundSize: `${Number(currentActivity.gridCols || 2) * 100}% ${Number(currentActivity.gridRows || 2) * 100}%`,
+                                            backgroundPosition: `${(cellIndex % Number(currentActivity.gridCols || 2)) * (100 / Math.max(Number(currentActivity.gridCols || 2) - 1, 1))}% ${Math.floor(cellIndex / Number(currentActivity.gridCols || 2)) * (100 / Math.max(Number(currentActivity.gridRows || 2) - 1, 1))}%`,
+                                          }}
+                                        />
+                                        <div
+                                          className={`absolute inset-0 flex items-center justify-center text-lg font-black ${
+                                            isSelected ? 'bg-amber-400/50 text-white' : 'bg-slate-900/12 text-white'
+                                          }`}
+                                        >
+                                          {cellIndex + 1}
+                                        </div>
+                                      </button>
+                                    );
+                                  }
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 px-4 py-6 text-center text-sm font-bold text-slate-500">
+                              ارفع الصورة أولاً لتحديد الجزء الناقص من الشبكة.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                   </div>
 
                   {/* 3. الإجابات والاختيارات */}
@@ -1875,6 +2132,25 @@ const GameForm = ({ mode = 'create' }) => {
 
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">مستوى الصعوبة (عدد القطع)</label>
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            {[
+                              { value: 'jigsaw', label: 'بازل كامل' },
+                              { value: 'missing-piece', label: 'إكمال الجزء الناقص' },
+                            ].map((mode) => (
+                              <button
+                                type="button"
+                                key={mode.value}
+                                onClick={() => setActivityField('puzzleMode', mode.value)}
+                                className={`py-3 rounded-xl border-2 font-bold transition-all ${
+                                  (currentActivity.puzzleMode || 'jigsaw') === mode.value
+                                    ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                                    : 'border-slate-200 bg-white text-slate-500'
+                                }`}
+                              >
+                                {mode.label}
+                              </button>
+                            ))}
+                          </div>
                           <div className="grid grid-cols-3 gap-3">
                             {[2, 3, 4].map((size) => (
                               <button
@@ -1974,7 +2250,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {(currentActivityType === 'matching.find' || currentActivityType === 'matching.shadow') && (
+                  {(currentActivityType === 'matching.find' || currentActivityType === 'matching.shadow' || currentActivityType === 'picture.reveal') && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -2035,7 +2311,13 @@ const GameForm = ({ mode = 'create' }) => {
                                 checked={Boolean(option.isCorrect)}
                                 onChange={() => selectCorrectOption(optionIndex)}
                               />
-                              <span>{currentActivityType === 'matching.shadow' ? 'هذه هي الصورة المطابقة للظل' : 'هذه هي الصورة المطلوبة'}</span>
+                              <span>
+                                {currentActivityType === 'matching.shadow'
+                                  ? 'هذه هي الصورة المطابقة للظل'
+                                  : currentActivityType === 'picture.reveal'
+                                    ? 'هذه هي الإجابة الصحيحة'
+                                    : 'هذه هي الصورة المطلوبة'}
+                              </span>
                             </label>
                           </div>
                         ))}

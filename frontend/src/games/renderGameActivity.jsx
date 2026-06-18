@@ -8,6 +8,8 @@ import MissingWordGame from './MissingWordGame';
 import AudioCardsGame from './AudioCardsGame';
 import PuzzleGame from './PuzzleGame';
 import MatchingConnectGame from './MatchingConnectGame';
+import PictureRevealGame from './PictureRevealGame';
+import ImageCompletePartGame from './ImageCompletePartGame';
 
 const renderGameActivity = ({
   game,
@@ -65,6 +67,14 @@ const renderGameActivity = ({
 
   if (game?.type === 'matching.connect') {
     return <MatchingConnectGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'picture.reveal') {
+    return <PictureRevealGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'image.complete_part') {
+    return <ImageCompletePartGame {...sharedProps} />;
   }
 
   return null;

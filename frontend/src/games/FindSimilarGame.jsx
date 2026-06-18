@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
-import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playSuccessSound, playErrorSound, playAudioUrl } from '../utils/soundEffects';
 
@@ -89,11 +88,11 @@ const FindSimilarGame = ({
 
       {/* Target Image */}
       <div className="text-center">
-        <div className="inline-block p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] border-4 border-blue-200 shadow-lg">
-          <GameImage
+        <div className="inline-block p-2.5 md:p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[1.6rem] md:rounded-[2rem] border-4 border-blue-200 shadow-lg">
+          <img
             src={game.targetImage}
             alt="الصورة المطلوبة"
-            className="w-44 h-44 md:w-56 md:h-56 object-contain rounded-[1.5rem] bg-white"
+            className="w-40 h-40 md:w-52 md:h-52 object-contain rounded-[1.35rem] md:rounded-[1.5rem] bg-white"
           />
         </div>
         <div className="mt-4 text-lg font-bold text-blue-600 animate-pulse">
@@ -115,10 +114,10 @@ const FindSimilarGame = ({
                 : 'border-transparent hover:border-blue-200'
             }`}
           >
-            <GameImage
+            <img
               src={option.image}
               alt={`خيار ${option.id}`}
-              className="w-full h-32 md:h-44 object-contain bg-white rounded-[1.4rem] pointer-events-none"
+              className="w-full aspect-square object-contain bg-white rounded-[1.2rem] md:rounded-[1.4rem] pointer-events-none"
             />
           </Card>
         ))}

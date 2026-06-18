@@ -3,6 +3,8 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'matching.different',
   'matching.find',
   'matching.shadow',
+  'picture.reveal',
+  'image.complete_part',
   'sequence.order',
   'action.drag_to_target',
   'navigation.move_to_target',
@@ -195,6 +197,31 @@ function normalizeActivity(activity, type, index) {
       image: activity?.image || '',
       wordWithBlank: activity?.wordWithBlank || '',
       options: Array.isArray(activity?.options) ? activity.options.map(normalizeOption) : [],
+    };
+  }
+
+  if (activityType === 'picture.reveal') {
+    return {
+      ...baseActivity,
+      image: activity?.image || '',
+      gridSize: Number(activity?.gridSize || 4),
+      revealMode: activity?.revealMode || 'manual',
+      revealCount: Number(activity?.revealCount || 1),
+      options: Array.isArray(activity?.options) ? activity.options.map(normalizeOption) : [],
+    };
+  }
+
+  if (activityType === 'image.complete_part') {
+    return {
+      ...baseActivity,
+      image: activity?.image || '',
+      gridRows: Number(activity?.gridRows || 2),
+      gridCols: Number(activity?.gridCols || 2),
+      missingPartCount: Number(activity?.missingPartCount || 1),
+      missingCellIds: Array.isArray(activity?.missingCellIds)
+        ? activity.missingCellIds.map((cellId) => String(cellId))
+        : ['0'],
+      distractorCount: Number(activity?.distractorCount || 3),
     };
   }
 

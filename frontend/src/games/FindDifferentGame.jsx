@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
-import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl } from '../utils/soundEffects';
 
@@ -103,10 +102,10 @@ const FindDifferentGame = ({
               }`}
             >
               <div className="relative">
-                <GameImage
+                <img
                   src={option.image}
                   alt={`خيار ${option.id}`}
-                  className="w-full h-32 md:h-44 object-contain bg-white rounded-[1.4rem] pointer-events-none"
+                  className="w-full aspect-square object-contain bg-white rounded-[1.2rem] md:rounded-[1.4rem] pointer-events-none"
                 />
                 {selectedOption?.id === option.id && isCorrect && isDiff && (
                   <div className="absolute inset-0 bg-green-400/20 rounded-[1.4rem] flex items-center justify-center">

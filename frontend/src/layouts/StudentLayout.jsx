@@ -144,15 +144,15 @@ const StudentLayout = () => {
             : 'bottom-0 w-[78vw] max-w-[320px] translate-x-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="flex h-full flex-col overflow-hidden rounded-l-[2rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,251,255,0.96))]">
-          <div className="border-b border-[#e4eef6] px-4 pb-4 pt-3">
-            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[#d8e8f3]" />
-            <div className="flex items-center gap-3 rounded-[1.4rem] border border-[#dbe7f3] bg-white/90 px-3 py-3 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.22)]">
-              <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-[1rem] bg-[var(--primary-soft)] text-[var(--primary)]">
+        <div className="flex h-full flex-col overflow-hidden rounded-l-[2rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,252,255,0.96))]">
+          <div className="border-b border-[#edf3f8] px-4 pb-3 pt-2">
+            <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-[#dbeaf4]" />
+            <div className="flex items-center gap-3 rounded-[1.2rem] border border-[#e7f0f7] bg-white px-3 py-2.5 shadow-[0_10px_22px_-20px_rgba(15,23,42,0.16)]">
+              <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-[0.95rem] bg-[#eef8fd] text-[#1584C3]">
                 {currentStudent?.avatarUrl ? (
                   <img src={currentStudent.avatarUrl} alt="صورة المستفيد" className="h-full w-full object-cover" />
                 ) : (
-                  <UserRound size={22} strokeWidth={2} />
+                  <UserRound size={20} strokeWidth={2} />
                 )}
               </div>
               <div className="min-w-0 text-right">
@@ -162,7 +162,7 @@ const StudentLayout = () => {
             </div>
           </div>
 
-        <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-4">
+        <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-3">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (

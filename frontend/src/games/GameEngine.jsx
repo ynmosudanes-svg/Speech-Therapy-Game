@@ -167,12 +167,12 @@ const GameEngine = ({
   return (
     <div className="relative space-y-3 md:space-y-5 pb-20 md:pb-28">
       {/* الهيدر الموحد للعبة (عنوان، مستوى، نشاط) */}
-      <div className="game-engine-header relative z-20 w-full max-w-5xl xl:max-w-[980px] mx-auto bg-white/80 backdrop-blur-sm px-4 py-3 md:px-5 md:py-4 rounded-[1.45rem] md:rounded-3xl shadow-sm border-2 border-white mb-1 md:mb-4">
+      <div className="game-engine-header relative z-20 w-full max-w-4xl xl:max-w-[900px] mx-auto bg-white/80 backdrop-blur-sm px-3 py-2.5 md:px-4 md:py-3 rounded-[1.2rem] md:rounded-[1.6rem] shadow-sm border-2 border-white mb-1 md:mb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="w-8 md:w-12 shrink-0" />
 
           <div className="flex-1 text-center px-2 md:px-4">
-            <h1 className="text-[11px] sm:text-sm md:text-2xl lg:text-3xl font-extrabold text-[#19add6] leading-tight md:leading-9 line-clamp-2">
+            <h1 className="text-[10px] sm:text-xs md:text-xl lg:text-2xl font-extrabold text-[#19add6] leading-tight md:leading-8 line-clamp-2">
               {game?.config?.nameAr || game?.titleAr || game?.name || 'لعبة تخاطب'}
             </h1>
           </div>
@@ -180,17 +180,17 @@ const GameEngine = ({
           {onExit ? (
             <button
               onClick={onExit}
-              className="w-8 h-8 md:w-12 md:h-12 bg-rose-100 hover:bg-rose-500 hover:text-white text-rose-600 rounded-full flex items-center justify-center transition-all flex-shrink-0"
+              className="w-7 h-7 md:w-10 md:h-10 bg-rose-100 hover:bg-rose-500 hover:text-white text-rose-600 rounded-full flex items-center justify-center transition-all flex-shrink-0"
               title="خروج من اللعبة"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 md:w-6 md:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           ) : (
             <div className="w-8 md:w-12 shrink-0" />
           )}
         </div>
 
-        <div className="mt-3 md:mt-4">
+        <div className="mt-2.5 md:mt-3">
           <div className="mb-2 flex items-center justify-between text-[11px] md:text-xl font-black text-slate-400">
             <span>البداية</span>
             <span className="rounded-full border border-[#cdeef7] bg-[#eefafd] px-3 py-1 text-[#19add6] shadow-sm">

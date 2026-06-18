@@ -5,6 +5,8 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'matching.different') return 'أوجد المختلف';
   if (type === 'matching.find') return 'أوجد الصورة المطلوبة';
   if (type === 'matching.shadow') return 'انظر إلى الظل واختر الصورة المناسبة';
+  if (type === 'picture.reveal') return 'اكشف الصورة ثم اختر الإجابة الصحيحة';
+  if (type === 'image.complete_part') return 'اختر الجزء الناقص لإكمال الصورة';
   return 'اكتب السؤال هنا';
 };
 
@@ -21,6 +23,13 @@ const createShadowPreviewOptions = () => [
   { id: 'lion', label: 'أسد', textAr: 'أسد', image: '', isCorrect: false },
   { id: 'giraffe', label: 'زرافة', textAr: 'زرافة', image: '', isCorrect: false },
   { id: 'horse', label: 'حصان', textAr: 'حصان', image: '', isCorrect: false },
+];
+
+const createRevealPreviewOptions = () => [
+  { id: 'apple', label: 'تفاح', textAr: 'تفاح', image: '', isCorrect: true },
+  { id: 'ball', label: 'كرة', textAr: 'كرة', image: '', isCorrect: false },
+  { id: 'cat', label: 'قطة', textAr: 'قطة', image: '', isCorrect: false },
+  { id: 'car', label: 'سيارة', textAr: 'سيارة', image: '', isCorrect: false },
 ];
 
 const createDragItem = (id, startPosition = 'bottom', isCorrect = false) => ({
@@ -95,6 +104,39 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       difficulty: 'easy',
       heroImage: '',
       options: createShadowPreviewOptions(),
+    };
+  }
+
+  if (type === 'picture.reveal') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      image: '',
+      gridSize: 4,
+      revealMode: 'manual',
+      revealCount: 1,
+      options: createRevealPreviewOptions(),
+    };
+  }
+
+  if (type === 'image.complete_part') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      image: '',
+      gridRows: 2,
+      gridCols: 2,
+      missingPartCount: 1,
+      missingCellIds: ['0'],
+      distractorCount: 3,
     };
   }
 
@@ -183,6 +225,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       difficulty: 'easy',
       image: '',
       gridSize: 3,
+      puzzleMode: 'jigsaw',
     };
   }
 
@@ -335,6 +378,57 @@ export const buildActivityRuntimeGame = ({
           questionAudio: activity?.instructionAudio || '',
           hero: { image: activity?.heroImage || '' },
           options: Array.isArray(activity?.options) ? activity.options : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'picture.reveal') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
+          image: activity?.image || '',
+          gridSize: Number(activity?.gridSize ?? 4),
+          revealMode: activity?.revealMode || 'manual',
+          revealCount: Number(activity?.revealCount ?? 1),
+          options: Array.isArray(activity?.options) ? activity.options : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'image.complete_part') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
+          image: activity?.image || '',
+          gridRows: Number(activity?.gridRows ?? 2),
+          gridCols: Number(activity?.gridCols ?? 2),
+          missingPartCount: Number(activity?.missingPartCount ?? 1),
+          missingCellIds: Array.isArray(activity?.missingCellIds) ? activity.missingCellIds : ['0'],
+          distractorCount: Number(activity?.distractorCount ?? 3),
         },
         feedback: {
           successSound: sharedMedia?.successSound || '',
@@ -497,6 +591,7 @@ export const buildActivityRuntimeGame = ({
         instructionAr: activity?.questionAr || 'قم بتركيب قطع البازل لتكوين الصورة الصحيحة',
         image: activity?.image || '',
         gridSize: activity?.gridSize || 3,
+        puzzleMode: activity?.puzzleMode || 'jigsaw',
         feedback: {
           successSound: sharedMedia?.successSound || '',
           failSound: sharedMedia?.failSound || '',

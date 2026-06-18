@@ -224,9 +224,9 @@ const MissingWordGame = ({
       <section className="bg-[#f8fbff] rounded-2xl md:rounded-[2.4rem] border border-[#dbe7f3] p-6 md:p-10 shadow-sm flex flex-col items-center gap-8 md:gap-12 min-h-[50vh]">
         {/* Optional Image */}
         {image && (
-          <div className="w-48 h-48 md:w-64 md:h-64 rounded-3xl overflow-hidden shadow-md border-4 border-white">
-            <img src={image} alt="word visual" className="w-full h-full object-cover" />
-          </div>
+        <div className="w-48 h-48 md:w-64 md:h-64 rounded-3xl overflow-hidden shadow-md border-4 border-white bg-white">
+            <img src={image} alt="word visual" className="w-full h-full object-contain" />
+        </div>
         )}
 
         {/* Word Display */}

@@ -12,7 +12,6 @@ import {
 import confetti from 'canvas-confetti';
 import { Volume2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
-import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl, playErrorSound, playSuccessSound } from '../utils/soundEffects';
 
@@ -73,7 +72,7 @@ function DraggableSequenceItem({ item, index }) {
         </div>
       )}
       {item.image ? (
-        <GameImage
+        <img
           src={item.image}
           alt={item.labelAr || 'خطوة'}
           className="w-24 h-24 md:w-28 md:h-28 object-contain rounded-xl bg-slate-50"
@@ -106,7 +105,7 @@ function DroppableSlot({ slotIndex, placedItem }) {
       {placedItem ? (
         <div className="p-1">
           {placedItem.image ? (
-            <GameImage
+            <img
               src={placedItem.image}
               alt={placedItem.labelAr || 'خطوة'}
               className="w-20 h-20 md:w-24 md:h-24 object-contain rounded-xl"

@@ -54,6 +54,7 @@ export default function PuzzleGame({
   const config = game?.config || {};
   const imageSrc = config.image || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop';
   const gridSize = Number(config.gridSize) || 3;
+  const puzzleMode = config.puzzleMode || 'jigsaw';
   const instructionAr = config.instructionAr || 'قم بتركيب قطع البازل لتكوين الصورة الصحيحة';
   const instructionAudio = config.instructionAudio || '';
 
@@ -72,6 +73,8 @@ export default function PuzzleGame({
   const [selectedPieceId, setSelectedPieceId] = useState(null);
   const [moves, setMoves] = useState(0);
   const [startTime, setStartTime] = useState(null);
+  const [missingSlotIndex, setMissingSlotIndex] = useState(null);
+  const [wrongPieceId, setWrongPieceId] = useState(null);
   
   // --- Assistant Hint States ---
   const [hintPieceId, setHintPieceId] = useState(null);
@@ -99,6 +102,10 @@ export default function PuzzleGame({
   };
 
   const getNextHintPiece = useCallback(() => {
+    if (puzzleMode === 'missing-piece' && missingSlotIndex !== null) {
+      return trayPieces.find((piece) => piece.originalPos === missingSlotIndex) || null;
+    }
+
     if (trayPieces.length > 0) {
       return trayPieces[0];
     }
@@ -109,14 +116,14 @@ export default function PuzzleGame({
     }
 
     return null;
-  }, [trayPieces, boardPieces]);
+  }, [trayPieces, boardPieces, puzzleMode, missingSlotIndex]);
 
   const getNextHintPieceRef = useRef(getNextHintPiece);
   getNextHintPieceRef.current = getNextHintPiece;
 
   useEffect(() => {
     startGame();
-  }, [game?.id, gridSize, imageSrc]);
+  }, [game?.id, gridSize, imageSrc, puzzleMode]);
 
   const startGame = () => {
     const newJoints = { right: [], bottom: [] };
@@ -142,9 +149,24 @@ export default function PuzzleGame({
       });
     }
 
-    setTrayPieces([...initialPieces].sort(() => Math.random() - 0.5));
-    setBoardPieces(Array(totalPieces).fill(null));
+    if (puzzleMode === 'missing-piece') {
+      const randomMissingIndex = Math.floor(Math.random() * totalPieces);
+      const correctPiece = initialPieces[randomMissingIndex];
+      const distractors = [...initialPieces]
+        .filter((piece) => piece.id !== correctPiece.id)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, Math.min(2, totalPieces - 1));
+
+      setMissingSlotIndex(randomMissingIndex);
+      setBoardPieces(initialPieces.map((piece, index) => (index === randomMissingIndex ? null : piece)));
+      setTrayPieces([correctPiece, ...distractors].sort(() => Math.random() - 0.5));
+    } else {
+      setMissingSlotIndex(null);
+      setTrayPieces([...initialPieces].sort(() => Math.random() - 0.5));
+      setBoardPieces(Array(totalPieces).fill(null));
+    }
     setSelectedPieceId(null);
+    setWrongPieceId(null);
     setMoves(0);
     setGameState('playing');
     setStartTime(Date.now());
@@ -167,6 +189,32 @@ export default function PuzzleGame({
   const movePieceToBoard = useCallback((pieceId, targetSlotIndex, fromAssistant = false) => {
     let piece = trayPieces.find(p => p.id === pieceId) || boardPieces.find(p => p && p.id === pieceId);
     if (!piece) return;
+
+    if (puzzleMode === 'missing-piece') {
+      if (targetSlotIndex !== missingSlotIndex) return;
+
+      const currentMoves = moves + 1;
+      setMoves(currentMoves);
+      clearHints();
+      if (!fromAssistant) {
+        onAssistantInteraction?.();
+      }
+
+      if (piece.originalPos !== missingSlotIndex) {
+        setWrongPieceId(piece.id);
+        window.setTimeout(() => setWrongPieceId(null), 900);
+        setSelectedPieceId(null);
+        return;
+      }
+
+      const newBoard = [...boardPieces];
+      newBoard[targetSlotIndex] = piece;
+      setBoardPieces(newBoard);
+      setTrayPieces([]);
+      setSelectedPieceId(null);
+      handleWin();
+      return;
+    }
 
     const currentBoardIndex = boardPieces.findIndex(p => p && p.id === pieceId);
     if (currentBoardIndex !== -1 && piece.originalPos === currentBoardIndex) return;
@@ -201,7 +249,7 @@ export default function PuzzleGame({
     if (newBoard.every((p, i) => p && p.originalPos === i)) {
       handleWin();
     }
-  }, [boardPieces, trayPieces, moves, onAssistantInteraction]);
+  }, [boardPieces, trayPieces, moves, onAssistantInteraction, puzzleMode, missingSlotIndex]);
 
   const movePieceToBoardRef = useRef(movePieceToBoard);
   movePieceToBoardRef.current = movePieceToBoard;
@@ -258,6 +306,7 @@ export default function PuzzleGame({
   }, [helpVoiceEnabled, registerAssistantActions, speak]);
 
   const returnPieceToTray = (pieceId) => {
+    if (puzzleMode === 'missing-piece') return;
     const slotIndex = boardPieces.findIndex(p => p && p.id === pieceId);
     if (slotIndex === -1) return;
     
@@ -301,6 +350,7 @@ export default function PuzzleGame({
 
     const isSelected = selectedPieceId === piece.id;
     const isCorrect = isPlacedOnBoard && piece.originalPos === slotIndex;
+    const isWrongCandidate = wrongPieceId === piece.id;
 
     return (
       <div
@@ -315,7 +365,7 @@ export default function PuzzleGame({
             setSelectedPieceId(isSelected ? null : piece.id); 
           }
         }}
-        className={`relative w-full aspect-square transition-all duration-300 ease-in-out ${!isCorrect && 'cursor-grab active:cursor-grabbing hover:z-50'} ${(isSelected || hintPieceId === piece.id) ? 'z-50 ring-4 ring-amber-400 rounded-lg' : 'z-10'}`}
+        className={`relative w-full aspect-square transition-all duration-300 ease-in-out ${!isCorrect && 'cursor-grab active:cursor-grabbing hover:z-50'} ${(isSelected || hintPieceId === piece.id) ? 'z-50 ring-4 ring-amber-400 rounded-lg' : 'z-10'} ${isWrongCandidate ? 'animate-pulse' : ''}`}
       >
         <div
           className={`absolute transition-all duration-300 ${hintPieceId === piece.id ? 'animate-pulse' : ''}`}
@@ -324,7 +374,9 @@ export default function PuzzleGame({
             height: '140%',
             top: '-20%',
             left: '-20%',
-            filter: hintPieceId === piece.id 
+            filter: isWrongCandidate
+              ? 'drop-shadow(0 0 15px rgba(248,113,113,0.9)) brightness(1.05)'
+              : hintPieceId === piece.id 
               ? 'drop-shadow(0 0 15px rgba(74,222,128,1)) brightness(1.2)' 
               : (isCorrect ? 'none' : (isSelected ? 'drop-shadow(0 0 12px rgba(6, 182, 212, 1))' : 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))')),
             transform: (isSelected || hintPieceId === piece.id) ? 'scale(1.15)' : 'scale(1)',
@@ -402,7 +454,7 @@ export default function PuzzleGame({
                 className={`relative w-full h-full border-[0.5px] transition-all duration-300
                   ${hintSlotIndex === index
                     ? 'bg-emerald-300/50 border-emerald-500 border-4 animate-pulse shadow-[inset_0_0_30px_rgba(74,222,128,0.9)] z-20 ring-4 ring-emerald-300'
-                    : selectedPieceId !== null && !piece
+                    : selectedPieceId !== null && !piece && (puzzleMode !== 'missing-piece' || index === missingSlotIndex)
                       ? 'bg-white/30 border-yellow-400 border-2 border-dashed shadow-[inset_0_0_15px_rgba(250,204,21,0.6)] animate-pulse z-10 cursor-pointer backdrop-brightness-110'
                       : 'border-white/20'
                   }

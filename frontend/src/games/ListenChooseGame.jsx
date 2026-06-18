@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Volume2 } from 'lucide-react';
 import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
-import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl } from '../utils/soundEffects';
 
@@ -89,11 +88,13 @@ const ListenChooseGame = ({
               selectedOption?.id === option.id ? 'border-blue-300' : 'border-transparent'
             }`}
           >
-            <GameImage
-              src={option.image}
-              alt={option.textAr}
-              className="w-full h-32 md:h-52 object-contain bg-white rounded-[1rem] md:rounded-[1.5rem] mb-2 md:mb-3 pointer-events-none"
-            />
+            <div className="w-full aspect-square overflow-hidden rounded-[1rem] md:rounded-[1.35rem] bg-white mb-2 md:mb-3">
+              <img
+                src={option.image}
+                alt={option.textAr}
+                className="h-full w-full object-contain pointer-events-none"
+              />
+            </div>
             <h3 className="text-xl md:text-3xl font-black text-center text-slate-900 pointer-events-none">
               {option.textAr}
             </h3>

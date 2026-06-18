@@ -20,6 +20,8 @@ const defaultForm = {
   assignedGameIds: [],
 };
 
+const getTagLabel = (tag) => `التصنيف ${tag}`;
+
 const StudentForm = ({ mode = 'create' }) => {
   const navigate = useNavigate();
   const { studentId } = useParams();
@@ -461,11 +463,11 @@ const StudentForm = ({ mode = 'create' }) => {
                 <button
                   type="button"
                   onClick={() => setTagMenuOpen(!tagMenuOpen)}
-                  className="bg-white border border-gray-200 text-gray-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all w-24 sm:w-32 flex items-center justify-between"
+                  className="bg-white border border-gray-200 text-gray-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all w-36 sm:w-44 flex items-center justify-between gap-2"
                 >
                   {selectedTag ? (
-                     <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100">
-                      {selectedTag}
+                     <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100 whitespace-nowrap">
+                      {getTagLabel(selectedTag)}
                     </span>
                   ) : (
                     <span className="text-gray-500 font-medium">التصنيف</span>
@@ -478,14 +480,14 @@ const StudentForm = ({ mode = 'create' }) => {
                       className="fixed inset-0 z-40" 
                       onClick={() => setTagMenuOpen(false)} 
                     />
-                    <div className="absolute z-50 top-full mt-2 left-0 w-32 bg-white rounded-xl shadow-xl border border-slate-200 p-2">
+                    <div className="absolute z-50 top-full mt-2 left-0 w-44 bg-white rounded-xl shadow-xl border border-slate-200 p-2">
                       <div className="max-h-64 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                         <button
                           type="button"
                           onClick={() => { setSelectedTag(''); setTagMenuOpen(false); }}
                           className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-right text-slate-500"
                         >
-                          <span>الكل</span>
+                          <span>كل التصنيفات</span>
                           {!selectedTag && <Check size={16} className="text-[#178bb6]" />}
                         </button>
                         {allAvailableTags.map(tag => (
@@ -495,7 +497,7 @@ const StudentForm = ({ mode = 'create' }) => {
                             onClick={() => { setSelectedTag(tag); setTagMenuOpen(false); }}
                             className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-right"
                           >
-                            <span className="text-slate-700">{tag}</span>
+                            <span className="text-slate-700">{getTagLabel(tag)}</span>
                             {selectedTag === tag && <Check size={16} className="text-[#178bb6]" />}
                           </button>
                         ))}
@@ -545,7 +547,7 @@ const StudentForm = ({ mode = 'create' }) => {
                         <span>المستوى {game.level}</span>
                         {(game.config?.tags || []).length > 0 && (
                           <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-100">
-                            {game.config.tags[0]}
+                            {getTagLabel(game.config.tags[0])}
                           </span>
                         )}
                       </p>

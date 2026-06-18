@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Sparkles, XCircle } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
-import GameImage from '../components/game/GameImage';
 import GameHeader from '../components/game/GameHeader';
 import { playAudioUrl } from '../utils/soundEffects';
 
@@ -281,8 +280,8 @@ const MatchingGame = ({
     : 'relative isolate w-full min-h-[calc(100dvh-8rem)] overflow-visible bg-transparent px-2 py-2 sm:px-4 sm:py-3 md:px-6 md:py-6';
   const backgroundLayerClassName = previewMode ? 'absolute inset-0' : 'fixed inset-0';
   const shadowHeroImageClassName = shadowRevealed
-    ? 'relative z-10 max-h-full w-full scale-[1.06] object-contain drop-shadow-sm transition-all duration-500 mix-blend-multiply'
-    : 'relative z-10 max-h-full w-full scale-[1.06] object-contain drop-shadow-none transition-all duration-500';
+    ? 'relative z-10 max-h-full w-full object-contain drop-shadow-sm transition-all duration-500 mix-blend-multiply'
+    : 'relative z-10 max-h-full w-full object-contain drop-shadow-none transition-all duration-500';
 
   return (
     <div
@@ -320,27 +319,26 @@ const MatchingGame = ({
           <div
             className={
               isShadowMode
-                ? 'flex min-h-44 w-full max-w-sm flex-col items-center justify-center overflow-hidden rounded-[1.75rem] border border-[#dbe7f3] bg-white/90 p-3 shadow-[0_14px_28px_-24px_rgba(71,85,105,0.2)] backdrop-blur-xl sm:min-h-52 md:min-h-72 md:rounded-[2.25rem] md:p-6 mx-auto'
-                : 'rounded-[1.65rem] md:rounded-[2rem] border border-[#dbe7f3] bg-white/85 p-3 md:p-5 shadow-[0_14px_28px_-24px_rgba(71,85,105,0.2)] backdrop-blur-xl flex flex-col items-center justify-center w-full max-w-2xl mx-auto'
+                ? 'flex min-h-36 w-full max-w-xs flex-col items-center justify-center overflow-hidden rounded-[1.55rem] border border-[#dbe7f3] bg-white/90 p-2.5 shadow-[0_14px_28px_-24px_rgba(71,85,105,0.2)] backdrop-blur-xl sm:min-h-44 md:min-h-56 md:rounded-[2rem] md:p-4 mx-auto'
+                : 'rounded-[1.5rem] md:rounded-[1.8rem] border border-[#dbe7f3] bg-white/85 p-2.5 md:p-4 shadow-[0_14px_28px_-24px_rgba(71,85,105,0.2)] backdrop-blur-xl flex flex-col items-center justify-center w-full max-w-xl mx-auto'
             }
           >
             <div
               className={
                 isShadowMode
-                  ? 'relative z-10 flex h-28 w-full items-center justify-center overflow-hidden rounded-[1.2rem] bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.98),_rgba(248,250,252,0.9)_62%,_rgba(241,245,249,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] sm:h-32 md:h-52 md:rounded-[1.5rem]'
-                  : 'w-full max-w-sm relative z-10'
+                  ? 'relative z-10 flex aspect-square w-full max-w-[220px] items-center justify-center overflow-hidden rounded-[1.15rem] bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.98),_rgba(248,250,252,0.9)_62%,_rgba(241,245,249,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] sm:max-w-[240px] md:max-w-[280px] md:rounded-[1.35rem]'
+                  : 'w-full max-w-[240px] relative z-10'
               }
             >
               {isShadowMode && <div className="absolute inset-3 rounded-[1rem] bg-white/28 blur-md" />}
               {heroImage ? (
-                <GameImage
+                <img
                   src={!shadowRevealed && shadowHeroPreviewSrc ? shadowHeroPreviewSrc : heroImage}
                   alt={game?.titleAr || game?.name || 'Hero'}
-                  removeWhiteBackground={!isShadowMode}
-                  className={
+                    className={
                     isShadowMode
                       ? shadowHeroImageClassName
-                      : 'w-full h-28 sm:h-36 md:h-56 object-contain rounded-[1.3rem] md:rounded-[1.5rem] drop-shadow-md mix-blend-multiply'
+                      : 'h-full w-full object-contain rounded-[1.15rem] md:rounded-[1.35rem] drop-shadow-md mix-blend-multiply'
                   }
                 />
               ) : (
@@ -359,8 +357,8 @@ const MatchingGame = ({
               type="button"
               onClick={() => handleOptionSelect(option)}
               className={`
-                group relative flex min-h-44 sm:min-h-52 md:min-h-72 flex-col items-center justify-between overflow-hidden rounded-[1.75rem] md:rounded-[2.25rem]
-                bg-white/85 p-3 md:p-6 border transition-all duration-300 backdrop-blur-xl
+                group relative flex min-h-40 sm:min-h-44 md:min-h-60 flex-col items-center justify-between overflow-hidden rounded-[1.55rem] md:rounded-[2rem]
+                bg-white/85 p-2.5 md:p-4 border transition-all duration-300 backdrop-blur-xl
                 hover:-translate-y-1 hover:border-[#cfe3f3] hover:bg-white
                 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#d7ecf7]
                 active:scale-95
@@ -381,16 +379,16 @@ const MatchingGame = ({
 
               <div className="relative z-10 flex flex-1 w-full items-center justify-center px-2 py-2 md:px-3 md:py-3 transition-transform duration-300 group-hover:scale-[1.02]">
                 {option.image ? (
-                  <div className="relative flex h-28 w-full items-center justify-center overflow-hidden rounded-[1.2rem] sm:h-32 md:h-52 md:rounded-[1.5rem] bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.98),_rgba(248,250,252,0.9)_62%,_rgba(241,245,249,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
-                    <div className="absolute inset-3 rounded-[1rem] bg-white/28 blur-md" />
-                    <GameImage
+                  <div className="relative flex aspect-square w-full max-w-[210px] items-center justify-center overflow-hidden rounded-[1.1rem] sm:max-w-[230px] md:max-w-[280px] md:rounded-[1.35rem] bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.98),_rgba(248,250,252,0.9)_62%,_rgba(241,245,249,0.72)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
+                    <div className="absolute inset-2 rounded-[0.9rem] bg-white/28 blur-md" />
+                    <img
                       src={option.image}
                       alt={option.textAr || `option-${index + 1}`}
-                      className="relative z-10 max-h-full w-full scale-[1.06] object-contain drop-shadow-sm pointer-events-none mix-blend-multiply"
+                      className="relative z-10 h-full w-full object-contain drop-shadow-sm pointer-events-none mix-blend-multiply"
                     />
                   </div>
                 ) : (
-                  <div className="w-full h-28 sm:h-32 md:h-52 bg-slate-50/80 rounded-[1.25rem] md:rounded-[1.5rem] border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 font-black pointer-events-none text-center px-4 leading-7">
+                  <div className="w-full aspect-square max-w-[210px] sm:max-w-[230px] md:max-w-[280px] bg-slate-50/80 rounded-[1.1rem] md:rounded-[1.35rem] border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 font-black pointer-events-none text-center px-4 leading-7">
                     صورة الاختيار
                   </div>
                 )}

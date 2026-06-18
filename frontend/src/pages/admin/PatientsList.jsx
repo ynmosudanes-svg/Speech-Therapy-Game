@@ -85,7 +85,7 @@ const PatientsList = () => {
           
           <button 
             onClick={() => navigate('/admin/patients/create')}
-            className="flex items-center justify-center gap-2 bg-[#178bb6] hover:bg-[#126d8f] text-white px-6 py-3 rounded-xl font-semibold shadow-sm shadow-cyan-500/30 transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 rounded-[1.1rem] border border-[#cfe3f3] bg-[linear-gradient(135deg,#eef8fd,#f8fcff)] px-6 py-3 font-semibold text-[#1584C3] shadow-[0_12px_26px_-22px_rgba(21,132,195,0.34)] transition-all hover:bg-[linear-gradient(135deg,#e7f5fc,#f4fbff)] active:scale-95"
           >
             <UserPlus size={20} />
             إضافة مريض جديد

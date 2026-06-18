@@ -14,9 +14,9 @@ export default function GameHeader({ instruction, instructionAudio = '', onPlayA
   };
 
   return (
-    <section className="w-full rounded-[1.45rem] md:rounded-[2.25rem] border border-white/80 bg-white/75 px-4 py-3 md:p-5 shadow-[0_18px_40px_-24px_rgba(25,173,214,0.26)] backdrop-blur-xl flex items-center justify-between gap-3 md:gap-4">
+    <section className="w-full rounded-[1.2rem] md:rounded-[1.6rem] border border-white/80 bg-white/75 px-3 py-2.5 md:px-4 md:py-3 shadow-[0_14px_30px_-22px_rgba(25,173,214,0.24)] backdrop-blur-xl flex items-center justify-between gap-2 md:gap-3">
       <div className="flex-grow">
-        <h2 className="text-base sm:text-lg md:text-3xl font-black text-[#23425a] leading-tight">
+        <h2 className="text-sm sm:text-base md:text-2xl font-black text-[#23425a] leading-tight">
           {instruction}
         </h2>
       </div>
@@ -25,18 +25,18 @@ export default function GameHeader({ instruction, instructionAudio = '', onPlayA
         {onRestart && (
           <button
             onClick={onRestart}
-            className="w-10 h-10 sm:w-11 sm:h-11 md:w-14 md:h-14 rounded-[0.95rem] md:rounded-[1.25rem] border border-[#cdeef7] bg-[#eefafd] text-[#19add6] flex items-center justify-center hover:bg-[#def6fb] hover:-translate-y-0.5 active:scale-95 transition-all shadow-[0_12px_22px_-14px_rgba(25,173,214,0.28)]"
+            className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-[0.9rem] md:rounded-[1.1rem] border border-[#cdeef7] bg-[#eefafd] text-[#19add6] flex items-center justify-center hover:bg-[#def6fb] hover:-translate-y-0.5 active:scale-95 transition-all shadow-[0_10px_18px_-12px_rgba(25,173,214,0.26)]"
             title="إعادة اللعب"
           >
-            <RefreshCw className="w-5 h-5 md:w-7 md:h-7" />
+            <RefreshCw className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         )}
         <button
           onClick={handlePlayAudio}
-          className="w-10 h-10 sm:w-11 sm:h-11 md:w-14 md:h-14 bg-[#19add6] rounded-[0.95rem] md:rounded-[1.25rem] border border-[#19add6] flex items-center justify-center hover:bg-[#1599be] hover:-translate-y-0.5 active:scale-95 transition-all shadow-[0_14px_24px_-10px_rgba(25,173,214,0.35)]"
+          className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-[#19add6] rounded-[0.9rem] md:rounded-[1.1rem] border border-[#19add6] flex items-center justify-center hover:bg-[#1599be] hover:-translate-y-0.5 active:scale-95 transition-all shadow-[0_12px_20px_-10px_rgba(25,173,214,0.32)]"
           title="نطق السؤال"
         >
-          <Volume2 className="text-white w-5 h-5 md:w-7 md:h-7" />
+          <Volume2 className="text-white w-4 h-4 md:w-5 md:h-5" />
         </button>
       </div>
     </section>

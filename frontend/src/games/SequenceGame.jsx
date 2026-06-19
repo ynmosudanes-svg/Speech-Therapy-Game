@@ -49,7 +49,7 @@ function DraggableSequenceItem({ item, index }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`relative cursor-grab active:cursor-grabbing bg-white rounded-[1.6rem] border-2 shadow-md p-2 transition-all hover:shadow-lg hover:-translate-y-1 ${
+      className={`relative touch-none select-none cursor-grab active:cursor-grabbing bg-white rounded-[1.6rem] border-2 shadow-md p-2 transition-all duration-150 will-change-transform hover:shadow-lg hover:-translate-y-1 ${
         item.physicalHighlight
           ? 'border-emerald-500 bg-emerald-50 shadow-[0_0_0_6px_rgba(5,150,105,0.25)] scale-105'
           : item.gestureHighlight
@@ -75,10 +75,10 @@ function DraggableSequenceItem({ item, index }) {
         <img
           src={item.image}
           alt={item.labelAr || 'خطوة'}
-          className="w-24 h-24 md:w-28 md:h-28 object-contain rounded-xl bg-slate-50"
+          className="pointer-events-none w-28 h-28 md:w-32 md:h-32 object-contain rounded-xl bg-slate-50"
         />
       ) : (
-        <div className="w-24 h-24 md:w-28 md:h-28 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs font-black text-center">
+        <div className="w-28 h-28 md:w-32 md:h-32 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs font-black text-center">
           صورة الخطوة
         </div>
       )}
@@ -93,7 +93,7 @@ function DroppableSlot({ slotIndex, placedItem }) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col items-center justify-center rounded-[1.6rem] border-2 border-dashed transition-all min-h-[130px] md:min-h-[150px] w-full ${
+      className={`flex flex-col items-center justify-center rounded-[1.6rem] border-2 border-dashed transition-all min-h-[150px] md:min-h-[170px] w-full ${
         isOver
           ? 'border-blue-500 bg-blue-50 scale-105'
           : placedItem
@@ -108,10 +108,10 @@ function DroppableSlot({ slotIndex, placedItem }) {
             <img
               src={placedItem.image}
               alt={placedItem.labelAr || 'خطوة'}
-              className="w-20 h-20 md:w-24 md:h-24 object-contain rounded-xl"
+              className="pointer-events-none w-28 h-28 md:w-32 md:h-32 object-contain rounded-xl"
             />
           ) : (
-            <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs font-black text-center">
+            <div className="w-28 h-28 md:w-32 md:h-32 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs font-black text-center">
               صورة
             </div>
           )}
@@ -159,9 +159,10 @@ const SequenceGame = ({
 
   const successSound = config?.feedback?.successSound || game?.successSound || '';
   const failSound = config?.feedback?.failSound || game?.failSound || '';
+  const avatarState = showFeedback ? (feedback === 'success' ? 'celebration' : 'error') : 'learning';
 
-  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 8 } });
-  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } });
+  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 4 } });
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 3 } });
   const sensors = useSensors(mouseSensor, touchSensor);
 
   useEffect(() => {
@@ -335,6 +336,7 @@ const SequenceGame = ({
     <div className="max-w-5xl mx-auto space-y-6" dir="rtl">
       <GameHeader
         instruction={instructionAr}
+        avatarState={avatarState}
         onPlayAudio={() => {
           if (instructionAudio) playAudioUrl(instructionAudio);
           else speakArabic(instructionAr);
@@ -345,7 +347,7 @@ const SequenceGame = ({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="bg-white rounded-[2rem] p-4 md:p-6 border-2 border-[#dbe7f3] shadow-sm">
           <div className="text-sm font-bold text-blue-600 mb-3 text-center">ضع الصور هنا بالترتيب الصحيح</div>
-          <div className={`grid gap-3 md:gap-4 ${steps.length <= 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-4'}`}>
+          <div className={`grid gap-4 md:gap-5 ${steps.length <= 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-4'}`}>
             {placedItems.map((item, index) => (
               <DroppableSlot key={index} slotIndex={index} placedItem={item} />
             ))}
@@ -355,7 +357,7 @@ const SequenceGame = ({
         {availableItems.length > 0 && (
           <div className="bg-white/70 backdrop-blur-sm p-4 md:p-6 rounded-[2rem] border border-[#dbe7f3]">
             <div className="text-sm font-bold text-slate-500 mb-3 text-center">اسحب الصور من هنا</div>
-            <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-wrap justify-center gap-5 md:gap-6">
               {availableItems.map((item, index) => (
                 <DraggableSequenceItem key={item.id} item={decorateItem(item)} index={index} />
               ))}

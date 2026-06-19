@@ -143,10 +143,10 @@ const AudioCardsGame = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center select-none" dir="rtl">
+    <div className="w-full max-w-2xl mx-auto flex flex-col items-center select-none" dir="rtl">
       
       {content.instructionAr && (
-        <div className="w-full mb-8">
+        <div className="w-full mb-6">
           <GameHeader
             instruction={content.instructionAr}
             instructionAudio={instructionAudio}
@@ -157,7 +157,7 @@ const AudioCardsGame = ({
       )}
 
       {/* Progress Indicator */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-4">
         {cards.map((_, index) => (
           <div
             key={index}
@@ -174,7 +174,7 @@ const AudioCardsGame = ({
 
       {/* 3D Flip Card Container */}
       <div 
-        className={`relative w-full max-w-[280px] md:max-w-[380px] aspect-[4/3] md:aspect-[3/2] cursor-pointer group/card transition-all duration-300 ${
+        className={`relative w-full max-w-[240px] md:max-w-[280px] aspect-[4/3] md:aspect-[3/2] cursor-pointer group/card transition-all duration-300 ${
           visualPulse && !isFlipped ? 'ring-8 ring-yellow-400 animate-pulse shadow-[0_0_40px_rgba(250,204,21,0.5)] rounded-3xl' : ''
         }`}
         style={{ perspective: '2000px' }}
@@ -247,7 +247,7 @@ const AudioCardsGame = ({
 
       {/* Navigation Controls */}
       {cards.length > 1 ? (
-        <div className="flex items-center justify-between w-full max-w-[320px] md:max-w-[400px] mt-10 gap-4">
+        <div className="flex items-center justify-between w-full max-w-[280px] md:max-w-[320px] mt-7 gap-3">
           <Button
             variant="outline"
             onClick={handlePrev}
@@ -278,7 +278,7 @@ const AudioCardsGame = ({
           )}
         </div>
       ) : (
-        <div className="flex items-center justify-center w-full max-w-[320px] md:max-w-[400px] mt-10">
+        <div className="flex items-center justify-center w-full max-w-[280px] md:max-w-[320px] mt-7">
           {isFlipped ? (
             <Button
               variant="primary"

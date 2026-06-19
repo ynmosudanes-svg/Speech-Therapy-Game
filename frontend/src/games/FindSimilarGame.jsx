@@ -1,27 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import confetti from 'canvas-confetti';
-import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
-import { playSuccessSound, playErrorSound, playAudioUrl } from '../utils/soundEffects';
+import {
+  GameChoice,
+  GameContainer,
+  GameGrid,
+  GameImage,
+  GameSection,
+  GameQuestion,
+} from '../components/game/GameUI';
+import { playAudioUrl } from '../utils/soundEffects';
+import ChildGameBackdrop from './ChildGameBackdrop';
 
-/**
- * Find the Similar Game (Visual Matching)
- * 
- * Config JSON example:
- * {
- *   "questionTextAr": "وريني الصورة الزي دي",
- *   "questionAudio": "/audio/find-similar.mp3",
- *   "targetImage": "/images/frog.png",
- *   "options": [
- *     { "id": 1, "image": "/images/frog.png", "isCorrect": true },
- *     { "id": 2, "image": "/images/bird.png", "isCorrect": false },
- *     { "id": 3, "image": "/images/fish.png", "isCorrect": false }
- *   ],
- *   "successSound": "/audio/yay.mp3",
- *   "failSound": "/audio/oops.mp3"
- * }
- */
 const FindSimilarGame = ({
   game,
   onComplete,
@@ -34,6 +24,8 @@ const FindSimilarGame = ({
   const [startTime] = useState(Date.now());
   const [attempts, setAttempts] = useState(0);
   const [shuffledOptions, setShuffledOptions] = useState([]);
+
+  const avatarState = showFeedback ? (isCorrect ? 'celebration' : 'error') : 'learning';
 
   useEffect(() => {
     if (game?.options) {
@@ -48,7 +40,7 @@ const FindSimilarGame = ({
     if (showFeedback) return;
     setAttempts((prev) => prev + 1);
     setSelectedOption(option);
-    setIsCorrect(option.isCorrect);
+    setIsCorrect(Boolean(option.isCorrect));
     setShowFeedback(true);
   };
 
@@ -77,51 +69,49 @@ const FindSimilarGame = ({
   if (!game) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <GameContainer className="max-w-4xl" dir="rtl">
+      <ChildGameBackdrop />
       <GameHeader
-        instruction={game.questionTextAr || 'وريني الصورة الزي دي'}
+        instruction={game.questionTextAr || 'ورّيني الصورة اللي زي دي'}
+        avatarState={avatarState}
         onPlayAudio={() => {
           if (game?.questionAudio) playAudioUrl(game.questionAudio);
         }}
         onRestart={handleRestart}
       />
 
-      {/* Target Image */}
-      <div className="text-center">
-        <div className="inline-block p-2.5 md:p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[1.6rem] md:rounded-[2rem] border-4 border-blue-200 shadow-lg">
-          <img
-            src={game.targetImage}
-            alt="الصورة المطلوبة"
-            className="w-40 h-40 md:w-52 md:h-52 object-contain rounded-[1.35rem] md:rounded-[1.5rem] bg-white"
-          />
-        </div>
-        <div className="mt-4 text-lg font-bold text-blue-600 animate-pulse">
-          ⬇️ اختار الصورة الزي دي ⬇️
-        </div>
-      </div>
+      <GameSection className="mx-auto w-full max-w-[clamp(200px,38vw,280px)]">
+        <GameQuestion className="mb-2 text-sky-700">اختر الصورة المطابقة</GameQuestion>
+        <GameImage
+          src={game.targetImage}
+          alt="الصورة المطلوبة"
+          className="mx-auto"
+          emptyLabel="الصورة المطلوبة"
+        />
+      </GameSection>
 
-      {/* Options Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-        {shuffledOptions.map((option) => (
-          <Card
-            key={option.id}
-            onClick={() => handleSelect(option)}
-            className={`p-3 md:p-4 cursor-pointer rounded-[2rem] border-4 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl active:scale-95 ${
-              selectedOption?.id === option.id
-                ? isCorrect
-                  ? 'border-green-400 bg-green-50 shadow-green-100'
-                  : 'border-red-400 bg-red-50 shadow-red-100'
-                : 'border-transparent hover:border-blue-200'
-            }`}
-          >
-            <img
-              src={option.image}
-              alt={`خيار ${option.id}`}
-              className="w-full aspect-square object-contain bg-white rounded-[1.2rem] md:rounded-[1.4rem] pointer-events-none"
-            />
-          </Card>
-        ))}
-      </div>
+      <GameGrid className="mx-auto max-w-2xl" minWidth="clamp(118px, 22vw, 180px)">
+        {shuffledOptions.map((option) => {
+          const isActive = selectedOption?.id === option.id;
+          const choiceState = isActive ? (isCorrect ? 'correct' : 'wrong') : 'idle';
+
+          return (
+            <GameChoice
+              key={option.id}
+              onClick={() => handleSelect(option)}
+              state={choiceState}
+              className="min-h-[clamp(138px,24vw,190px)]"
+            >
+              <GameImage
+                src={option.image}
+                alt={`خيار ${option.id}`}
+                className="flex-1"
+                emptyLabel="صورة الاختيار"
+              />
+            </GameChoice>
+          );
+        })}
+      </GameGrid>
 
       <FeedbackModal
         show={showFeedback}
@@ -130,7 +120,7 @@ const FindSimilarGame = ({
         successSound={game.successSound}
         failSound={game.failSound}
       />
-    </div>
+    </GameContainer>
   );
 };
 

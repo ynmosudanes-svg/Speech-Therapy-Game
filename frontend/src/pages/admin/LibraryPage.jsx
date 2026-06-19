@@ -5,6 +5,7 @@ import {
   BookOpen,
   CheckCircle2,
   ChevronDown,
+  ChevronUp,
   ClipboardList,
   Gamepad2,
   Library,
@@ -128,7 +129,7 @@ const getActivityCount = (game) =>
     ? game.config.levels.reduce((sum, level) => sum + (level.activities?.length || 0), 0)
     : 0;
 
-const getSelectedItemLabel = (index) => `البند ${index + 1}`;
+const getSelectedItemLabel = (index) => `لعبة ${index + 1}`;
 const getGameCodeLabel = (gameCode) => `كود ${gameCode}`;
 const getGameTypeLabel = (type) => GAME_TYPE_LABELS_AR[type] || GAME_TYPE_LABELS[type] || type || 'تصنيف غير محدد';
 const getGameTypeOrderIndex = (type) => {
@@ -175,10 +176,10 @@ function TherapyBookCard({ libraryItem, isActive, onClick, index = 0 }) {
       whileHover={{ y: -6 }}
       whileTap={{ scale: 0.99 }}
       transition={{ type: 'spring', stiffness: 240, damping: 20 }}
-      className="group relative h-[196px] w-full text-right"
+      className="group relative h-[208px] w-full text-right"
     >
       <motion.div
-        className={`relative h-full overflow-hidden rounded-[1.6rem] border p-4 transition duration-300 ${
+        className={`relative h-full overflow-hidden rounded-[1.6rem] border p-5 transition duration-300 ${
           isActive ? 'ring-2 ring-sky-100 border-sky-200' : 'border-slate-200'
         }`}
         style={{
@@ -190,7 +191,7 @@ function TherapyBookCard({ libraryItem, isActive, onClick, index = 0 }) {
       >
         <div className="pointer-events-none absolute inset-[7px] rounded-[1.25rem] border border-white/70 opacity-90" />
         <div
-          className="absolute inset-y-3 right-0 w-[26px] rounded-l-[1.15rem]"
+          className="absolute inset-y-3 right-0 w-[20px] rounded-l-[1rem]"
           style={{
             background: `linear-gradient(180deg, color-mix(in srgb, ${bookColor} 92%, white 8%), color-mix(in srgb, ${bookColor} 76%, #0f172a 24%))`,
             boxShadow: `inset 1px 0 0 rgba(255,255,255,0.35), inset 8px 0 18px rgba(255,255,255,0.08)`,
@@ -198,8 +199,8 @@ function TherapyBookCard({ libraryItem, isActive, onClick, index = 0 }) {
         >
           <div className="flex h-full flex-col items-center justify-between py-3">
             <div className="flex flex-col items-center gap-1">
-              <Library size={12} className="text-white/90" />
-              <span className="text-[9px] font-black tracking-[0.08em] text-white/95">
+              <Library size={11} className="text-white/90" />
+              <span className="text-[8px] font-black tracking-[0.08em] text-white/95">
                 {spineLabel}
               </span>
             </div>
@@ -211,15 +212,15 @@ function TherapyBookCard({ libraryItem, isActive, onClick, index = 0 }) {
           </div>
         </div>
         <div
-          className="absolute inset-y-6 right-[30px] w-[3px] rounded-full"
+          className="absolute inset-y-6 right-[22px] w-[3px] rounded-full"
           style={{ backgroundColor: `color-mix(in srgb, ${bookColor} 80%, white 20%)` }}
         />
 
-        <div className="flex h-full flex-col pl-8">
+        <div className="flex h-full flex-col pl-2 pr-10">
           <div className="flex-1">
-            <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="mb-4 flex items-start justify-between gap-4">
               <div
-                className="inline-flex h-11 w-11 items-center justify-center rounded-[1rem] text-white shadow-sm"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] text-white shadow-sm"
                 style={{
                   background: `linear-gradient(135deg, ${bookColor}, color-mix(in srgb, ${bookColor} 72%, #0f172a 28%))`,
                   boxShadow: `0 10px 24px -16px ${bookColor}`,
@@ -227,26 +228,26 @@ function TherapyBookCard({ libraryItem, isActive, onClick, index = 0 }) {
               >
                 <BookOpen size={18} />
               </div>
-              <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600">
+              <div className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600">
                 الخطة {index + 1}
               </div>
             </div>
 
-            <h3 className="line-clamp-2 text-lg font-black leading-7 text-slate-900">
+            <h3 className="line-clamp-2 text-[1.05rem] font-black leading-7 text-slate-900">
               {libraryItem.name || 'خطة علاجية جديدة'}
             </h3>
-            <p className="mt-2 line-clamp-2 text-xs leading-6 text-slate-500">
+            <p className="mt-2 line-clamp-2 text-[11px] leading-6 text-slate-500">
               {libraryItem.description || 'خطة علاجية منظمة لألعاب التخاطب والأنشطة المناسبة للجلسات.'}
             </p>
 
             <div className="mt-4 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: bookColor }} />
-                <span className="h-[6px] w-24 rounded-full bg-slate-200/90" />
+                <span className="h-[6px] w-20 rounded-full bg-slate-200/90" />
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-slate-300" />
-                <span className="h-[6px] w-16 rounded-full bg-slate-200/70" />
+                <span className="h-[6px] w-14 rounded-full bg-slate-200/70" />
               </div>
             </div>
           </div>
@@ -439,7 +440,10 @@ export default function LibraryPage() {
   }, [games, gameSearchQuery, selectedGameType]);
 
   const selectedGames = useMemo(
-    () => games.filter((game) => libraryForm.gameIds.includes(String(game.id))),
+    () =>
+      libraryForm.gameIds
+        .map((gameId) => games.find((game) => String(game.id) === String(gameId)))
+        .filter(Boolean),
     [games, libraryForm.gameIds]
   );
 
@@ -494,6 +498,27 @@ export default function LibraryPage() {
         ? current.gameIds.filter((id) => id !== gameId)
         : [...current.gameIds, gameId],
     }));
+  };
+
+  const moveGame = (gameId, direction) => {
+    setLibraryForm((current) => {
+      const currentIndex = current.gameIds.indexOf(gameId);
+      if (currentIndex === -1) return current;
+
+      const targetIndex = currentIndex + direction;
+      if (targetIndex < 0 || targetIndex >= current.gameIds.length) return current;
+
+      const nextGameIds = [...current.gameIds];
+      [nextGameIds[currentIndex], nextGameIds[targetIndex]] = [
+        nextGameIds[targetIndex],
+        nextGameIds[currentIndex],
+      ];
+
+      return {
+        ...current,
+        gameIds: nextGameIds,
+      };
+    });
   };
 
   const handleSubmit = async (event) => {
@@ -574,7 +599,7 @@ export default function LibraryPage() {
                 {viewMode === 'shelf'
                   ? 'ادخل مباشرة على الرفوف، واختر خطة أو أضف خطة جديدة من الزر العلوي.'
                   : viewMode === 'folder'
-                    ? 'هنا تظهر كل البنود الموجودة داخل هذه الخطة. يمكنك فتح التعديل من الزر العلوي.'
+                    ? 'هنا تظهر كل الألعاب الموجودة داخل هذه الخطة. يمكنك فتح التعديل من الزر العلوي.'
                   : 'عدّل بيانات الخطة ثم أضف الألعاب المناسبة لها من نفس الصفحة.'}
               </p>
             </div>
@@ -713,7 +738,7 @@ export default function LibraryPage() {
               </div>
             </div>
             <p className="text-sm leading-8 text-slate-500">
-              {selectedLibrary.description || 'هذه الخطة تحتوي على البنود والألعاب التي اخترتها لها.'}
+              {selectedLibrary.description || 'هذه الخطة تحتوي على الألعاب التي اخترتها لها.'}
             </p>
           </div>
 
@@ -733,8 +758,8 @@ export default function LibraryPage() {
           ) : (
             <div className="rounded-[1.8rem] border border-dashed border-slate-200 bg-slate-50 px-4 py-14 text-center">
               <Gamepad2 className="mx-auto mb-3 text-slate-300" size={40} />
-              <div className="font-black text-slate-700">لا توجد بنود داخل هذه الخطة بعد</div>
-              <div className="mt-2 text-sm text-slate-500">اضغط على تحرير الخطة لإضافة ألعابها وبنودها.</div>
+              <div className="font-black text-slate-700">لا توجد ألعاب داخل هذه الخطة بعد</div>
+              <div className="mt-2 text-sm text-slate-500">اضغط على تحرير الخطة لإضافة ألعابها وترتيبها.</div>
             </div>
           )}
         </section>
@@ -940,7 +965,7 @@ export default function LibraryPage() {
                   </p>
                 </div>
                 <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                  {selectedGames.length} بطاقة
+                  {selectedGames.length} لعبة
                 </div>
               </div>
 

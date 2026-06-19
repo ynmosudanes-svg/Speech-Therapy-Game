@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DoorOpen, ShieldCheck } from 'lucide-react';
+import lottie from 'lottie-web';
 import Button from '../../components/Button';
 import ConfirmModal from '../../components/ConfirmModal';
 import GameEngine from '../../games/GameEngine';
@@ -9,6 +10,7 @@ import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 import { computeSessionMetrics } from '../../utils/sessionMetrics';
 import { silenceSiteAudio, stopGameAudio } from '../../utils/soundEffects';
+import loadingAnimation from '../../assets/Animation/2 ani.json';
 
 const GamePlay = () => {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ const GamePlay = () => {
   const [showIntroVideo, setShowIntroVideo] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [completedSessionData, setCompletedSessionData] = useState(null);
+  const loadingAnimationRef = useRef(null);
   const currentLevel = Math.min(Math.max(Number(currentStudent?.currentLevel || 1), 1), 3);
   const assignedGame = useMemo(
     () =>
@@ -101,6 +104,27 @@ const GamePlay = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!loading || !loadingAnimationRef.current) {
+      return undefined;
+    }
+
+    const instance = lottie.loadAnimation({
+      container: loadingAnimationRef.current,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData: loadingAnimation,
+      rendererSettings: {
+        preserveAspectRatio: 'xMidYMid meet',
+      },
+    });
+
+    return () => {
+      instance.destroy();
+    };
+  }, [loading]);
+
   const handleGameComplete = async (stats) => {
     if (!game) {
       return;
@@ -168,7 +192,19 @@ const GamePlay = () => {
   };
 
   if (loading) {
-    return <div className="text-center py-24 text-3xl font-black text-slate-700">جارٍ تجهيز الجلسة...</div>;
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-start gap-4 px-4 pt-10 text-center md:gap-5 md:pt-14" dir="rtl">
+        <div className="relative flex h-48 w-48 items-center justify-center md:h-56 md:w-56">
+          <div className="absolute inset-0 rounded-full bg-sky-100/65 blur-2xl" />
+          <div className="absolute inset-[12%] rounded-full bg-cyan-100/45 blur-3xl" />
+          <div ref={loadingAnimationRef} className="relative z-10 h-full w-full scale-[1.05] md:scale-[1.08]" />
+        </div>
+        <div className="text-2xl font-black text-slate-700 md:text-3xl">جارٍ تجهيز الجلسة...</div>
+        <div className="max-w-md text-sm font-semibold leading-7 text-slate-500 md:text-base">
+          لو الإنترنت بطيء، هتفضل الشاشة دي ظاهرة لحد ما تكتمل البيانات.
+        </div>
+      </div>
+    );
   }
 
   if (!game) {

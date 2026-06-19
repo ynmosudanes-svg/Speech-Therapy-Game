@@ -296,7 +296,7 @@ const MazeGame = ({
   const showGoalHighlight = visualPulse || physicalPath;
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-4 md:gap-6" dir="rtl">
+    <div className="max-w-3xl mx-auto flex flex-col gap-4 md:gap-5" dir="rtl">
       {/* Header */}
       <GameHeader
         instruction={content?.instructionAr || 'حرّك حتى تصل إلى الهدف'}
@@ -313,7 +313,7 @@ const MazeGame = ({
       />
 
       {/* Main Play Area */}
-      <section className="bg-[#f8fbff] rounded-2xl md:rounded-[2.4rem] border border-[#dbe7f3] p-4 md:p-8 shadow-sm flex flex-col items-center gap-6 md:gap-10">
+      <section className="bg-[#f8fbff] rounded-2xl md:rounded-[2.4rem] border border-[#dbe7f3] p-4 md:p-7 shadow-sm flex flex-col items-center gap-5 md:gap-8">
         
         {/* The Maze Grid */}
         <div 
@@ -324,7 +324,7 @@ const MazeGame = ({
             style={{ 
               aspectRatio: `${cols} / ${rows}`,
               width: '100%',
-              maxWidth: `min(100%, calc(55vh * ${cols} / ${rows}))`,
+              maxWidth: `min(100%, calc(46vh * ${cols} / ${rows}))`,
             }} 
             dir="ltr"
           >
@@ -384,7 +384,7 @@ const MazeGame = ({
 
               {gestureDirection && hintNextCell && (
                 <div
-                  className="absolute z-30 text-4xl md:text-5xl drop-shadow-xl animate-bounce pointer-events-none"
+                className="absolute z-30 text-3xl md:text-4xl drop-shadow-xl animate-bounce pointer-events-none"
                   style={{
                     left: `calc((100% / ${cols}) * ${hintNextCell.x - 1} + (100% / ${cols}) / 2)`,
                     top: `calc((100% / ${rows}) * ${hintNextCell.y - 1} - 8px)`,
@@ -399,7 +399,7 @@ const MazeGame = ({
         </div>
 
         {/* Controls Area */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-5 w-fit mx-auto pb-2 md:pb-4" dir="ltr">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 w-fit mx-auto pb-2 md:pb-3" dir="ltr">
           <div />
           <ControlButton icon={ArrowUp} onClick={() => moveBy(0, -1)} highlighted={gestureDirection === 'up'} className="relative" />
           <div />

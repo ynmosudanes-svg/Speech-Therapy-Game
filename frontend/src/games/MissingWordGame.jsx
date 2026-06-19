@@ -213,7 +213,7 @@ const MissingWordGame = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-4 md:gap-6" dir="rtl">
+    <div className="max-w-3xl mx-auto flex flex-col gap-4 md:gap-5" dir="rtl">
       <GameHeader 
         instruction={instructionAr || 'أكمل الكلمة الناقصة'} 
         onPlayAudio={playInstruction} 
@@ -221,29 +221,29 @@ const MissingWordGame = ({
       />
 
       {/* Main Play Area */}
-      <section className="bg-[#f8fbff] rounded-2xl md:rounded-[2.4rem] border border-[#dbe7f3] p-6 md:p-10 shadow-sm flex flex-col items-center gap-8 md:gap-12 min-h-[50vh]">
+      <section className="bg-[#f8fbff] rounded-2xl md:rounded-[2.4rem] border border-[#dbe7f3] p-5 md:p-8 shadow-sm flex flex-col items-center gap-6 md:gap-10 min-h-[50vh]">
         {/* Optional Image */}
         {image && (
-        <div className="w-48 h-48 md:w-64 md:h-64 rounded-3xl overflow-hidden shadow-md border-4 border-white bg-white">
+        <div className="w-40 h-40 md:w-56 md:h-56 rounded-3xl overflow-hidden shadow-md border-4 border-white bg-white">
             <img src={image} alt="word visual" className="w-full h-full object-contain" />
         </div>
         )}
 
         {/* Word Display */}
-        <div className="py-8">
+        <div className="py-6 md:py-7">
           {renderWord()}
         </div>
 
         {/* Options Grid */}
-        <div className="flex flex-wrap justify-center gap-4 w-full max-w-2xl">
+        <div className="flex flex-wrap justify-center gap-3 md:gap-4 w-full max-w-xl">
           {options.map((option) => (
             <button
               key={option.id}
               onClick={() => handleOptionClick(option)}
-              className={`relative px-6 py-3 md:px-10 md:py-4 rounded-xl md:rounded-2xl shadow-md border-2 font-black text-xl md:text-3xl transition-all ${getOptionClass(option)}`}
+              className={`relative px-5 py-3 md:px-8 md:py-3.5 rounded-xl md:rounded-2xl shadow-md border-2 font-black text-lg md:text-2xl transition-all ${getOptionClass(option)}`}
             >
               {gestureArrow && option.isCorrect && (
-                <span className="absolute -top-10 left-1/2 -translate-x-1/2 text-4xl animate-bounce z-20 drop-shadow-md pointer-events-none">
+                <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-3xl animate-bounce z-20 drop-shadow-md pointer-events-none">
                   👇
                 </span>
               )}

@@ -1,16 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Star, Lock, Medal, Gamepad2, Check, RotateCcw, Sparkles, Trophy, Lightbulb } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Autoplay } from 'swiper/modules';
+import lottie from 'lottie-web';
 import 'swiper/css';
 import 'swiper/css/pagination';
-import therapyKidsImage from '../../assets/c31abac0-aadc-4c2c-b91a-d9a7dad25370-removebg-preview.png';
+import readingAnimation from '../../assets/Animation/Reading.json';
+import numberOneAnimation from '../../assets/Animation/Number 1.json';
 
 const StudentHome = () => {
   const navigate = useNavigate();
   const { currentStudent, sessions } = useTherapyStore();
+  const readingAnimationRef = useRef(null);
+  const numberOneAnimationRef = useRef(null);
 
   const assignedGames = Array.isArray(currentStudent?.assignedGames) ? currentStudent.assignedGames : [];
   
@@ -42,6 +46,48 @@ const StudentHome = () => {
 
   const planName = currentStudent?.planName || 'رحلة الأبطال! 🦸‍♂️';
   const progressPercentage = assignedGames.length > 0 ? (completedGames.length / assignedGames.length) * 100 : 0;
+
+  useEffect(() => {
+    if (!readingAnimationRef.current) {
+      return undefined;
+    }
+
+    const instance = lottie.loadAnimation({
+      container: readingAnimationRef.current,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData: readingAnimation,
+      rendererSettings: {
+        preserveAspectRatio: 'xMidYMid meet',
+      },
+    });
+
+    return () => {
+      instance.destroy();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!numberOneAnimationRef.current) {
+      return undefined;
+    }
+
+    const instance = lottie.loadAnimation({
+      container: numberOneAnimationRef.current,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData: numberOneAnimation,
+      rendererSettings: {
+        preserveAspectRatio: 'xMidYMid meet',
+      },
+    });
+
+    return () => {
+      instance.destroy();
+    };
+  }, []);
 
   return (
     <div dir="rtl" className="w-full pb-10 text-slate-800 flex justify-center">
@@ -76,11 +122,12 @@ const StudentHome = () => {
               {/* Slide 1: Welcome Slide */}
               <SwiperSlide>
                 <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
-                  <div className="flex h-40 w-40 shrink-0 items-end justify-center overflow-hidden rounded-[2rem] border-4 border-white/30 bg-white/15 p-0 backdrop-blur-sm md:h-40 md:w-40">
-                    <img
-                      src={therapyKidsImage}
-                      alt="جلسة علاجية للأطفال"
-                      className="h-full w-[118%] max-w-none translate-y-1 object-contain object-bottom drop-shadow-[0_18px_26px_rgba(7,59,92,0.18)]"
+                  <div className="relative shrink-0 flex items-center justify-center w-52 h-52 md:w-64 md:h-64 lg:w-72 lg:h-72">
+                    <div className="absolute inset-[18%] rounded-full bg-[radial-gradient(circle,_rgba(255,255,255,0.38)_0%,_rgba(255,255,255,0.14)_45%,_rgba(255,255,255,0)_75%)] blur-xl" />
+                    <div className="absolute inset-[22%] rounded-full bg-cyan-200/25 blur-2xl" />
+                    <div
+                      ref={readingAnimationRef}
+                      className="relative z-10 w-full h-full drop-shadow-[0_18px_26px_rgba(7,59,92,0.18)]"
                     />
                   </div>
                   <div className="flex-1 text-center md:text-right">
@@ -98,8 +145,10 @@ const StudentHome = () => {
               {progressPercentage >= 100 ? (
                 <SwiperSlide>
                   <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
-                    <div className="w-40 h-40 flex items-center justify-center shrink-0 rounded-[2rem] border-4 border-white/30 bg-white/15 backdrop-blur-sm">
-                      <Trophy size={84} className="text-white drop-shadow-sm" strokeWidth={1.9} />
+                    <div className="relative shrink-0 flex items-center justify-center w-52 h-52 md:w-64 md:h-64 lg:w-72 lg:h-72">
+                      <div className="absolute inset-[10%] rounded-full bg-white/20 blur-2xl" />
+                      <div className="absolute inset-[18%] rounded-full bg-cyan-200/20 blur-3xl" />
+                      <div ref={numberOneAnimationRef} className="relative z-10 w-full h-full" />
                     </div>
                     <div className="flex-1 text-center md:text-right">
                       <h3 className="text-4xl font-extrabold mb-3 text-white drop-shadow-sm">أنت بطل رائع!</h3>
@@ -110,8 +159,10 @@ const StudentHome = () => {
               ) : (
                 <SwiperSlide>
                   <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
-                    <div className="w-40 h-40 bg-white/20 backdrop-blur-sm rounded-[2rem] border-4 border-white/30 flex items-center justify-center shrink-0">
-                      <Trophy size={80} className="text-white drop-shadow-sm" />
+                    <div className="relative shrink-0 flex items-center justify-center w-52 h-52 md:w-64 md:h-64 lg:w-72 lg:h-72">
+                      <div className="absolute inset-[10%] rounded-full bg-white/20 blur-2xl" />
+                      <div className="absolute inset-[18%] rounded-full bg-cyan-200/20 blur-3xl" />
+                      <div ref={numberOneAnimationRef} className="relative z-10 w-full h-full" />
                     </div>
                     <div className="flex-1 text-center md:text-right">
                       <h3 className="text-3xl font-extrabold mb-3 text-white drop-shadow-sm">تقدمك مذهل!</h3>
@@ -219,7 +270,7 @@ const StudentHome = () => {
               {completedGames.map((game, index) => (
                 <div 
                   key={`${game.id}-${index}-completed`} 
-                  className={`relative overflow-hidden rounded-[2rem] border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group cursor-pointer bg-gradient-to-br from-[#f0fdf4] to-[#dcfce7] border-emerald-100 hover:shadow-emerald-200/50`}
+                  className={`relative overflow-hidden rounded-[2rem] border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group cursor-pointer bg-gradient-to-br from-[#f8fffd] via-white to-[#e0f2fe] border-cyan-100 hover:shadow-cyan-200/50`}
                   onClick={() => navigate(`/student/game/${game.id}`)}
                 >
                   <div className="absolute -top-4 -right-4 p-4 opacity-10 transition-transform duration-500 group-hover:scale-150 group-hover:rotate-12">
@@ -231,7 +282,7 @@ const StudentHome = () => {
                       <div className="w-14 h-14 rounded-2xl bg-white/80 shadow-sm border border-white/50 flex items-center justify-center backdrop-blur-sm">
                         <Gamepad2 className={`w-7 h-7 text-emerald-500`} />
                       </div>
-                      <div className="bg-emerald-100 text-emerald-600 p-1.5 rounded-full shadow-sm">
+                      <div className="bg-emerald-50 text-emerald-600 p-1.5 rounded-full shadow-sm">
                         <Check size={20} strokeWidth={3} />
                       </div>
                     </div>
@@ -247,7 +298,7 @@ const StudentHome = () => {
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 font-black text-xs text-slate-600 backdrop-blur-sm border border-white/50">
                         مكتملة بنجاح
                       </span>
-                      <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white shadow-md transition-transform active:scale-95 group-hover:-translate-x-1 bg-emerald-600 shadow-emerald-200`}>
+                      <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white shadow-md transition-transform active:scale-95 group-hover:-translate-x-1 bg-emerald-700 shadow-emerald-200`}>
                         <RotateCcw size={16} /> العب تاني
                       </div>
                     </div>

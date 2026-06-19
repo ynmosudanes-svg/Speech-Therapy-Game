@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Volume2 } from 'lucide-react';
-import Card from '../components/Card';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
+import {
+  GameChoice,
+  GameContainer,
+  GameGrid,
+  GameImage,
+} from '../components/game/GameUI';
 import { playAudioUrl } from '../utils/soundEffects';
-
-const preventKeyboardAudioTrigger = (event) => {
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-};
+import ChildGameBackdrop from './ChildGameBackdrop';
 
 const ListenChooseGame = ({
   game,
@@ -23,6 +21,8 @@ const ListenChooseGame = ({
   const [isCorrect, setIsCorrect] = useState(false);
   const [startTime] = useState(Date.now());
   const [attempts, setAttempts] = useState(0);
+
+  const avatarState = showFeedback ? (isCorrect ? 'celebration' : 'error') : 'learning';
 
   useEffect(() => {
     if (game.questionAudio) {
@@ -62,45 +62,44 @@ const ListenChooseGame = ({
   };
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="w-full mb-4 md:mb-5 max-w-3xl">
-        <GameHeader
-          instruction={game.questionTextAr}
-          onPlayAudio={() => {
-            if (game.questionAudio) {
-              playAudioUrl(game.questionAudio);
-            } else if (game.questionTextAr) {
-              const utterance = new SpeechSynthesisUtterance(game.questionTextAr);
-              utterance.lang = 'ar-SA';
-              window.speechSynthesis.speak(utterance);
-            }
-          }}
-          onRestart={handleRestart}
-        />
-      </div>
+    <GameContainer className="max-w-3xl" dir="rtl">
+      <ChildGameBackdrop />
+      <GameHeader
+        instruction={game.questionTextAr}
+        avatarState={avatarState}
+        onPlayAudio={() => {
+          if (game.questionAudio) {
+            playAudioUrl(game.questionAudio);
+          } else if (game.questionTextAr) {
+            const utterance = new SpeechSynthesisUtterance(game.questionTextAr);
+            utterance.lang = 'ar-SA';
+            window.speechSynthesis.speak(utterance);
+          }
+        }}
+        onRestart={handleRestart}
+      />
 
-      <div className="grid grid-cols-2 gap-3 md:gap-5 w-full max-w-3xl">
+      <GameGrid className="mx-auto w-full max-w-3xl" minWidth="clamp(150px, 42vw, 180px)">
         {game.options.map((option) => (
-          <Card
+          <GameChoice
             key={option.id}
             onClick={() => handleOptionSelect(option)}
-            className={`p-3 md:p-5 cursor-pointer rounded-[1.2rem] md:rounded-[2rem] border-2 md:border-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
-              selectedOption?.id === option.id ? 'border-blue-300' : 'border-transparent'
-            }`}
+            state={
+              selectedOption?.id === option.id
+                ? isCorrect
+                  ? 'correct'
+                  : 'wrong'
+                : 'idle'
+            }
+            className="min-h-[clamp(170px,42vw,208px)]"
           >
-            <div className="w-full aspect-square overflow-hidden rounded-[1rem] md:rounded-[1.35rem] bg-white mb-2 md:mb-3">
-              <img
-                src={option.image}
-                alt={option.textAr}
-                className="h-full w-full object-contain pointer-events-none"
-              />
-            </div>
-            <h3 className="text-xl md:text-3xl font-black text-center text-slate-900 pointer-events-none">
+            <GameImage src={option.image} alt={option.textAr} className="flex-1" emptyLabel="صورة الاختيار" />
+            <h3 className="mt-2 text-center text-lg font-black text-slate-900 md:text-2xl">
               {option.textAr}
             </h3>
-          </Card>
+          </GameChoice>
         ))}
-      </div>
+      </GameGrid>
 
       <FeedbackModal
         show={showFeedback}
@@ -109,7 +108,7 @@ const ListenChooseGame = ({
         successSound={game.successSound}
         failSound={game.failSound}
       />
-    </div>
+    </GameContainer>
   );
 };
 

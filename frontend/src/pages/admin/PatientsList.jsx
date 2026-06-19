@@ -161,10 +161,10 @@ const PatientsList = () => {
               {/* زر الدخول لصفحة المريض */}
               <button 
                 onClick={() => navigate(`/admin/patients/${patient.id}`)}
-                className="mt-auto w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-[#178bb6] text-[#178bb6] hover:text-white border border-slate-100 hover:border-[#178bb6] px-4 py-3 rounded-xl font-bold transition-all duration-300 relative z-10 group/btn"
+                className="mt-auto w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-bold transition-all duration-300 relative z-10 group/btn hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900"
               >
                 فتح صفحة المريض
-                <ExternalLink size={18} className="text-[#178bb6] group-hover/btn:text-white transition-colors" />
+                <ExternalLink size={18} className="text-slate-500 group-hover/btn:text-slate-700 transition-colors" />
               </button>
 
             </div>

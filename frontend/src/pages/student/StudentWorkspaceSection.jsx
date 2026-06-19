@@ -233,7 +233,7 @@ const StudentWorkspaceSection = ({ section }) => {
                 <BarChart3 size={17} />
                 تقرير أداء الطفل
               </div>
-              <h1 className="text-3xl md:text-5xl font-black leading-tight">{currentStudent?.name || 'المستفيد'}</h1>
+              <h1 className="text-3xl md:text-5xl font-black leading-tight text-white">{currentStudent?.name || 'المستفيد'}</h1>
               <p className="mt-3 max-w-2xl text-white/90 leading-8">
                 ملخص مبني على الأنشطة التي تم تنفيذها ونتائج كل محاولة داخل الألعاب المخصصة.
               </p>

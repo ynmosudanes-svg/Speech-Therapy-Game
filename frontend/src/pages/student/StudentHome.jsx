@@ -7,8 +7,8 @@ import { Pagination, Autoplay } from 'swiper/modules';
 import lottie from 'lottie-web';
 import 'swiper/css';
 import 'swiper/css/pagination';
-import readingAnimation from '../../assets/Animation/Reading.json';
-import numberOneAnimation from '../../assets/Animation/Number 1.json';
+import welcomeAnimation from '../../assets/Animation/3 Ani.json';
+import fourAniAnimation from '../../assets/Animation/4 Ani.json';
 
 const StudentHome = () => {
   const navigate = useNavigate();
@@ -46,6 +46,8 @@ const StudentHome = () => {
 
   const planName = currentStudent?.planName || 'رحلة الأبطال! 🦸‍♂️';
   const progressPercentage = assignedGames.length > 0 ? (completedGames.length / assignedGames.length) * 100 : 0;
+  const welcomeAnimationFrameClass = 'relative shrink-0 flex items-center justify-center w-[8.2rem] h-[8.2rem] md:w-40 md:h-40 lg:w-44 lg:h-44 translate-y-1 md:translate-y-3';
+  const progressAnimationFrameClass = 'relative shrink-0 flex items-center justify-center w-[8rem] h-[8rem] md:w-40 md:h-40 lg:w-44 lg:h-44 translate-y-1 md:translate-y-2';
 
   useEffect(() => {
     if (!readingAnimationRef.current) {
@@ -57,7 +59,7 @@ const StudentHome = () => {
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: readingAnimation,
+      animationData: welcomeAnimation,
       rendererSettings: {
         preserveAspectRatio: 'xMidYMid meet',
       },
@@ -78,7 +80,7 @@ const StudentHome = () => {
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: numberOneAnimation,
+      animationData: fourAniAnimation,
       rendererSettings: {
         preserveAspectRatio: 'xMidYMid meet',
       },
@@ -122,7 +124,7 @@ const StudentHome = () => {
               {/* Slide 1: Welcome Slide */}
               <SwiperSlide>
                 <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
-                  <div className="relative shrink-0 flex items-center justify-center w-52 h-52 md:w-64 md:h-64 lg:w-72 lg:h-72">
+                  <div className={welcomeAnimationFrameClass}>
                     <div className="absolute inset-[18%] rounded-full bg-[radial-gradient(circle,_rgba(255,255,255,0.38)_0%,_rgba(255,255,255,0.14)_45%,_rgba(255,255,255,0)_75%)] blur-xl" />
                     <div className="absolute inset-[22%] rounded-full bg-cyan-200/25 blur-2xl" />
                     <div
@@ -145,7 +147,7 @@ const StudentHome = () => {
               {progressPercentage >= 100 ? (
                 <SwiperSlide>
                   <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
-                    <div className="relative shrink-0 flex items-center justify-center w-52 h-52 md:w-64 md:h-64 lg:w-72 lg:h-72">
+                    <div className={progressAnimationFrameClass}>
                       <div className="absolute inset-[10%] rounded-full bg-white/20 blur-2xl" />
                       <div className="absolute inset-[18%] rounded-full bg-cyan-200/20 blur-3xl" />
                       <div ref={numberOneAnimationRef} className="relative z-10 w-full h-full" />
@@ -159,7 +161,7 @@ const StudentHome = () => {
               ) : (
                 <SwiperSlide>
                   <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
-                    <div className="relative shrink-0 flex items-center justify-center w-52 h-52 md:w-64 md:h-64 lg:w-72 lg:h-72">
+                    <div className={progressAnimationFrameClass}>
                       <div className="absolute inset-[10%] rounded-full bg-white/20 blur-2xl" />
                       <div className="absolute inset-[18%] rounded-full bg-cyan-200/20 blur-3xl" />
                       <div ref={numberOneAnimationRef} className="relative z-10 w-full h-full" />

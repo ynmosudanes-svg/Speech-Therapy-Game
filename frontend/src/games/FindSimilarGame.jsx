@@ -100,7 +100,7 @@ const FindSimilarGame = ({
               key={option.id}
               onClick={() => handleSelect(option)}
               state={choiceState}
-              className="min-h-[clamp(138px,24vw,190px)]"
+              className="min-h-[clamp(128px,38vw,178px)] sm:min-h-[clamp(138px,24vw,190px)]"
             >
               <GameImage
                 src={option.image}

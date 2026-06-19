@@ -5,9 +5,9 @@ export const GAME_UI_TOKENS = {
   radiusInner: 'clamp(12px, 1.3vw, 16px)',
   sectionPadding: 'clamp(9px, 1.2vw, 14px)',
   cardPadding: 'clamp(6px, 1vw, 9px)',
-  cardGap: 'clamp(6px, 0.9vw, 8px)',
+  cardGap: 'clamp(8px, 1vw, 10px)',
   cardShadow: '0 18px 38px -28px rgba(71, 85, 105, 0.22)',
-  maxContentWidth: 'min(100%, clamp(18rem, 50vw, 40rem))',
+  maxContentWidth: 'min(100%, clamp(21rem, 58vw, 40rem))',
   boardWidth: 'min(100%, clamp(170px, 28vw, 240px))',
   choiceMinWidth: 'clamp(108px, 18vw, 150px)',
 };
@@ -47,14 +47,16 @@ export function GameSection({ children, className = '', contentClassName = '' })
 export function GameGrid({ children, className = '', minWidth = GAME_UI_TOKENS.choiceMinWidth }) {
   const itemCount = React.Children.count(children);
   const isTwoItemGrid = itemCount === 2;
-  const mobileMinWidth = isTwoItemGrid ? 'clamp(144px, 41vw, 200px)' : minWidth;
 
   return (
     <div
       className={`grid w-full ${isTwoItemGrid ? 'mt-5 sm:mt-0' : ''} ${className}`}
       style={{
         gap: GAME_UI_TOKENS.cardGap,
-        gridTemplateColumns: `repeat(auto-fit, minmax(${mobileMinWidth}, 1fr))`,
+        gridTemplateColumns: isTwoItemGrid
+          ? 'repeat(2, minmax(0, 1fr))'
+          : `repeat(auto-fit, minmax(${minWidth}, 1fr))`,
+        alignItems: 'stretch',
       }}
     >
       {children}

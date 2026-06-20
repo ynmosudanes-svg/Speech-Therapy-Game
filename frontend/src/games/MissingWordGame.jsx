@@ -4,6 +4,7 @@ import { Volume2 } from 'lucide-react';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
+import BirdHint from '../components/game/BirdHint';
 import {
   playAudioUrl,
   playSuccessSound,
@@ -242,6 +243,9 @@ const MissingWordGame = ({
               onClick={() => handleOptionClick(option)}
               className={`relative px-5 py-3 md:px-8 md:py-3.5 rounded-xl md:rounded-2xl shadow-md border-2 font-black text-lg md:text-2xl transition-all ${getOptionClass(option)}`}
             >
+              {visualPulse && option.isCorrect && (
+                <BirdHint className="pointer-events-none absolute -top-10 left-1/2 z-30 h-14 w-14 -translate-x-1/2 drop-shadow-[0_10px_18px_rgba(6,182,212,0.28)] md:-top-12 md:h-16 md:w-16" />
+              )}
               {gestureArrow && option.isCorrect && (
                 <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-3xl animate-bounce z-20 drop-shadow-md pointer-events-none">
                   👇
@@ -265,3 +269,4 @@ const MissingWordGame = ({
 };
 
 export default MissingWordGame;
+

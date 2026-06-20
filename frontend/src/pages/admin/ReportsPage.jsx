@@ -7,12 +7,8 @@ import { useTherapyStore } from '../../hooks/useTherapyStore';
 const mapPromptToArabic = (prompt) => {
   if (!prompt) return 'مستقل';
   const p = prompt.toUpperCase();
-  if (p === 'FULL') return 'مساعدة كاملة';
-  if (p === 'PARTIAL') return 'مساعدة جزئية';
+  if (p === 'FULL' || p === 'PARTIAL' || p === 'ASSISTED') return 'مساعدة';
   if (p === 'INDEPENDENT' || p === 'NONE') return 'مستقل';
-  if (p === 'VERBAL' || p === 'PROMPTED') return 'مساعدة لفظية';
-  if (p === 'PHYSICAL') return 'مساعدة جسدية';
-  if (p === 'VISUAL') return 'مساعدة بصرية';
   return prompt;
 };
 
@@ -415,6 +411,7 @@ const ReportsPage = () => {
         message={alertConfig.message}
         confirmText="حسناً"
         isDestructive={false}
+        position="top"
       />
     </div>
   );

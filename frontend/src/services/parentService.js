@@ -31,6 +31,11 @@ export const parentService = {
     return response.data;
   },
 
+  async unlinkChild(token, studentId) {
+    const response = await api.delete(`/parents/me/unlink-child/${studentId}`, buildAuthConfig(token));
+    return response.data;
+  },
+
   async requestChild(token, payload) {
     const response = await api.post('/parents/me/child-requests', payload, buildAuthConfig(token));
     return response.data;

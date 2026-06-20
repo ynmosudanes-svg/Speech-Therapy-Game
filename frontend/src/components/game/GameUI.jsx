@@ -1,15 +1,18 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from 'react';
+import BirdHint from './BirdHint';
+import { useTherapySounds } from '../../hooks/useTherapySounds';
 
 export const GAME_UI_TOKENS = {
   radius: 'clamp(16px, 1.6vw, 20px)',
   radiusInner: 'clamp(12px, 1.3vw, 16px)',
-  sectionPadding: 'clamp(9px, 1.2vw, 14px)',
+  sectionPadding: 'clamp(12px, 1.4vw, 18px)',
   cardPadding: 'clamp(6px, 1vw, 9px)',
-  cardGap: 'clamp(8px, 1vw, 10px)',
+  cardGap: 'clamp(8px, 1vw, 14px)',
   cardShadow: '0 18px 38px -28px rgba(71, 85, 105, 0.22)',
   maxContentWidth: 'min(100%, clamp(21rem, 58vw, 40rem))',
-  boardWidth: 'min(100%, clamp(170px, 28vw, 240px))',
-  choiceMinWidth: 'clamp(108px, 18vw, 150px)',
+  boardWidth: 'min(100%, clamp(156px, 24vw, 220px))',
+  choiceMinWidth: 'clamp(96px, 17vw, 138px)',
 };
 
 const shellClassName =
@@ -18,11 +21,15 @@ const shellClassName =
 const softCardClassName =
   'border border-[#dbe7f3] bg-white/92';
 
-export function GameContainer({ children, className = '' }) {
+export function GameContainer({ children, className = '', style }) {
   return (
     <div
       className={`relative isolate mx-auto flex w-full flex-col ${className}`}
-      style={{ maxWidth: GAME_UI_TOKENS.maxContentWidth, gap: GAME_UI_TOKENS.sectionPadding }}
+      style={{
+        maxWidth: GAME_UI_TOKENS.maxContentWidth,
+        gap: GAME_UI_TOKENS.sectionPadding,
+        ...style,
+      }}
     >
       {children}
     </div>
@@ -50,7 +57,7 @@ export function GameGrid({ children, className = '', minWidth = GAME_UI_TOKENS.c
 
   return (
     <div
-      className={`grid w-full ${isTwoItemGrid ? 'mt-5 sm:mt-0' : ''} ${className}`}
+      className={`grid w-full ${isTwoItemGrid ? 'mt-8 sm:mt-0' : ''} ${className}`}
       style={{
         gap: GAME_UI_TOKENS.cardGap,
         gridTemplateColumns: isTwoItemGrid
@@ -99,13 +106,15 @@ export function GameChoice({
   style,
   ...props
 }) {
+  const { onClick, ...buttonProps } = props;
+  const { playTap } = useTherapySounds({ soundEnabled: true });
   const stateClassName =
     state === 'correct'
       ? 'border-emerald-300 bg-emerald-50/90'
       : state === 'wrong'
         ? 'border-rose-300 bg-rose-50/90'
         : state === 'hint'
-          ? 'border-amber-300 bg-amber-50/90'
+          ? 'border-sky-300 bg-white/98 ring-[6px] ring-sky-300/75 shadow-[0_0_0_14px_rgba(14,165,233,0.18)] scale-[1.01]'
           : 'border-[#dbe7f3] bg-white/94';
 
   return (
@@ -113,10 +122,23 @@ export function GameChoice({
       as="button"
       type="button"
       interactive
-      className={`flex flex-col items-center justify-center text-center ${stateClassName} ${className}`}
+      className={`relative z-10 flex flex-col items-center justify-center overflow-visible text-center ${stateClassName} ${className}`}
       style={style}
-      {...props}
+      onClick={(event) => {
+        playTap();
+        onClick?.(event);
+      }}
+      {...buttonProps}
     >
+      {state === 'hint' && (
+        <div
+          className="pointer-events-none absolute inset-[-1px] z-20 rounded-[inherit] ring-2 ring-sky-300/80 opacity-95 animate-pulse"
+          aria-hidden="true"
+        />
+      )}
+      {state === 'hint' && (
+        <BirdHint className="absolute -top-12 left-1/2 z-30 h-16 w-16 -translate-x-1/2 drop-shadow-[0_10px_18px_rgba(6,182,212,0.28)] md:-top-14 md:h-20 md:w-20" />
+      )}
       {children}
     </GameCard>
   );

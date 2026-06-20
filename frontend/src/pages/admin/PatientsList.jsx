@@ -9,16 +9,19 @@ import {
   ExternalLink,
   Activity,
   Key,
-  Calendar
+  Calendar,
+  CheckCircle2,
 } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const PatientsList = () => {
   const navigate = useNavigate();
-  const { students, deleteStudent } = useTherapyStore();
+  const { students, deleteStudent, updateStudent } = useTherapyStore();
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [deletePatientId, setDeletePatientId] = useState(null);
+  const [approvingId, setApprovingId] = useState(null);
+  const [dialog, setDialog] = useState(null);
   const menuRef = useRef();
 
   useEffect(() => {
@@ -41,9 +44,34 @@ const PatientsList = () => {
     setActiveMenuId(null);
   };
 
+  const handleApprove = async (id) => {
+    setApprovingId(id);
+    try {
+      await updateStudent(id, { requestStatus: 'APPROVED' });
+    } catch {
+      setDialog({
+        title: 'تعذر الاعتماد',
+        message: 'تعذر اعتماد الطلب. حاول مرة أخرى لاحقًا.',
+        confirmText: 'حسناً',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
   const confirmDelete = () => {
     if (deletePatientId) {
-      deleteStudent(deletePatientId).catch(() => alert('حدث خطأ أثناء الحذف'));
+      deleteStudent(deletePatientId).catch(() =>
+        setDialog({
+          title: 'تعذر الحذف',
+          message: 'حدث خطأ أثناء الحذف. حاول مرة أخرى لاحقًا.',
+          confirmText: 'حسناً',
+          hideCancelButton: true,
+          isDestructive: false,
+        })
+      );
       setDeletePatientId(null);
     }
   };
@@ -61,6 +89,7 @@ const PatientsList = () => {
           age: student.age,
           diagnosis: student.diagnosis || 'غير محدد',
           code: student.accessCode || student.code || '---',
+          requestStatus: student.requestStatus || 'APPROVED',
           progress: student.progress ?? '--',
           attendance: student.attendanceRate ?? '--',
         }))
@@ -148,6 +177,12 @@ const PatientsList = () => {
 
               {/* بيانات المريض والشارات (Badges) في أسفل البطاقة */}
               <div className="flex flex-wrap gap-2 mb-6 relative z-10">
+                {patient.requestStatus === 'PENDING' && (
+                  <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-100 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
+                    <CheckCircle2 size={14} className="text-amber-500" />
+                    في انتظار الموافقة
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 text-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
                   <Calendar size={14} className="text-slate-400" />
                   العمر: {patient.age || '-'} سنوات
@@ -159,6 +194,17 @@ const PatientsList = () => {
               </div>
 
               {/* زر الدخول لصفحة المريض */}
+              {patient.requestStatus === 'PENDING' && (
+                <button
+                  type="button"
+                  onClick={() => handleApprove(patient.id)}
+                  disabled={approvingId === patient.id}
+                  className="mb-3 mt-auto w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 px-4 py-3 rounded-xl font-bold transition-all duration-300 relative z-10 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {approvingId === patient.id ? 'جاري الموافقة...' : 'موافقة الأدمن'}
+                </button>
+              )}
+
               <button 
                 onClick={() => navigate(`/admin/patients/${patient.id}`)}
                 className="mt-auto w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-bold transition-all duration-300 relative z-10 group/btn hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900"
@@ -193,7 +239,23 @@ const PatientsList = () => {
         confirmText="نعم، احذف المريض"
         cancelText="إلغاء"
         isDestructive={true}
+        position="top"
       />
+
+      {dialog && (
+        <ConfirmModal
+          isOpen
+          onClose={() => setDialog(null)}
+          onConfirm={() => setDialog(null)}
+          title={dialog.title}
+          message={dialog.message}
+          confirmText={dialog.confirmText}
+          cancelText={dialog.cancelText}
+          hideCancelButton={dialog.hideCancelButton}
+          isDestructive={dialog.isDestructive}
+          position="top"
+        />
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
         .animate-fade-in { 

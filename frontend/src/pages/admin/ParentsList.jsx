@@ -305,6 +305,7 @@ const ParentsList = () => {
         }
         cancelText="إلغاء"
         isDestructive={confirmModal.actionType === 'delete' || confirmModal.currentStatus}
+        position="top"
       />
     </div>
   );

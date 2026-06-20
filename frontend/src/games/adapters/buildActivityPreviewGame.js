@@ -6,7 +6,7 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'matching.find') return 'أوجد الصورة المطلوبة';
   if (type === 'matching.shadow') return 'انظر إلى الظل واختر الصورة المناسبة';
   if (type === 'picture.reveal') return 'اكشف الصورة ثم اختر الإجابة الصحيحة';
-  if (type === 'image.complete_part') return 'اختر الجزء الناقص لإكمال الصورة';
+  if (type === 'image.complete_part') return 'اسحب الجزء الصحيح إلى الخانة الناقصة لإكمال الصورة';
   return 'اكتب السؤال هنا';
 };
 
@@ -137,6 +137,11 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       missingPartCount: 1,
       missingCellIds: ['0'],
       distractorCount: 3,
+      options: [
+        { id: `opt_${Date.now()}_1`, textAr: '', image: '', isCorrect: false },
+        { id: `opt_${Date.now()}_2`, textAr: '', image: '', isCorrect: false },
+        { id: `opt_${Date.now()}_3`, textAr: '', image: '', isCorrect: false },
+      ],
     };
   }
 
@@ -226,6 +231,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       image: '',
       gridSize: 3,
       puzzleMode: 'jigsaw',
+      missingSlotIndex: 0,
     };
   }
 
@@ -429,6 +435,7 @@ export const buildActivityRuntimeGame = ({
           missingPartCount: Number(activity?.missingPartCount ?? 1),
           missingCellIds: Array.isArray(activity?.missingCellIds) ? activity.missingCellIds : ['0'],
           distractorCount: Number(activity?.distractorCount ?? 3),
+          options: Array.isArray(activity?.options) ? activity.options : [],
         },
         feedback: {
           successSound: sharedMedia?.successSound || '',
@@ -581,6 +588,40 @@ export const buildActivityRuntimeGame = ({
   }
 
   if (templateType === 'puzzle.jigsaw') {
+    if (activity?.puzzleMode === 'missing-piece') {
+      const gridSize = Number(activity?.gridSize ?? 3);
+      const totalCells = Math.max(1, gridSize * gridSize);
+      const configuredMissingSlotIndex = Number(activity?.missingSlotIndex ?? 0);
+      const missingSlotIndex = Number.isFinite(configuredMissingSlotIndex)
+        ? Math.min(Math.max(0, Math.floor(configuredMissingSlotIndex)), totalCells - 1)
+        : 0;
+
+      return {
+        id: gameId,
+        type: 'image.complete_part',
+        titleAr,
+        config: {
+          gameType: 'image.complete_part',
+          titleAr,
+          content: {
+            instructionAr: activity?.questionAr || 'اسحب الجزء الصحيح إلى الخانة الناقصة لإكمال الصورة',
+            questionAudio: activity?.instructionAudio || '',
+            image: activity?.image || '',
+            gridRows: gridSize,
+            gridCols: gridSize,
+            missingPartCount: 1,
+            missingCellIds: [String(missingSlotIndex)],
+            distractorCount: 3,
+            options: Array.isArray(activity?.options) ? activity.options : [],
+          },
+          feedback: {
+            successSound: sharedMedia?.successSound || '',
+            failSound: sharedMedia?.failSound || '',
+          },
+        },
+      };
+    }
+
     return {
       id: gameId,
       type: templateType,

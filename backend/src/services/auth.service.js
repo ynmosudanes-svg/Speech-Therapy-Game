@@ -107,6 +107,10 @@ async function loginWithAccessCode({ accessCode }) {
     throw new ApiError(401, 'Invalid access code.');
   }
 
+  if (student.requestStatus === 'PENDING') {
+    throw new ApiError(403, 'طلب الطفل ما زال في انتظار موافقة الأدمن.');
+  }
+
   const token = signToken({
     sub: student.id,
     studentId: student.id,

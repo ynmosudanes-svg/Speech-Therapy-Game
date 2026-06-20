@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { DoorOpen, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import lottie from 'lottie-web';
 import Button from '../../components/Button';
 import ConfirmModal from '../../components/ConfirmModal';
 import GameEngine from '../../games/GameEngine';
 import normalizeGameForEngine from '../../games/adapters/normalizeGameForEngine';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
+import { useTherapySounds } from '../../hooks/useTherapySounds';
 import gameService from '../../services/gameService';
 import { computeSessionMetrics } from '../../utils/sessionMetrics';
 import { silenceSiteAudio, stopGameAudio } from '../../utils/soundEffects';
@@ -27,17 +28,19 @@ const GamePlay = () => {
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showIntroVideo, setShowIntroVideo] = useState(false);
+  const [showIntroVideo, setShowIntroVideo] = useState(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [completedSessionData, setCompletedSessionData] = useState(null);
   const loadingAnimationRef = useRef(null);
+  const completionSoundPlayedRef = useRef(false);
+  const { playLevelComplete } = useTherapySounds({ soundEnabled: true });
   const currentLevel = Math.min(Math.max(Number(currentStudent?.currentLevel || 1), 1), 3);
   const assignedGame = useMemo(
     () =>
       Array.isArray(currentStudent?.assignedGames)
         ? currentStudent.assignedGames.find((item) => String(item?.id) === String(gameId)) || null
         : null,
-    [currentStudent?.assignedGames, gameId]
+    [currentStudent, gameId]
   );
 
   useEffect(() => {
@@ -47,7 +50,7 @@ const GamePlay = () => {
         setError('');
         const response = await gameService.getGame(null, gameId);
         setGame(normalizeGameForEngine(response));
-      } catch (_fetchError) {
+      } catch {
         // Fallback to cached assignedGame if offline or fetch fails
         if (assignedGame?.config) {
           setGame(normalizeGameForEngine(assignedGame));
@@ -65,10 +68,14 @@ const GamePlay = () => {
   }, [assignedGame, gameId]);
 
   const introVideo = game?.config?.media?.introVideo || '';
+  const introVideoVisible = showIntroVideo ?? Boolean(introVideo);
 
   useEffect(() => {
-    setShowIntroVideo(Boolean(introVideo));
-  }, [introVideo, game?.id]);
+    if (!completedSessionData || completionSoundPlayedRef.current) return;
+
+    completionSoundPlayedRef.current = true;
+    playLevelComplete();
+  }, [completedSessionData, playLevelComplete]);
 
   useEffect(() => {
     document.body.classList.toggle('confirm-modal-open', showExitConfirm);
@@ -138,6 +145,7 @@ const GamePlay = () => {
       activityCount: metrics.activityCount,
       correctAnswers: stats.correctAnswers || 0,
       wrongAnswers: stats.wrongAnswers || 0,
+      helpCount: stats.helpCount || 0,
       score: metrics.score,
       accuracyScore: metrics.accuracyScore,
       completionScore: metrics.completionScore,
@@ -252,7 +260,7 @@ const GamePlay = () => {
         </div>
       )}
 
-      {introVideo && showIntroVideo ? (
+      {introVideo && introVideoVisible ? (
         <section className="bg-white rounded-[2.5rem] border border-[#dbe7f3] p-5 md:p-6 shadow-sm space-y-4">
           <div className="text-center">
             <div className="text-sm font-bold text-slate-500 mb-2">شرح اللعبة</div>
@@ -288,24 +296,30 @@ const GamePlay = () => {
             </div>
           )}
 
-          <GameEngine
-            game={game}
-            onComplete={handleGameComplete}
-            therapistControlsEnabled={false}
-            therapistPromptLevel={'none'}
-            onUnsupported={() => navigate(isPublicPlay ? '/' : '/student/home')}
-            startLevel={currentLevel}
-            assistantSuspended={showExitConfirm}
-            assistantOptions={{
-              idleTime: Number(game?.config?.assistant?.idleTime || 7000),
-              hintLevel1: game?.config?.assistant?.hintLevel1 || undefined,
-              hintLevel2: game?.config?.assistant?.hintLevel2 || undefined,
-              hintLevel3: game?.config?.assistant?.hintLevel3 || undefined,
-              audioText: game?.config?.assistant?.audioText || undefined,
-              helpVoiceEnabled: false,
-            }}
-            onExit={() => setShowExitConfirm(true)}
-          />
+          <div
+            className={`transition-all duration-150 ${
+              showExitConfirm ? 'pointer-events-none select-none opacity-0' : 'opacity-100'
+            }`}
+          >
+            <GameEngine
+              game={game}
+              onComplete={handleGameComplete}
+              therapistControlsEnabled={false}
+              therapistPromptLevel={'none'}
+              onUnsupported={() => navigate(isPublicPlay ? '/' : '/student/home')}
+              startLevel={currentLevel}
+              assistantSuspended={showExitConfirm}
+              assistantOptions={{
+                idleTime: Number(game?.config?.assistant?.idleTime || 8000),
+                hintLevel1: game?.config?.assistant?.hintLevel1 || undefined,
+                hintLevel2: game?.config?.assistant?.hintLevel2 || undefined,
+                hintLevel3: game?.config?.assistant?.hintLevel3 || undefined,
+                audioText: game?.config?.assistant?.audioText || undefined,
+                helpVoiceEnabled: false,
+              }}
+              onExit={() => setShowExitConfirm(true)}
+            />
+          </div>
 
           <ConfirmModal
             isOpen={showExitConfirm}

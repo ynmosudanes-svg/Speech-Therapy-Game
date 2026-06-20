@@ -1,18 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Crop, Grid2x2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
 import {
   GameChoice,
   GameContainer,
-  GameImage,
   GameSection,
 } from '../components/game/GameUI';
 import { playAudioUrl } from '../utils/soundEffects';
 import ChildGameBackdrop from './ChildGameBackdrop';
 import {
   CHILD_GAME_BOARD_MAX_WIDTH,
-  CHILD_GAME_OPTIONS_MAX_WIDTH,
   CHILD_GAME_SHELL_CLASS,
   getChildBoardWidth,
 } from './childGameLayout';
@@ -36,6 +33,15 @@ const cropImageToDataUrl = (image, sx, sy, sw, sh) => {
   return canvas.toDataURL('image/png');
 };
 
+const normalizeOptionTiles = (options = []) =>
+  (Array.isArray(options) ? options : [])
+    .filter((option) => option?.image?.trim())
+    .map((option, index) => ({
+      id: option.id || `manual_${index}`,
+      image: option.image.trim(),
+      textAr: option.textAr || '',
+    }));
+
 const ImageCompletePartGame = ({
   game,
   config,
@@ -47,24 +53,40 @@ const ImageCompletePartGame = ({
   registerAssistantActions,
   helpVoiceEnabled = false,
 }) => {
-  const content = config?.content || {};
-  const instructionAr = content.instructionAr || game?.questionTextAr || 'اختر الجزء الناقص لإكمال الصورة';
+  const content = config?.content || config || {};
+  const instructionAr =
+    content.instructionAr ||
+    game?.questionTextAr ||
+    'اختر الجزء الناقص لإكمال الصورة';
   const questionAudio = content.questionAudio || game?.questionAudio || '';
   const image = content.image || '';
-  const gridRows = Math.max(2, Math.min(3, Number(content.gridRows || 2)));
-  const gridCols = Math.max(2, Math.min(3, Number(content.gridCols || 2)));
-  const missingPartCount = Math.max(1, Math.min(2, Number(content.missingPartCount || 1)));
+  const manualOptions = useMemo(() => normalizeOptionTiles(content.options), [content.options]);
+  const puzzleGridSize = Math.max(2, Math.min(4, Number(content.gridSize || 0)));
+  const gridRows = Math.max(
+    2,
+    Math.min(4, Number(content.gridRows || (content.puzzleMode === 'missing-piece' ? puzzleGridSize : 2))),
+  );
+  const gridCols = Math.max(
+    2,
+    Math.min(4, Number(content.gridCols || (content.puzzleMode === 'missing-piece' ? puzzleGridSize : 2))),
+  );
+  const missingPartCount = Math.max(
+    1,
+    Math.min(2, Number(content.missingPartCount || (content.puzzleMode === 'missing-piece' ? 1 : 1))),
+  );
   const configuredMissingCellIds = useMemo(
     () => (Array.isArray(content.missingCellIds) ? content.missingCellIds.map((id) => String(id)) : ['0']),
     [content.missingCellIds],
   );
   const distractorCount = Math.max(1, Math.min(4, Number(content.distractorCount || 3)));
 
-  const [tileImages, setTileImages] = useState([]);
   const [sourceAspectRatio, setSourceAspectRatio] = useState(1);
   const [filledCells, setFilledCells] = useState({});
+  const [boardTiles, setBoardTiles] = useState([]);
   const [activeCellId, setActiveCellId] = useState(null);
   const [optionTiles, setOptionTiles] = useState([]);
+  const [draggedTileId, setDraggedTileId] = useState(null);
+  const [dropTargetCellId, setDropTargetCellId] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
@@ -79,6 +101,8 @@ const ImageCompletePartGame = ({
   useEffect(() => {
     setFilledCells({});
     setActiveCellId(missingCellIds[0] || null);
+    setDraggedTileId(null);
+    setDropTargetCellId(null);
     setShowFeedback(false);
     setIsCorrect(false);
     setAttempts(0);
@@ -91,7 +115,7 @@ const ImageCompletePartGame = ({
 
   useEffect(() => {
     if (!image || typeof window === 'undefined') {
-      setTileImages([]);
+      setBoardTiles([]);
       setOptionTiles([]);
       setSourceAspectRatio(1);
       return undefined;
@@ -129,20 +153,21 @@ const ImageCompletePartGame = ({
         };
       });
 
+      setBoardTiles(tiles);
+
       const missingSet = new Set(missingCellIds);
       const correctTiles = tiles.filter((tile) => missingSet.has(tile.id));
-      const distractorTiles = shuffleArray(tiles.filter((tile) => !missingSet.has(tile.id))).slice(
-        0,
-        distractorCount,
-      );
+      const generatedDistractors = shuffleArray(
+        tiles.filter((tile) => !missingSet.has(tile.id)),
+      ).slice(0, distractorCount);
 
-      setTileImages(tiles);
-      setOptionTiles(shuffleArray([...correctTiles, ...distractorTiles]));
+      const nextOptions = manualOptions.length ? manualOptions : generatedDistractors;
+      setOptionTiles(shuffleArray([...correctTiles, ...nextOptions]));
     };
 
     sourceImage.onerror = () => {
       if (!cancelled) {
-        setTileImages([]);
+        setBoardTiles([]);
         setOptionTiles([]);
         setSourceAspectRatio(1);
       }
@@ -153,7 +178,7 @@ const ImageCompletePartGame = ({
     return () => {
       cancelled = true;
     };
-  }, [distractorCount, gridCols, gridRows, image, missingCellIds.join(','), totalCells]);
+  }, [distractorCount, gridCols, gridRows, image, manualOptions, missingCellIds.join(','), totalCells]);
 
   useEffect(() => {
     if (!registerAssistantActions) return undefined;
@@ -169,7 +194,7 @@ const ImageCompletePartGame = ({
       },
       onVerbalHint: () => {
         if (helpVoiceEnabled) {
-          const utterance = new SpeechSynthesisUtterance('اختر الجزء الذي يكمل الصورة.');
+          const utterance = new SpeechSynthesisUtterance('اختر الجزء الصحيح لإكمال الصورة.');
           utterance.lang = 'ar-SA';
           window.speechSynthesis.speak(utterance);
         }
@@ -187,21 +212,6 @@ const ImageCompletePartGame = ({
     return () => registerAssistantActions({});
   }, [filledCells, helpVoiceEnabled, missingCellIds, registerAssistantActions]);
 
-  const boardTiles = useMemo(
-    () =>
-      Array.from({ length: totalCells }, (_, index) => {
-        const id = String(index);
-        const tile = tileImages.find((item) => item.id === id);
-        return {
-          id,
-          image: tile?.image || '',
-          isMissing: missingCellIds.includes(id),
-          filledWith: filledCells[id] || null,
-        };
-      }),
-    [filledCells, missingCellIds, tileImages, totalCells],
-  );
-
   const boardAspectRatio = useMemo(() => {
     if (!Number.isFinite(sourceAspectRatio) || sourceAspectRatio <= 0) return '1 / 1';
     return `${sourceAspectRatio} / 1`;
@@ -210,12 +220,13 @@ const ImageCompletePartGame = ({
   const tileAspectRatio = useMemo(() => {
     const ratio = sourceAspectRatio * (gridRows / gridCols);
     if (!Number.isFinite(ratio) || ratio <= 0) return '1 / 1';
-    return `${ratio} / 1`;
+    const clampedRatio = Math.max(0.78, Math.min(1.18, ratio));
+    return `${clampedRatio} / 1`;
   }, [gridCols, gridRows, sourceAspectRatio]);
 
   const boardWidth = useMemo(() => {
     const ratio = Number.isFinite(sourceAspectRatio) && sourceAspectRatio > 0 ? sourceAspectRatio : 1;
-    return getChildBoardWidth(ratio, { base: 200, min: 155, max: CHILD_GAME_BOARD_MAX_WIDTH });
+    return getChildBoardWidth(ratio, { base: 164, min: 132, max: CHILD_GAME_BOARD_MAX_WIDTH });
   }, [sourceAspectRatio]);
 
   const handleCellSelect = (cellId) => {
@@ -224,8 +235,46 @@ const ImageCompletePartGame = ({
     setActiveCellId(cellId);
   };
 
-  const handleOptionSelect = (tile) => {
-    const targetCellId = activeCellId || missingCellIds.find((id) => !filledCells[id]) || null;
+  const handleTileDragStart = (event, tile) => {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', tile.id);
+    setDraggedTileId(tile.id);
+    setDropTargetCellId(null);
+  };
+
+  const handleTileDragEnd = () => {
+    setDraggedTileId(null);
+    setDropTargetCellId(null);
+  };
+
+  const handleCellDragOver = (event, cellId) => {
+    if (!missingCellIds.includes(cellId) || filledCells[cellId]) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropTargetCellId(cellId);
+  };
+
+  const handleCellDragLeave = (cellId) => {
+    if (dropTargetCellId === cellId) {
+      setDropTargetCellId(null);
+    }
+  };
+
+  const handleCellDrop = (event, cellId) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const tileId = event.dataTransfer.getData('text/plain');
+    const tile = optionTiles.find((candidate) => candidate.id === tileId);
+    setDropTargetCellId(null);
+    if (tile) {
+      handleOptionSelect(tile, cellId);
+    }
+  };
+
+  const handleOptionSelect = (
+    tile,
+    targetCellId = activeCellId || missingCellIds.find((id) => !filledCells[id]) || null,
+  ) => {
     if (!targetCellId) return;
 
     onAssistantInteraction?.();
@@ -251,6 +300,8 @@ const ImageCompletePartGame = ({
   const handleRestart = () => {
     setFilledCells({});
     setActiveCellId(missingCellIds[0] || null);
+    setDraggedTileId(null);
+    setDropTargetCellId(null);
     setShowFeedback(false);
     setIsCorrect(false);
     setAttempts(0);
@@ -275,13 +326,13 @@ const ImageCompletePartGame = ({
   if (!image) {
     return (
       <div className="mx-auto max-w-3xl rounded-[2rem] border border-[#dbe7f3] bg-white p-8 text-center font-black text-slate-600">
-        أضف صورة اللعبة أولا.
+        أضف صورة اللعبة أولاً.
       </div>
     );
   }
 
   return (
-    <GameContainer className={CHILD_GAME_SHELL_CLASS} dir="rtl">
+    <GameContainer className={CHILD_GAME_SHELL_CLASS} dir="rtl" style={{ gap: 'clamp(10px, 1.2vw, 16px)' }}>
       <ChildGameBackdrop previewMode={previewMode} />
 
       <GameHeader
@@ -303,63 +354,78 @@ const ImageCompletePartGame = ({
       />
 
       <GameSection>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm font-black text-slate-500">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#eefafd] px-3 py-1 text-[#19add6]">
-            <Grid2x2 size={15} />
-            {gridRows} x {gridCols}
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-amber-700">
-            <Crop size={15} />
-            أجزاء ناقصة: {missingCellIds.length}
-          </span>
-        </div>
-
         <div className="mx-auto w-full" style={{ maxWidth: boardWidth }}>
           <div
-            className="grid overflow-hidden rounded-[clamp(20px,2vw,24px)] border border-[#dbe7f3] bg-white/95"
+            className="relative overflow-hidden rounded-[clamp(20px,2vw,24px)] border border-[#dbe7f3] bg-white/95"
             dir="ltr"
             style={{
               aspectRatio: boardAspectRatio,
-              gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
               boxShadow: '0 18px 38px -28px rgba(71, 85, 105, 0.22)',
             }}
           >
-            {boardTiles.map((tile) => {
-              const tileToRender = tile.filledWith ? tileImages.find((item) => item.id === tile.filledWith) : tile;
-              const isActive = activeCellId === tile.id && tile.isMissing && !tile.filledWith;
+            {boardTiles.length === 0 ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-sm font-black text-slate-500">
+                جاري تجهيز الصورة...
+              </div>
+            ) : (
+              <div
+                className="absolute inset-0 grid"
+                style={{
+                  gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
+                  gridTemplateRows: `repeat(${gridRows}, minmax(0, 1fr))`,
+                }}
+              >
+                {boardTiles.map((tile) => {
+                  const id = tile.id;
+                  const isMissing = missingCellIds.includes(id);
+                  const isFilled = Boolean(filledCells[id]);
+                  const isActive = activeCellId === id && isMissing && !isFilled;
+                  const showTileImage = !isMissing || isFilled;
 
-              return (
-                <button
-                  key={tile.id}
-                  type="button"
-                  onClick={() => handleCellSelect(tile.id)}
-                  className={`relative overflow-hidden border border-slate-100/90 transition-all ${
-                    tile.isMissing && !tile.filledWith
-                      ? isActive
-                        ? 'bg-sky-50 ring-2 ring-inset ring-sky-300'
-                        : 'bg-slate-50'
-                      : 'bg-white'
-                  }`}
-                >
-                  {tile.isMissing && !tile.filledWith ? (
-                    <div className="absolute inset-[5%] rounded-[clamp(12px,1.5vw,16px)] border-2 border-dashed border-sky-300/70 bg-sky-50/35" />
-                  ) : (
-                    <img src={tileToRender?.image} alt={`tile-${tile.id}`} className="h-full w-full object-cover" />
-                  )}
-                </button>
-              );
-            })}
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => handleCellSelect(id)}
+                      className={`relative overflow-hidden border border-white/35 transition-all ${
+                        isMissing
+                          ? isFilled
+                            ? 'bg-transparent'
+                            : isActive
+                              ? 'bg-sky-50/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.18)]'
+                              : 'bg-transparent'
+                          : 'pointer-events-none bg-transparent'
+                      }`}
+                      onDragOver={(event) => handleCellDragOver(event, id)}
+                      onDragEnter={(event) => handleCellDragOver(event, id)}
+                      onDragLeave={() => handleCellDragLeave(id)}
+                      onDrop={(event) => handleCellDrop(event, id)}
+                    >
+                      {showTileImage ? (
+                        <img src={tile.image} alt={`cell-${id}`} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 bg-white/65" />
+                      )}
+
+                      {isMissing && !isFilled ? (
+                        <div
+                          className={`absolute inset-[12%] rounded-[clamp(10px,1.2vw,14px)] border-2 border-dashed transition-all ${
+                            dropTargetCellId === id
+                              ? 'border-emerald-300/90 bg-emerald-100/15'
+                              : 'border-sky-300/80 bg-white/55'
+                          }`}
+                        />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </GameSection>
 
       <GameSection>
-        <div className="mb-4 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-700">
-            اختر الجزء الصحيح
-          </div>
-        </div>
-
         <div
           className={`mx-auto grid ${
             optionTiles.length <= 2
@@ -369,13 +435,18 @@ const ImageCompletePartGame = ({
                 : 'grid-cols-2 md:grid-cols-4'
           }`}
           dir="ltr"
-          style={{ gap: 'clamp(7px, 1.1vw, 10px)', maxWidth: `${Math.min(CHILD_GAME_OPTIONS_MAX_WIDTH, 300)}px` }}
+          style={{ gap: 'clamp(6px, 0.9vw, 12px)', maxWidth: 'min(100%, 28rem)' }}
         >
           {optionTiles.map((tile) => (
             <GameChoice
               key={`option-${tile.id}`}
+              draggable
+              onDragStart={(event) => handleTileDragStart(event, tile)}
+              onDragEnd={handleTileDragEnd}
               onClick={() => handleOptionSelect(tile)}
-              className="overflow-hidden p-0"
+              className={`mx-auto w-full max-w-[116px] overflow-hidden p-0 sm:max-w-[126px] md:max-w-[140px] ${
+                draggedTileId === tile.id ? 'opacity-60 scale-[0.98]' : ''
+              }`}
               style={{ aspectRatio: tileAspectRatio }}
             >
               <img src={tile.image} alt={`option-${tile.id}`} className="h-full w-full object-cover" />

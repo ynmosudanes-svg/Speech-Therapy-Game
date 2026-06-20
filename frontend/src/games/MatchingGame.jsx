@@ -135,7 +135,6 @@ const MatchingGame = ({
     registerAssistantActions({
       onVisualHint: () => {
         setVisualPulse(true);
-        window.setTimeout(() => setVisualPulse(false), 2500);
       },
       onGestureHint: () => {
         setGestureArrow(true);
@@ -209,11 +208,15 @@ const MatchingGame = ({
     setShadowRevealed(false);
   };
 
-  const optionMinWidth = isDifferentMode ? 'clamp(132px, 26vw, 210px)' : 'clamp(136px, 24vw, 220px)';
+  const optionMinWidth = isDifferentMode ? 'clamp(118px, 18vw, 176px)' : 'clamp(120px, 18vw, 184px)';
   const heroImageSrc = !shadowRevealed && shadowHeroPreviewSrc ? shadowHeroPreviewSrc : heroImage;
 
   return (
-    <GameContainer className={previewMode ? 'max-w-4xl' : 'max-w-4xl'} dir="rtl">
+    <GameContainer
+      className={previewMode ? 'max-w-4xl' : 'max-w-4xl'}
+      dir="rtl"
+      style={{ maxWidth: 'min(100%, clamp(20rem, 52vw, 46rem))' }}
+    >
       <ChildGameBackdrop previewMode={previewMode} />
 
       <GameHeader
@@ -224,7 +227,7 @@ const MatchingGame = ({
       />
 
       {!isFindMode && (
-        <GameSection className={isShadowMode ? 'mx-auto max-w-[clamp(220px,42vw,320px)]' : 'mx-auto max-w-[clamp(220px,48vw,360px)]'}>
+        <GameSection className={isShadowMode ? 'mx-auto max-w-[clamp(190px,26vw,260px)]' : 'mx-auto max-w-[clamp(210px,28vw,290px)]'}>
           <GameImage
             src={heroImageSrc}
             alt={game?.titleAr || game?.name || 'Hero'}
@@ -235,14 +238,15 @@ const MatchingGame = ({
         </GameSection>
       )}
 
-      <GameGrid className="mx-auto w-full" minWidth={optionMinWidth}>
+      <GameGrid className="mx-auto w-full max-w-3xl justify-items-center" minWidth={optionMinWidth}>
         {options.map((option, index) => {
+          const isHintedCorrect = (visualPulse || physicalHighlight) && option.isCorrect;
           const state =
             selectedOption?.id === option.id
               ? isCorrect
                 ? 'correct'
                 : 'wrong'
-              : physicalHighlight && option.isCorrect
+              : isHintedCorrect
                 ? 'hint'
                 : 'idle';
 
@@ -251,7 +255,7 @@ const MatchingGame = ({
               key={option.id || index}
               onClick={() => handleOptionSelect(option)}
               state={state}
-              className="relative min-h-[clamp(156px,28vw,236px)]"
+              className="relative w-full max-w-[220px] min-h-[clamp(124px,16vw,176px)] lg:max-w-[210px] lg:min-h-[160px]"
             >
               <GameImage
                 src={option.image}
@@ -260,7 +264,6 @@ const MatchingGame = ({
                 fit="contain"
                 emptyLabel="صورة الاختيار"
               />
-
               {!!option.textAr && (
                 <div className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 md:text-sm">
                   {option.textAr}
@@ -269,9 +272,6 @@ const MatchingGame = ({
 
               {gestureArrow && option.isCorrect && (
                 <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-3xl text-amber-500">↓</div>
-              )}
-              {visualPulse && option.isCorrect && (
-                <div className="pointer-events-none absolute inset-0 rounded-[clamp(20px,2.1vw,24px)] ring-4 ring-yellow-300/70 animate-pulse" />
               )}
             </GameChoice>
           );

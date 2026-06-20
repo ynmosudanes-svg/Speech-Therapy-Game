@@ -1,12 +1,14 @@
 const HELP_LABELS = {
-  visual: 'تلميح بصري',
-  gesture: 'تلميح إيمائي',
-  verbal: 'تلميح لفظي',
-  physical: 'مساعدة جسدية',
+  bird: 'مساعدة',
+  visual: 'مساعدة',
+  gesture: 'مساعدة',
+  verbal: 'مساعدة',
+  physical: 'مساعدة',
 };
 
 const PROMPT_LABELS = {
   none: 'بدون مساعدة',
+  assisted: 'مساعدة',
   visual: 'بصري',
   verbal: 'لفظي',
   gestural: 'إيمائي',
@@ -21,7 +23,7 @@ export const buildHelpSummary = (helpsUsed = []) => {
   if (!uniqueHelps.length) {
     return ['بدون مساعدة'];
   }
-  return uniqueHelps.map((key) => HELP_LABELS[key] || key);
+  return ['مساعدة'];
 };
 
 export const computeSessionMetrics = (stats = {}) => {
@@ -48,14 +50,8 @@ export const computeSessionMetrics = (stats = {}) => {
 
   const helps = helpsUsed.length ? helpsUsed : trackedHelpActivities.flat();
   let computedPrompt = 'none';
-  if (helps.includes('physical')) {
-    computedPrompt = 'physical';
-  } else if (helps.includes('verbal')) {
-    computedPrompt = 'verbal';
-  } else if (helps.includes('gesture')) {
-    computedPrompt = 'gestural';
-  } else if (helps.includes('visual')) {
-    computedPrompt = 'visual';
+  if (helps.length) {
+    computedPrompt = 'assisted';
   }
 
   const promptHistory = Array.isArray(stats.prompts) ? stats.prompts : [];

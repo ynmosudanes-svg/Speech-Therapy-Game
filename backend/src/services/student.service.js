@@ -62,7 +62,7 @@ async function listStudents(currentUser) {
     currentUser.role === 'SUPER_ADMIN'
       ? {}
       : currentUser.role === 'PARENT'
-        ? { parentId: currentUser.userId }
+        ? { parentId: currentUser.userId, requestStatus: 'APPROVED' }
         : { therapistId: currentUser.userId };
 
   const students = await prisma.student.findMany({
@@ -112,6 +112,7 @@ async function createStudent(currentUser, payload) {
       diagnosis: payload.diagnosis || null,
       planName: payload.planName || null,
       currentLevel: payload.currentLevel ?? 1,
+      requestStatus: payload.requestStatus || 'APPROVED',
       accessCode,
       therapistId,
       parentId: payload.parentId || null,
@@ -175,6 +176,7 @@ async function updateStudent(currentUser, studentId, payload) {
         diagnosis: payload.diagnosis ?? existingStudent.diagnosis,
         planName: payload.planName !== undefined ? payload.planName : existingStudent.planName,
         currentLevel: payload.currentLevel ?? existingStudent.currentLevel,
+        requestStatus: payload.requestStatus || existingStudent.requestStatus || 'APPROVED',
         therapistId,
         parentId: payload.parentId !== undefined ? payload.parentId : existingStudent.parentId,
       },

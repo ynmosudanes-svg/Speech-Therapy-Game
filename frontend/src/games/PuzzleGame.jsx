@@ -75,13 +75,27 @@ export default function PuzzleGame({
   const [startTime, setStartTime] = useState(null);
   const [missingSlotIndex, setMissingSlotIndex] = useState(null);
   const [wrongPieceId, setWrongPieceId] = useState(null);
+  const [snappedPieceId, setSnappedPieceId] = useState(null);
+  const [boardSize, setBoardSize] = useState(0);
   
   // --- Assistant Hint States ---
   const [hintPieceId, setHintPieceId] = useState(null);
   const [hintSlotIndex, setHintSlotIndex] = useState(null);
   const [gestureHint, setGestureHint] = useState(false);
 
+  const boardRef = useRef(null);
   const hintTimersRef = useRef([]);
+
+  useEffect(() => {
+    if (!boardRef.current || typeof ResizeObserver === 'undefined') return undefined;
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      setBoardSize(entry.contentRect.width);
+    });
+
+    resizeObserver.observe(boardRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   const clearHintTimers = () => {
     hintTimersRef.current.forEach((timer) => window.clearTimeout(timer));
@@ -167,6 +181,7 @@ export default function PuzzleGame({
     }
     setSelectedPieceId(null);
     setWrongPieceId(null);
+    setSnappedPieceId(null);
     setMoves(0);
     setGameState('playing');
     setStartTime(Date.now());
@@ -212,6 +227,8 @@ export default function PuzzleGame({
       setBoardPieces(newBoard);
       setTrayPieces([]);
       setSelectedPieceId(null);
+      setSnappedPieceId(piece.id);
+      window.setTimeout(() => setSnappedPieceId(null), 280);
       handleWin();
       return;
     }
@@ -239,6 +256,10 @@ export default function PuzzleGame({
     setBoardPieces(newBoard);
     setTrayPieces(newTray);
     setSelectedPieceId(null);
+    if (piece.originalPos === targetSlotIndex) {
+      setSnappedPieceId(piece.id);
+      window.setTimeout(() => setSnappedPieceId(null), 280);
+    }
     const currentMoves = moves + 1;
     setMoves(currentMoves);
     clearHints();
@@ -326,7 +347,28 @@ export default function PuzzleGame({
   const handleDragStart = (e, pieceId) => {
     e.dataTransfer.setData('pieceId', pieceId);
     setSelectedPieceId(pieceId);
+
+    const boardRect = boardRef.current?.getBoundingClientRect();
+    if (!boardRect?.width) return;
+
+    const slotSize = boardRect.width / gridSize;
+    const dragPreview = e.currentTarget.cloneNode(true);
+    dragPreview.style.position = 'fixed';
+    dragPreview.style.top = '-1000px';
+    dragPreview.style.left = '-1000px';
+    dragPreview.style.width = `${slotSize}px`;
+    dragPreview.style.height = `${slotSize}px`;
+    dragPreview.style.pointerEvents = 'none';
+    dragPreview.style.zIndex = '-1';
+    document.body.appendChild(dragPreview);
+    e.dataTransfer.setDragImage(dragPreview, slotSize / 2, slotSize / 2);
+    window.setTimeout(() => dragPreview.remove(), 0);
   };
+
+  const boardSlotSize = boardSize ? boardSize / gridSize : 0;
+  const trayPieceSize = boardSlotSize
+    ? Math.max(36, Math.min(56, boardSlotSize * 0.3))
+    : 44;
 
   const handleDropOnBoard = (e, slotIndex) => {
     e.preventDefault();
@@ -343,14 +385,15 @@ export default function PuzzleGame({
   const renderPiece = (piece, isPlacedOnBoard = false, slotIndex = -1) => {
     const originalCol = piece.originalPos % gridSize;
     const originalRow = Math.floor(piece.originalPos / gridSize);
-    
-    const imgWidth = (gridSize / 1.4) * 100;
-    const imgLeft = -((originalCol - 0.2) / 1.4) * 100;
-    const imgTop = -((originalRow - 0.2) / 1.4) * 100;
+    const pieceScale = 1.4;
+    const imageWidth = (gridSize * 100) / pieceScale;
+    const imageLeft = ((0.2 - originalCol) * 100) / pieceScale;
+    const imageTop = ((0.2 - originalRow) * 100) / pieceScale;
 
     const isSelected = selectedPieceId === piece.id;
     const isCorrect = isPlacedOnBoard && piece.originalPos === slotIndex;
     const isWrongCandidate = wrongPieceId === piece.id;
+    const isSnapping = snappedPieceId === piece.id;
 
     return (
       <div
@@ -365,34 +408,53 @@ export default function PuzzleGame({
             setSelectedPieceId(isSelected ? null : piece.id); 
           }
         }}
-        className={`relative w-full aspect-square transition-all duration-300 ease-in-out ${!isCorrect && 'cursor-grab active:cursor-grabbing hover:z-50'} ${(isSelected || hintPieceId === piece.id) ? 'z-50 ring-4 ring-amber-400 rounded-lg' : 'z-10'} ${isWrongCandidate ? 'animate-pulse' : ''}`}
+        className={`relative h-full w-full ${!isCorrect ? 'cursor-grab active:cursor-grabbing' : ''} ${(isSelected || hintPieceId === piece.id) ? 'z-50 ring-4 ring-amber-400 rounded-lg' : 'z-10'} ${isWrongCandidate ? 'ring-4 ring-rose-400 rounded-lg' : ''}`}
       >
         <div
-          className={`absolute transition-all duration-300 ${hintPieceId === piece.id ? 'animate-pulse' : ''}`}
+          className="absolute"
           style={{
             width: '140%',
             height: '140%',
             top: '-20%',
             left: '-20%',
             filter: isWrongCandidate
-              ? 'drop-shadow(0 0 15px rgba(248,113,113,0.9)) brightness(1.05)'
+              ? 'drop-shadow(0 0 10px rgba(248,113,113,0.35))'
               : hintPieceId === piece.id 
-              ? 'drop-shadow(0 0 15px rgba(74,222,128,1)) brightness(1.2)' 
-              : (isCorrect ? 'none' : (isSelected ? 'drop-shadow(0 0 12px rgba(6, 182, 212, 1))' : 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))')),
-            transform: (isSelected || hintPieceId === piece.id) ? 'scale(1.15)' : 'scale(1)',
+              ? 'drop-shadow(0 0 10px rgba(74,222,128,0.4))' 
+              : (isCorrect ? 'drop-shadow(0 8px 14px rgba(15,23,42,0.14))' : (isSelected ? 'drop-shadow(0 0 10px rgba(6, 182, 212, 0.6))' : 'drop-shadow(0 8px 18px rgba(15,23,42,0.2))')),
+            transform: isSnapping ? 'scale(1.035)' : 'scale(1)',
+            transformOrigin: 'center',
+            transition: isPlacedOnBoard ? 'transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 240ms ease' : 'filter 160ms ease',
           }}
         >
-          <div className="w-full h-full absolute" style={{ clipPath: `url(#piece-${piece.id})`, WebkitClipPath: `url(#piece-${piece.id})` }}>
+          <div className="absolute h-full w-full overflow-hidden" style={{ clipPath: `url(#piece-${piece.id})`, WebkitClipPath: `url(#piece-${piece.id})` }}>
             <img
               src={imageSrc}
               alt="piece"
               className="absolute max-w-none pointer-events-none"
-              style={{ width: `${imgWidth}%`, height: `${imgWidth}%`, left: `${imgLeft}%`, top: `${imgTop}%` }}
+              style={{
+                width: `${imageWidth}%`,
+                height: `${imageWidth}%`,
+                left: `${imageLeft}%`,
+                top: `${imageTop}%`,
+                objectFit: 'cover',
+                objectPosition: 'center',
+              }}
+            />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: isPlacedOnBoard
+                  ? 'linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 45%, rgba(15,23,42,0.04) 100%)'
+                  : 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.04) 45%, rgba(15,23,42,0.08) 100%)',
+                mixBlendMode: 'soft-light',
+                opacity: 0.9,
+              }}
             />
           </div>
         </div>
         {isCorrect && gameState === 'playing' && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/95 rounded-full text-emerald-500 shadow-lg pointer-events-none z-50 animate-bounce-short p-1">
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/95 rounded-full text-emerald-500 shadow-lg pointer-events-none z-50 p-1">
             <CheckCircle2 size={24} strokeWidth={3} />
           </div>
         )}
@@ -401,7 +463,7 @@ export default function PuzzleGame({
   };
 
   return (
-    <div dir="rtl" className="w-full flex flex-col items-center animate-fade-in space-y-6 h-full pb-10">
+    <div dir="rtl" className="mx-auto flex h-full w-full max-w-none flex-col items-center space-y-2.5 px-2 pb-4 sm:px-0 md:space-y-4 md:pb-7">
       
       {/* Header مع زر الصوت وإعادة اللعب */}
       <GameHeader
@@ -411,26 +473,12 @@ export default function PuzzleGame({
         onRestart={startGame}
       />
 
-      <div className="w-full flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100">
-        <div className="flex gap-2">
-          {/* تم نقل زر إعادة اللعب إلى الهيدر الرئيسي */}
-        </div>
-        {gameState === 'won' ? (
-          <div className="flex items-center text-emerald-600 font-bold bg-emerald-50 px-4 py-1.5 rounded-lg gap-2 animate-bounce-short">
-            <Trophy size={20} /> ممتاز!
-          </div>
-        ) : (
-           <div className="text-center bg-slate-50 px-4 py-1.5 rounded-lg">
-            <span className="text-xs font-bold text-slate-400 ml-2">الحركات:</span>
-            <span className="text-lg font-black text-slate-700">{moves}</span>
-          </div>
-        )}
-      </div>
 
-      <div className="w-full max-w-[500px] bg-white p-3 rounded-[2rem] shadow-lg border border-slate-200">
+      <div className="w-full rounded-[1.1rem] border border-slate-200 bg-white p-1 shadow-md sm:rounded-[1.25rem] sm:p-1.5 md:rounded-[2rem] md:p-3" style={{ maxWidth: 'clamp(15.5rem, 72vw, 19rem)' }}>
         <div 
+          ref={boardRef}
           dir="ltr"
-          className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-inner border-2 border-slate-100 bg-slate-50"
+          className="relative aspect-square w-full overflow-hidden rounded-[0.9rem] border-2 border-slate-100 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(241,245,249,0.92)_44%,rgba(226,232,240,0.95))] shadow-inner md:rounded-2xl"
         >
           <svg width="0" height="0" className="absolute pointer-events-none">
             <defs>
@@ -441,7 +489,15 @@ export default function PuzzleGame({
           </svg>
 
           {gameState !== 'won' && (
-            <img src={imageSrc} className="absolute inset-0 w-full h-full blur-[5px] opacity-40" alt="Hint" />
+            <img
+              src={imageSrc}
+              className="absolute inset-0 h-full w-full object-fill pointer-events-none"
+              style={{
+                opacity: 0.34,
+                mixBlendMode: 'multiply',
+              }}
+              alt="Hint"
+            />
           )}
 
           <div 
@@ -451,12 +507,12 @@ export default function PuzzleGame({
             {boardPieces.map((piece, index) => (
               <div 
                 key={index}
-                className={`relative w-full h-full border-[0.5px] transition-all duration-300
+                className={`relative h-full w-full overflow-visible transition-colors duration-150
                   ${hintSlotIndex === index
-                    ? 'bg-emerald-300/50 border-emerald-500 border-4 animate-pulse shadow-[inset_0_0_30px_rgba(74,222,128,0.9)] z-20 ring-4 ring-emerald-300'
+                    ? 'z-20 bg-emerald-100/70 outline outline-2 outline-emerald-400 shadow-[inset_0_0_12px_rgba(74,222,128,0.3)] ring-2 ring-emerald-200'
                     : selectedPieceId !== null && !piece && (puzzleMode !== 'missing-piece' || index === missingSlotIndex)
-                      ? 'bg-white/30 border-yellow-400 border-2 border-dashed shadow-[inset_0_0_15px_rgba(250,204,21,0.6)] animate-pulse z-10 cursor-pointer backdrop-brightness-110'
-                      : 'border-white/20'
+                      ? 'z-10 cursor-pointer bg-white/20 outline outline-2 outline-dashed outline-yellow-400 shadow-[inset_0_0_10px_rgba(250,204,21,0.28)]'
+                      : 'bg-transparent outline outline-[0.5px] outline-white/35 shadow-[inset_0_1px_3px_rgba(255,255,255,0.35),inset_0_-1px_2px_rgba(15,23,42,0.035)]'
                   }
                 `}
                 onDragOver={(e) => e.preventDefault()}
@@ -469,39 +525,39 @@ export default function PuzzleGame({
               </div>
             ))}
           </div>
-          
-          {gameState === 'won' && (
-            <img src={imageSrc} className="absolute inset-0 w-full h-full animate-fade-in" alt="Won" />
-          )}
         </div>
       </div>
 
       {gameState === 'playing' && (
         <div 
-          className="w-full bg-white p-6 rounded-3xl shadow-md border-2 border-dashed border-slate-200 min-h-[180px]"
+          className="w-full min-h-[104px] rounded-[1.35rem] border-2 border-dashed border-slate-200 bg-white p-3 shadow-sm sm:min-h-[116px] sm:p-3.5 md:min-h-[148px] md:rounded-3xl md:p-5"
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDropOnTray}
         >
-          <div className="flex items-center justify-center gap-2 mb-4 text-slate-500">
-            <Hand size={18} />
-            <p className="text-sm font-semibold">اسحب القطع من هنا وركبها في اللوحة</p>
+          <div className="mb-2.5 flex items-center justify-center gap-2 text-slate-500 md:mb-4">
+            <Hand size={16} />
+            <p className="text-xs font-semibold sm:text-sm">اسحب القطع من هنا وركبها في اللوحة</p>
           </div>
           
-          <div className="flex flex-wrap justify-center gap-4 md:gap-6">
+          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 md:gap-4">
             {trayPieces.length === 0 ? (
               <p className="text-slate-400 text-sm mt-4">تم استخدام كل القطع!</p>
             ) : (
               trayPieces.map(piece => (
                 <div
                   key={piece.id}
-                  className={`relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-xl transition-all duration-300 ${
+                  className={`relative flex-shrink-0 rounded-lg bg-white/70 shadow-[0_10px_18px_-14px_rgba(15,23,42,0.45)] ring-1 ring-white/80 sm:rounded-xl ${
                     hintPieceId === piece.id
-                      ? 'ring-4 ring-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.9)] scale-110 z-20'
+                      ? 'ring-4 ring-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.35)] z-20'
                       : ''
                   }`}
+                  style={{
+                    width: `${trayPieceSize}px`,
+                    height: `${trayPieceSize}px`,
+                  }}
                 >
                   {hintPieceId === piece.id && gestureHint && (
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl animate-bounce pointer-events-none z-30">
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl pointer-events-none z-30 animate-none">
                       👆
                     </span>
                   )}
@@ -515,10 +571,9 @@ export default function PuzzleGame({
 
       <style dangerouslySetInnerHTML={{__html: `
         .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        .animate-bounce-short { animation: bounceShort 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes bounceShort { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
       `}} />
     </div>
   );
 }
+

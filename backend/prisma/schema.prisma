@@ -20,6 +20,11 @@ enum SessionType {
   FREE_PLAY
 }
 
+enum StudentRequestStatus {
+  PENDING
+  APPROVED
+}
+
 enum PromptLevel {
   FULL
   PARTIAL
@@ -52,6 +57,7 @@ model Student {
   accessCode      String        @unique
   currentLevel    Int           @default(1)
   planName        String?
+  requestStatus   StudentRequestStatus @default(APPROVED)
   therapistId     String
   parentId        String?
   createdAt       DateTime      @default(now())

@@ -11,8 +11,78 @@ import {
   playSuccessSound,
 } from '../utils/soundEffects';
 
-const DEFAULT_CELL_SIZE = 56;
-const PREVIEW_CELL_SIZE = 58;
+const DEFAULT_CELL_SIZE = 44;
+const PREVIEW_CELL_SIZE = 44;
+
+const removeNearWhiteBackground = (image) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth || image.width || 1;
+  canvas.height = image.naturalHeight || image.height || 1;
+
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return '';
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  try {
+    const frame = context.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = frame.data;
+
+    for (let index = 0; index < pixels.length; index += 4) {
+      const red = pixels[index];
+      const green = pixels[index + 1];
+      const blue = pixels[index + 2];
+      const alpha = pixels[index + 3];
+
+      if ((red > 242 && green > 242 && blue > 242) || alpha < 18) {
+        pixels[index + 3] = 0;
+      }
+    }
+
+    context.putImageData(frame, 0, 0);
+    return canvas.toDataURL('image/png');
+  } catch {
+    return '';
+  }
+};
+
+const useTransparentImageSrc = (src) => {
+  const [transparentSrc, setTransparentSrc] = useState('');
+
+  useEffect(() => {
+    if (!src || typeof window === 'undefined') {
+      setTransparentSrc('');
+      return undefined;
+    }
+
+    let cancelled = false;
+    const image = new window.Image();
+    image.crossOrigin = 'anonymous';
+
+    image.onload = () => {
+      if (cancelled) return;
+
+      try {
+        const processedSrc = removeNearWhiteBackground(image);
+        setTransparentSrc(processedSrc || src);
+      } catch {
+        setTransparentSrc(src);
+      }
+    };
+
+    image.onerror = () => {
+      if (!cancelled) setTransparentSrc(src);
+    };
+
+    image.src = src;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
+
+  return transparentSrc || src;
+};
 
 const speakArabic = (text) => {
   if (!text || typeof window === 'undefined') return;
@@ -40,9 +110,9 @@ const ControlButton = ({ icon: Icon, onClick, className = '' }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] bg-sky-500 text-white shadow-[0_5px_0_#0284c7] md:shadow-[0_6px_0_#0284c7] hover:bg-sky-400 active:translate-y-1 md:active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center ${className}`}
+    className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-2xl md:rounded-[1.25rem] bg-sky-500 text-white shadow-[0_5px_0_#0284c7] md:shadow-[0_5px_0_#0284c7] hover:bg-sky-400 active:translate-y-1 md:active:translate-y-1 active:shadow-none transition-all flex items-center justify-center ${className}`}
   >
-    <Icon size={24} className="md:w-8 md:h-8" />
+    <Icon size={20} className="md:w-6 md:h-6" />
   </button>
 );
 
@@ -75,6 +145,8 @@ const NavigationGame = ({
   const targetX = Math.min(Math.max(Number(target?.x ?? cols), 1), cols);
   const targetY = Math.min(Math.max(Number(target?.y ?? rows), 1), rows);
   const radius = Math.max(Number(target?.radius || 1), 1);
+  const movableImageSrc = useTransparentImageSrc(movable?.image || '');
+  const targetImageSrc = useTransparentImageSrc(target?.image || '');
 
   const [position, setPosition] = useState({ x: startX, y: startY });
   const [attempts, setAttempts] = useState(0);
@@ -152,9 +224,10 @@ const NavigationGame = ({
         linear-gradient(to bottom, rgba(148, 163, 184, 0.14) 1px, transparent 1px)
       `,
       backgroundSize: `${cellSize}px ${cellSize}px`,
-      backgroundColor: '#fffdf9',
+      backgroundColor: sceneImage ? 'rgba(255, 253, 249, 0.72)' : '#fffdf9',
+      backdropFilter: sceneImage ? 'blur(1.5px)' : 'none',
     }),
-    [cellSize, cols, rows]
+    [cellSize, cols, rows, sceneImage]
   );
 
   const movableStyle = useMemo(
@@ -212,7 +285,6 @@ const NavigationGame = ({
     registerAssistantActions({
       onVisualHint: () => {
         setVisualPulse(true);
-        window.setTimeout(() => setVisualPulse(false), 2500);
       },
       onGestureHint: () => {
         const dir = computeDirectionHint();
@@ -339,7 +411,7 @@ const NavigationGame = ({
   const showTargetHighlight = visualPulse || physicalPath;
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col gap-1 md:gap-4 h-[calc(100vh-80px)] overflow-hidden" dir="rtl">
+    <div className="w-full max-w-3xl mx-auto flex flex-col gap-1 md:gap-3 h-[calc(100vh-80px)] overflow-hidden px-2" dir="rtl">
       <GameHeader
         instruction={instructionAr || 'حرّك العنصر حتى يصل إلى الهدف'}
         onPlayAudio={playInstruction}
@@ -348,17 +420,21 @@ const NavigationGame = ({
 
       <section 
         ref={boardContainerRef}
-        className="rounded-xl md:rounded-[2.4rem] border border-[#dbe7f3] bg-[#f8fbff] shadow-sm flex-1 min-h-0 flex items-center justify-center overflow-hidden w-full"
+        className="rounded-xl md:rounded-[2.4rem] border border-[#dbe7f3] bg-[#f8fbff] shadow-sm flex-1 min-h-0 flex items-center justify-center overflow-hidden w-full max-w-[44rem] mx-auto"
       >
         <div className="relative overflow-hidden rounded-lg md:rounded-[2rem] bg-white border border-[#dbe7f3] shrink-0" style={boardStyle}>
             {sceneImage ? (
               <img
                 src={sceneImage}
                 alt={game?.titleAr || 'scene'}
-                className="absolute inset-0 w-full h-full object-cover opacity-90"
+                className="absolute inset-0 h-full w-full object-cover opacity-100"
               />
             ) : (
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(19,143,188,0.08),_transparent_44%),linear-gradient(180deg,_#fffdf9_0%,_#f8fbfd_100%)]" />
+            )}
+
+            {sceneImage && (
+              <div className="absolute inset-0 bg-white/24 backdrop-blur-[0.5px]" />
             )}
 
             <div className="absolute inset-0 pointer-events-none">
@@ -373,11 +449,11 @@ const NavigationGame = ({
               />
 
               <div className="absolute" style={targetStyle}>
-                {target?.image ? (
+                {targetImageSrc ? (
                   <img
-                    src={target.image}
+                    src={targetImageSrc}
                     alt="target"
-                    className={`w-full h-full scale-[1.18] object-contain drop-shadow-md ${showTargetHighlight ? 'drop-shadow-[0_0_12px_rgba(22,143,199,0.9)]' : ''}`}
+                    className={`w-full h-full scale-[1.05] object-contain drop-shadow-md ${showTargetHighlight ? 'drop-shadow-[0_0_12px_rgba(22,143,199,0.9)]' : ''}`}
                   />
                 ) : (
                   <PlaceholderTile
@@ -405,8 +481,8 @@ const NavigationGame = ({
             )}
 
             <div className={`absolute ${shake ? 'animate-pulse' : ''}`} style={movableStyle}>
-              {movable?.image ? (
-                <img src={movable.image} alt="movable" className="w-full h-full scale-[1.2] object-contain drop-shadow-lg" />
+              {movableImageSrc ? (
+                <img src={movableImageSrc} alt="movable" className="w-full h-full scale-[1.05] object-contain drop-shadow-lg" />
               ) : (
                 <PlaceholderTile label="العنصر" className="text-blue-600 border-blue-200 bg-white/95" />
               )}
@@ -421,8 +497,8 @@ const NavigationGame = ({
         </div>
       )}
 
-      <section className="bg-white rounded-xl md:rounded-[2rem] border border-[#dbe7f3] py-3 md:p-4 shadow-sm shrink-0">
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-5 w-fit mx-auto" dir="ltr">
+      <section className="bg-white rounded-xl md:rounded-[2rem] border border-[#dbe7f3] py-3 md:p-4 shadow-sm shrink-0 max-w-[24rem] w-full mx-auto">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 w-fit mx-auto" dir="ltr">
           <div />
           <ControlButton icon={ArrowUp} onClick={() => moveBy(0, -1)} />
           <div />

@@ -1,19 +1,21 @@
 import { useEffect } from 'react';
-import { playAudioUrl, playErrorSound, playSuccessSound } from '../utils/soundEffects';
+import { playAudioUrl } from '../utils/soundEffects';
+import { useTherapySounds } from '../hooks/useTherapySounds';
 
 const FeedbackModal = ({ isCorrect, onNext, show, successSound, failSound }) => {
-  const feedbackDelay = isCorrect ? 1800 : 2300;
+  const feedbackDelay = isCorrect ? 3000 : 2300;
+  const { playCorrect, playWrong } = useTherapySounds({ soundEnabled: true });
 
   useEffect(() => {
     if (!show) return undefined;
 
     if (isCorrect) {
       if (successSound) playAudioUrl(successSound);
-      else playSuccessSound();
+      else playCorrect();
     } else if (failSound) {
       playAudioUrl(failSound);
     } else {
-      playErrorSound();
+      playWrong();
     }
 
     const nextTimer = window.setTimeout(() => {
@@ -23,7 +25,7 @@ const FeedbackModal = ({ isCorrect, onNext, show, successSound, failSound }) => 
     return () => {
       window.clearTimeout(nextTimer);
     };
-  }, [show, isCorrect, onNext, successSound, failSound, feedbackDelay]);
+  }, [show, isCorrect, onNext, successSound, failSound, feedbackDelay, playCorrect, playWrong]);
 
   return null;
 };

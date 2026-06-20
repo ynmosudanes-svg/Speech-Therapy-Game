@@ -3,14 +3,14 @@ import confetti from 'canvas-confetti';
 import lottie from 'lottie-web';
 import { Check, X } from 'lucide-react';
 import celebrationAnimation from '../../assets/Animation/Celebration.json';
-import learningAnimation from '../../assets/Animation/Learning.json';
+import measurementAnimation from '../../assets/Animation/Measurement.json';
+import readingBookAnimation from '../../assets/Animation/reading book.json';
 import owlBirdAnimation from '../../assets/Animation/sleeping bird.json';
-import parrotAnimation from '../../assets/Animation/Parroto ( Animation ).json';
 
 const AVATAR_ANIMATIONS = {
   celebration: celebrationAnimation,
-  error: parrotAnimation,
-  learning: learningAnimation,
+  error: measurementAnimation,
+  learning: readingBookAnimation,
   owl: owlBirdAnimation,
 };
 
@@ -26,7 +26,7 @@ export default function EddyAvatar({ className = '', mode = 'owl' }) {
       : mode === 'learning'
         ? 'translate-y-0 scale-[1.02]'
         : mode === 'error'
-          ? 'translate-y-1 scale-[0.98]'
+          ? 'translate-y-0 scale-[1.08]'
           : 'scale-[1.02]';
   const statusBadge =
     mode === 'celebration'
@@ -37,10 +37,10 @@ export default function EddyAvatar({ className = '', mode = 'owl' }) {
         }
       : mode === 'error'
         ? {
-            label: 'خطأ',
-            className: 'bg-rose-500 text-white',
-            icon: <X className="h-3.5 w-3.5" strokeWidth={3.5} />,
-          }
+          label: 'خطأ',
+          className: 'bg-rose-500 text-white h-5 w-5',
+          icon: <X className="h-2 w-2" strokeWidth={3.5} />,
+        }
         : null;
   useEffect(() => {
     if (!containerRef.current) return undefined;
@@ -103,7 +103,7 @@ export default function EddyAvatar({ className = '', mode = 'owl' }) {
       </div>
       {statusBadge && (
         <div
-          className={`absolute right-0 top-0 z-10 flex h-8 w-8 translate-x-1/4 -translate-y-1/4 items-center justify-center rounded-full border-2 border-white shadow-[0_8px_20px_-10px_rgba(15,23,42,0.65)] ${statusBadge.className}`}
+          className={`absolute right-0 top-0 z-10 flex translate-x-1/4 -translate-y-1/4 items-center justify-center rounded-full border-2 border-white shadow-[0_8px_20px_-10px_rgba(15,23,42,0.65)] ${statusBadge.className}`}
           title={statusBadge.label}
         >
           {statusBadge.icon}

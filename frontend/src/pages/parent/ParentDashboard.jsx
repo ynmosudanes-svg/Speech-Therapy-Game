@@ -1,15 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Award,
   ClipboardPlus,
+  BarChart3,
   Gamepad2,
   Link as LinkIcon,
   LogOut,
-  Play,
   User,
 } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
+import ConfirmModal from '../../components/ConfirmModal';
 import parentService from '../../services/parentService';
 
 const emptyRequestForm = {
@@ -20,7 +21,7 @@ const emptyRequestForm = {
 
 const ParentDashboard = () => {
   const navigate = useNavigate();
-  const { adminSession, logoutAdmin, fetchStudents, students, loginStudent } = useTherapyStore();
+  const { adminSession, logoutAdmin, fetchStudents, students } = useTherapyStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -28,7 +29,13 @@ const ParentDashboard = () => {
   const [accessCode, setAccessCode] = useState('');
   const [requestForm, setRequestForm] = useState(emptyRequestForm);
   const [submitting, setSubmitting] = useState(false);
-  const [loggingInChild, setLoggingInChild] = useState(null);
+  const [copiedChildId, setCopiedChildId] = useState(null);
+  const [dialog, setDialog] = useState(null);
+  const isParentAccount = adminSession?.user?.role === 'PARENT';
+  const approvedChildren = useMemo(
+    () => (Array.isArray(students) ? students.filter((child) => child.requestStatus !== 'PENDING') : []),
+    [students]
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -118,25 +125,54 @@ const ParentDashboard = () => {
     }
   };
 
-  const handleLoginAsChild = async (child) => {
-    if (!child.accessCode) {
-      setError('كود الدخول غير متوفر لهذا الطفل.');
+  const handleViewReport = (child) => {
+    navigate(`/parent/reports/${child.id}`);
+  };
+
+  const handleCopyChildCode = async (child) => {
+    const code = child.accessCode || child.code;
+
+    if (!code) {
+      setError('كود الطفل غير متوفر.');
       return;
     }
 
-    setLoggingInChild(child.id);
     try {
-      const result = await loginStudent(child.accessCode, 'parent', false);
-      if (result.success) {
-        navigate('/student/home');
-      } else {
-        setError(result.message || 'تعذر الدخول لحساب الطفل.');
-      }
+      await navigator.clipboard.writeText(code);
+      setCopiedChildId(child.id);
+      window.setTimeout(() => {
+        setCopiedChildId((current) => (current === child.id ? null : current));
+      }, 1500);
     } catch {
-      setError('حدث خطأ غير متوقع.');
-    } finally {
-      setLoggingInChild(null);
+      setError('تعذر نسخ كود الطفل.');
     }
+  };
+
+  const handleUnlinkChild = async (child) => {
+    if (!isParentAccount) {
+      setError('إلغاء الربط متاح فقط من حساب ولي الأمر المرتبط بالطفل.');
+      return;
+    }
+
+    setDialog({
+      title: 'إلغاء الربط',
+      message: `هل تريد إلغاء ربط ${child.name} من الحساب؟`,
+      confirmText: 'إلغاء الربط',
+      cancelText: 'إلغاء',
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          setSubmitting(true);
+          await parentService.unlinkChild(adminSession.token, child.id);
+          await refreshChildren();
+        } catch (unlinkError) {
+          setError(unlinkError?.response?.data?.message || 'تعذر إلغاء الربط.');
+        } finally {
+          setSubmitting(false);
+          setDialog(null);
+        }
+      },
+    });
   };
 
   const updateRequestField = (field, value) => {
@@ -154,7 +190,7 @@ const ParentDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800" dir="rtl">
+    <div className="min-h-screen bg-slate-50 font-arabic text-slate-800" dir="rtl">
       <nav className="app-nav-shell sticky top-0 z-30 border-b backdrop-blur-md">
         <div dir="rtl" className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <button type="button" onClick={() => navigate('/parent/dashboard')} className="flex shrink-0 items-center gap-3">
@@ -221,7 +257,7 @@ const ParentDashboard = () => {
                 </p>
                 <div className="mt-6 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-white/80 bg-white/75 px-4 py-3">
-                    <p className="text-2xl font-black text-[#0F6FA6]">{students.length}</p>
+                    <p className="text-2xl font-black text-[#0F6FA6]">{approvedChildren.length}</p>
                     <p className="mt-1 text-xs font-black text-slate-500">أطفال مرتبطين</p>
                   </div>
                   <div className="rounded-2xl border border-white/80 bg-white/75 px-4 py-3">
@@ -343,11 +379,11 @@ const ParentDashboard = () => {
               </p>
             </div>
             <span className="w-fit rounded-full border border-[#D9EAF2] bg-white px-4 py-2 text-xs font-black text-[#0F6FA6]">
-              {students.length} أطفال
+              {approvedChildren.length} أطفال
             </span>
           </div>
 
-          {students.length === 0 ? (
+          {approvedChildren.length === 0 ? (
             <div className="rounded-[1.75rem] border border-dashed border-[#CFE3F3] bg-white/80 px-6 py-8 text-center shadow-[0_12px_30px_-26px_rgba(15,111,166,0.35)]">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF7FD] text-[#0F6FA6]">
                 <User size={24} />
@@ -358,41 +394,41 @@ const ParentDashboard = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {students.map((child) => (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {approvedChildren.map((child) => (
                 <article
                   key={child.id}
-                  className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  className="relative overflow-hidden rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                 >
-                  <div className="mb-6 flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] text-2xl font-black text-white shadow-[0_14px_28px_rgba(21,132,195,0.22)]">
+                  <div className="mb-4 flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] text-lg font-black text-white shadow-[0_10px_20px_rgba(21,132,195,0.16)]">
                         {child.name?.charAt(0)}
                       </div>
                       <div>
-                        <h3 className="text-lg font-black leading-tight text-slate-900">{child.name}</h3>
-                        <p className="mt-1 text-sm font-medium text-slate-500">العمر: {child.age} سنوات</p>
+                        <h3 className="text-sm font-black leading-tight text-slate-900">{child.name}</h3>
+                        <p className="mt-0.5 text-[11px] font-medium text-slate-500">العمر: {child.age} سنوات</p>
                       </div>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-600">
                       مستوى {child.currentLevel}
                     </div>
                   </div>
 
-                  <div className="mb-8 grid gap-3 sm:grid-cols-2">
-                    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-[#D9EAF2] bg-[#F8FBFD] p-3">
-                      <Gamepad2 size={20} className="shrink-0 text-[#1584C3]" />
+                  <div className="mb-4 grid gap-2.5 sm:grid-cols-2">
+                    <div className="flex min-w-0 items-center gap-2 rounded-xl border border-[#D9EAF2] bg-[#F8FBFD] p-2.5">
+                      <Gamepad2 size={18} className="shrink-0 text-[#1584C3]" />
                       <div className="min-w-0">
-                        <p className="text-xs font-bold leading-5 text-slate-400">الألعاب المخصصة</p>
-                        <p className="text-sm font-black leading-5 text-slate-700">{child.assignedGames?.length || 0} ألعاب</p>
+                        <p className="text-[11px] font-bold leading-5 text-slate-400">الألعاب المخصصة</p>
+                        <p className="text-xs font-black leading-5 text-slate-700">{child.assignedGames?.length || 0} ألعاب</p>
                       </div>
                     </div>
                     {child.planName && (
-                      <div className="flex min-w-0 items-center gap-3 rounded-xl border border-[#D9EAF2] bg-[#F8FBFD] p-3">
-                        <Award size={20} className="shrink-0 text-[#20B7B5]" />
+                      <div className="flex min-w-0 items-center gap-2 rounded-xl border border-[#D9EAF2] bg-[#F8FBFD] p-2.5">
+                        <Award size={18} className="shrink-0 text-[#20B7B5]" />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold leading-5 text-slate-400">الخطة الحالية</p>
-                          <p className="line-clamp-2 text-sm font-black leading-5 text-slate-700" title={child.planName}>
+                          <p className="text-[11px] font-bold leading-5 text-slate-400">الخطة الحالية</p>
+                          <p className="line-clamp-2 text-xs font-black leading-5 text-slate-700" title={child.planName}>
                             {child.planName}
                           </p>
                         </div>
@@ -400,27 +436,65 @@ const ParentDashboard = () => {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleLoginAsChild(child)}
-                    disabled={loggingInChild === child.id}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#1584C3,#20B7B5)] px-4 py-3.5 font-black text-white shadow-[0_14px_30px_rgba(21,132,195,0.22)] transition-all hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {loggingInChild === child.id ? (
-                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    ) : (
-                      <>
-                        <Play size={18} fill="currentColor" />
-                        دخول حساب الطفل
-                      </>
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border border-[#D9EAF2] bg-[#F8FBFD] p-3">
+                      <p className="mb-2 text-[11px] font-bold text-slate-400">كود الطفل</p>
+                      <div className="rounded-2xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-[#D9EAF2]">
+                        <div className="mb-1.5 flex justify-start">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyChildCode(child)}
+                            className="shrink-0 rounded-xl border border-[#D9EAF2] bg-white px-3 py-1 text-[11px] font-black text-[#0F6FA6] transition hover:bg-[#F8FBFD]"
+                          >
+                            {copiedChildId === child.id ? 'تم النسخ' : 'نسخ'}
+                          </button>
+                        </div>
+                        <code className="select-all text-xs font-black tracking-[0.24em] text-slate-900">
+                          {child.accessCode || child.code || 'غير متوفر'}
+                        </code>
+                      </div>
+                    </div>
+
+                    {isParentAccount && (
+                    <button
+                      type="button"
+                      onClick={() => handleUnlinkChild(child)}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-black text-rose-700 shadow-sm transition hover:bg-rose-100"
+                    >
+                      إلغاء الربط
+                    </button>
                     )}
-                  </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleViewReport(child)}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#D9EAF2] bg-white px-4 py-2 font-black text-[#0F6FA6] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#F8FBFD]"
+                    >
+                      <BarChart3 size={18} />
+                      عرض التقرير
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
           )}
         </section>
       </main>
+
+      {dialog && (
+        <ConfirmModal
+          isOpen
+          onClose={() => setDialog(null)}
+          onConfirm={dialog.onConfirm || (() => setDialog(null))}
+          title={dialog.title}
+          message={dialog.message}
+          confirmText={dialog.confirmText}
+          cancelText={dialog.cancelText}
+          isDestructive={dialog.isDestructive ?? true}
+          hideCancelButton={dialog.hideCancelButton ?? false}
+          position="top"
+        />
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { X, Search, Image as ImageIcon, Music, Video, LoaderCircle, UploadCloud } from 'lucide-react';
+import ConfirmModal from '../ConfirmModal';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 
@@ -11,6 +12,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [selectedType, setSelectedType] = useState(initialType);
   const [isUploading, setIsUploading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [dialog, setDialog] = useState(null);
   const fileInputRef = useRef(null);
   const { adminSession } = useTherapyStore();
 
@@ -54,7 +56,13 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
       setRefreshTrigger(prev => prev + 1); // Refresh the list
     } catch (error) {
       console.error('Failed to upload files:', error);
-      alert('حدث خطأ أثناء رفع بعض الملفات، يرجى المحاولة مرة أخرى.');
+      setDialog({
+        title: 'تعذر الرفع',
+        message: 'حدث خطأ أثناء رفع بعض الملفات، يرجى المحاولة مرة أخرى.',
+        confirmText: 'حسناً',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
     } finally {
       setIsUploading(false);
       // Reset input so the same file can be uploaded again if needed
@@ -181,7 +189,21 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
             </div>
           )}
         </div>
-        </div>
+      </div>
+      {dialog && (
+        <ConfirmModal
+          isOpen
+          onClose={() => setDialog(null)}
+          onConfirm={() => setDialog(null)}
+          title={dialog.title}
+          message={dialog.message}
+          confirmText={dialog.confirmText}
+          cancelText={dialog.cancelText}
+          hideCancelButton={dialog.hideCancelButton}
+          isDestructive={dialog.isDestructive}
+          position="top"
+        />
+      )}
     </div>,
     document.body
   );

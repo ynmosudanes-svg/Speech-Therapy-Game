@@ -28,6 +28,7 @@ const GamesManager = () => {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [deleteGameId, setDeleteGameId] = useState(null);
   const [copiedGameId, setCopiedGameId] = useState('');
+  const [dialog, setDialog] = useState(null);
 
   const allAvailableTags = useMemo(() => {
     const tags = new Set();
@@ -111,7 +112,13 @@ const GamesManager = () => {
       setDeleteGameId(null);
     } catch (error) {
       console.error('Error deleting game:', error);
-      window.alert('حدث خطأ أثناء حذف اللعبة.');
+      setDialog({
+        title: 'تعذر الحذف',
+        message: 'حدث خطأ أثناء حذف اللعبة. حاول مرة أخرى لاحقًا.',
+        confirmText: 'حسناً',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
       setDeleteGameId(null);
     }
   };
@@ -315,7 +322,23 @@ const GamesManager = () => {
         confirmText="نعم، احذف اللعبة"
         cancelText="إلغاء"
         isDestructive={true}
+        position="top"
       />
+
+      {dialog && (
+        <ConfirmModal
+          isOpen
+          onClose={() => setDialog(null)}
+          onConfirm={() => setDialog(null)}
+          title={dialog.title}
+          message={dialog.message}
+          confirmText={dialog.confirmText}
+          cancelText={dialog.cancelText}
+          hideCancelButton={dialog.hideCancelButton}
+          isDestructive={dialog.isDestructive}
+          position="top"
+        />
+      )}
     </div>
   );
 };

@@ -6,6 +6,7 @@ const {
   deactivateParent,
   deleteParent,
   linkChild,
+  unlinkChild,
   requestChild,
 } = require('../controllers/parent.controller');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
@@ -36,6 +37,12 @@ router.post(
     validateRequest,
   ],
   requestChild
+);
+
+router.delete(
+  '/api/parents/me/unlink-child/:studentId',
+  authorize('PARENT'),
+  unlinkChild
 );
 
 // Parents can be managed by SUPER_ADMIN or THERAPIST

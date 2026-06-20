@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Eye, Grid2x2 } from 'lucide-react';
+import { Grid2x2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
 import {
@@ -8,11 +8,11 @@ import {
   GameImage,
   GameSection,
 } from '../components/game/GameUI';
+import BirdHint from '../components/game/BirdHint';
 import { playAudioUrl } from '../utils/soundEffects';
 import ChildGameBackdrop from './ChildGameBackdrop';
 import {
   CHILD_GAME_BOARD_MAX_WIDTH,
-  CHILD_GAME_OPTIONS_MAX_WIDTH,
   CHILD_GAME_SHELL_CLASS,
 } from './childGameLayout';
 
@@ -40,6 +40,7 @@ const PictureRevealGame = ({
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [showCorrectBird, setShowCorrectBird] = useState(false);
   const [startTime] = useState(Date.now());
 
   const totalCells = gridSize * gridSize;
@@ -53,6 +54,7 @@ const PictureRevealGame = ({
     setShowFeedback(false);
     setIsCorrect(false);
     setAttempts(0);
+    setShowCorrectBird(false);
   }, [game?.id, gridSize]);
 
   useEffect(() => {
@@ -68,6 +70,8 @@ const PictureRevealGame = ({
 
     registerAssistantActions({
       onVisualHint: () => {
+        setShowCorrectBird(true);
+        window.setTimeout(() => setShowCorrectBird(false), 2500);
         setRevealedCells((current) => {
           const next = new Set(current);
           for (let index = 0; index < totalCells; index += 1) {
@@ -78,6 +82,8 @@ const PictureRevealGame = ({
         });
       },
       onGestureHint: () => {
+        setShowCorrectBird(true);
+        window.setTimeout(() => setShowCorrectBird(false), 2500);
         setRevealedCells((current) => {
           const next = new Set(current);
           next.add(0);
@@ -114,6 +120,9 @@ const PictureRevealGame = ({
     setSelectedOption(option);
     setIsCorrect(Boolean(option.isCorrect));
     setShowFeedback(true);
+    if (option.isCorrect) {
+      setShowCorrectBird(true);
+    }
   };
 
   const handleNext = () => {
@@ -220,26 +229,17 @@ const PictureRevealGame = ({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm font-bold text-slate-500">
-          <span className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-sky-700">
-            اضغط على المربعات لكشف الصورة
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
-            <Eye size={15} />
-            ثم اختر الإجابة الصحيحة
-          </span>
-        </div>
       </GameSection>
 
       {answeredEnough && (
         <GameSection>
           <div className="mb-3 text-center text-lg font-black text-slate-800">ما هي الصورة؟</div>
           <div
-            className="mx-auto grid"
+            className="mx-auto grid justify-items-center"
             style={{
-              maxWidth: `${CHILD_GAME_OPTIONS_MAX_WIDTH}px`,
-              gap: 'clamp(8px, 1.4vw, 12px)',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              maxWidth: 'min(100%, 32rem)',
+              gap: 'clamp(8px, 1vw, 10px)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(132px, 1fr))',
             }}
           >
             {options.map((option, index) => (
@@ -253,9 +253,12 @@ const PictureRevealGame = ({
                       : 'wrong'
                     : 'idle'
                 }
-                className="min-h-[72px] px-4 py-3 text-right"
+                className="w-full max-w-[19rem] min-h-[60px] px-4 py-2.5 text-right lg:min-h-[56px] lg:max-w-[17rem]"
               >
-                <div className="text-base font-black text-slate-800 md:text-lg">
+                {showCorrectBird && option.isCorrect && (
+                  <BirdHint className="pointer-events-none absolute -top-10 left-1/2 z-30 h-14 w-14 -translate-x-1/2 drop-shadow-[0_10px_18px_rgba(6,182,212,0.28)] md:-top-12 md:h-16 md:w-16" />
+                )}
+                <div className="text-[0.98rem] font-black leading-tight text-slate-800 md:text-[1.02rem]">
                   {option.textAr || option.label || `اختيار ${index + 1}`}
                 </div>
               </GameChoice>

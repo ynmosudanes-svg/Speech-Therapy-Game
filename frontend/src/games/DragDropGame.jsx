@@ -185,7 +185,6 @@ const DragDropGame = ({
     registerAssistantActions({
       onVisualHint: () => {
         setVisualPulse(true);
-        window.setTimeout(() => setVisualPulse(false), 2500);
       },
       onGestureHint: () => {
         setGestureArrow(true);

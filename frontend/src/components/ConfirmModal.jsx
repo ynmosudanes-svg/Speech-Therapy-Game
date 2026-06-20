@@ -45,13 +45,13 @@ const ConfirmModal = ({
 
   const modalClassName =
     position === 'top'
-      ? 'relative w-full max-w-[30rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,#11262d_0%,#0f1f26_100%)] p-6 shadow-[0_30px_70px_-30px_rgba(0,0,0,0.72)] font-sans'
+      ? 'relative w-full max-w-[30rem] overflow-hidden rounded-[2rem] border border-[#cfe9f8] bg-[linear-gradient(180deg,#f7fdff_0%,#eaf8ff_100%)] p-6 shadow-[0_30px_70px_-30px_rgba(19,122,172,0.28)] font-sans'
       : 'relative bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl animate-fade-in-up font-sans';
 
   return (
     <div className={containerClassName}>
       <div
-        className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] transition-opacity animate-fade-in"
+        className="absolute inset-0 bg-slate-950/78 backdrop-blur-[4px] transition-opacity animate-fade-in"
         onClick={onClose}
       />
 
@@ -69,21 +69,21 @@ const ConfirmModal = ({
 
         {position === 'top' ? (
           <div className="flex flex-col items-center text-center">
-            <div className="mb-5 flex h-24 w-24 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
-              <div ref={sleepingBirdRef} className="h-24 w-24" />
+            <div className="mb-5 flex h-28 w-28 items-center justify-center rounded-full bg-white ring-1 ring-[#cfe9f8] shadow-[0_16px_32px_-20px_rgba(19,122,172,0.35)]">
+              <div ref={sleepingBirdRef} className="h-28 w-28" />
             </div>
 
-            <h3 className="mb-3 text-[1.6rem] font-black leading-tight text-white drop-shadow-sm md:text-[1.85rem]">
+            <h3 className="mb-3 text-[1.6rem] font-black leading-tight text-slate-900 md:text-[1.85rem]">
               {title}
             </h3>
 
-            <p className="mb-6 max-w-[24rem] text-[1.05rem] font-semibold leading-relaxed text-white/84 md:text-[1.1rem]">
+            <p className="mb-6 max-w-[24rem] text-[1.05rem] font-semibold leading-relaxed text-slate-600 md:text-[1.1rem]">
               {message}
             </p>
 
             <button
               onClick={onConfirm}
-              className="w-full rounded-[1rem] bg-[linear-gradient(135deg,#5ec9ff,#39b4ef)] px-6 py-3.5 text-base font-black text-[#07121a] transition-all shadow-[0_8px_0_#1497ce] hover:brightness-105 active:translate-y-1 active:shadow-[0_4px_0_#1497ce] md:px-8 md:py-4 md:text-lg"
+              className="w-full rounded-[1rem] bg-[linear-gradient(135deg,#6fd4ff,#2fb1ea)] px-6 py-3.5 text-base font-black text-[#07121a] transition-all shadow-[0_10px_0_#1497ce] hover:brightness-105 active:translate-y-1 active:shadow-[0_5px_0_#1497ce] md:px-8 md:py-4 md:text-lg"
             >
               {confirmText}
             </button>
@@ -91,7 +91,7 @@ const ConfirmModal = ({
             {!hideCancelButton && cancelText && (
               <button
                 onClick={onClose}
-                className="mt-6 text-base font-black text-[#ff7a7a] transition-colors hover:text-[#ff9a9a]"
+                className="mt-6 text-base font-black text-[#ff6f6f] transition-colors hover:text-[#ff8d8d]"
               >
                 {cancelText}
               </button>

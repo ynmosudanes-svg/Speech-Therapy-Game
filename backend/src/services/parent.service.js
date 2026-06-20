@@ -3,6 +3,11 @@ const prisma = require('../config/prisma');
 const ApiError = require('../utils/apiError');
 const { generateUniqueAccessCode } = require('../utils/accessCode');
 
+function normalizeRequestStatus(status) {
+  const value = String(status || '').trim().toUpperCase();
+  return value === 'PENDING' ? 'PENDING' : 'APPROVED';
+}
+
 function sanitizeParent(user) {
   return {
     id: user.id,
@@ -178,7 +183,42 @@ async function linkChildByAccessCode(currentUser, accessCode) {
 
   return prisma.student.update({
     where: { id: student.id },
-    data: { parentId: currentUser.userId },
+    data: { parentId: currentUser.userId, requestStatus: 'APPROVED' },
+    include: {
+      assignedGames: {
+        orderBy: { order: 'asc' },
+        include: { game: true },
+      },
+      therapist: {
+        select: { id: true, name: true, email: true },
+      },
+      parent: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+}
+
+async function unlinkChild(currentUser, studentId) {
+  const student = await prisma.student.findUnique({
+    where: { id: studentId },
+    select: {
+      id: true,
+      parentId: true,
+    },
+  });
+
+  if (!student) {
+    throw new ApiError(404, 'Child not found.');
+  }
+
+  if (student.parentId !== currentUser.userId) {
+    throw new ApiError(403, 'You can only unlink your own child.');
+  }
+
+  return prisma.student.update({
+    where: { id: studentId },
+    data: { parentId: null },
     include: {
       assignedGames: {
         orderBy: { order: 'asc' },
@@ -221,6 +261,7 @@ async function requestChild(currentUser, payload) {
       age: Number(payload.age),
       diagnosis: payload.diagnosis || null,
       planName: payload.planName || 'طلب جديد من ولي الأمر',
+      requestStatus: normalizeRequestStatus('PENDING'),
       currentLevel: 1,
       accessCode,
       therapistId,
@@ -248,5 +289,6 @@ module.exports = {
   deactivateParent,
   deleteParent,
   linkChildByAccessCode,
+  unlinkChild,
   requestChild,
 };

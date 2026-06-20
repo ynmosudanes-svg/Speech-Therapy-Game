@@ -8,11 +8,7 @@ const mapPromptToArabic = (prompt) => {
   if (!prompt) return 'مستقل';
   const p = String(prompt).toUpperCase();
   if (p === 'INDEPENDENT' || p === 'NONE') return 'مستقل';
-  if (p === 'FULL') return 'مساعدة كاملة';
-  if (p === 'PARTIAL') return 'مساعدة جزئية';
-  if (p === 'VERBAL' || p === 'PROMPTED') return 'مساعدة لفظية';
-  if (p === 'PHYSICAL') return 'مساعدة جسدية';
-  if (p === 'VISUAL') return 'مساعدة بصرية';
+  if (p === 'FULL' || p === 'PARTIAL' || p === 'ASSISTED') return 'مساعدة';
   return prompt;
 };
 

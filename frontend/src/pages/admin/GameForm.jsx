@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
+import ConfirmModal from '../../components/ConfirmModal';
 import CustomSelect from '../../components/CustomSelect';
 import ImageAssetField from '../../components/ImageAssetField';
 import { gameService } from '../../services/gameService';
@@ -243,6 +244,7 @@ const FileUploadField = ({
 }) => {
   const [uploading, setUploading] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [dialog, setDialog] = useState(null);
 
   const handleFileChange = async (event) => {
     const file = event.target.files?.[0];
@@ -253,7 +255,13 @@ const FileUploadField = ({
       const uploadedUrl = await uploadAsset(file);
       onUploaded(uploadedUrl);
     } catch (error) {
-      window.alert(getApiErrorMessage(error, 'تعذر رفع الملف.'));
+      setDialog({
+        title: 'تعذر الرفع',
+        message: getApiErrorMessage(error, 'تعذر رفع الملف.'),
+        confirmText: 'حسناً',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
     } finally {
       setUploading(false);
       event.target.value = '';
@@ -304,6 +312,21 @@ const FileUploadField = ({
         onSelect={(url) => onUploaded(url)}
         initialType={mediaType}
       />
+
+      {dialog && (
+        <ConfirmModal
+          isOpen
+          onClose={() => setDialog(null)}
+          onConfirm={() => setDialog(null)}
+          title={dialog.title}
+          message={dialog.message}
+          confirmText={dialog.confirmText}
+          cancelText={dialog.cancelText}
+          hideCancelButton={dialog.hideCancelButton}
+          isDestructive={dialog.isDestructive}
+          position="top"
+        />
+      )}
 
       {resolvedPreviewType === 'image' && (
         <div
@@ -499,6 +522,7 @@ const GameForm = ({ mode = 'create' }) => {
   const [saveNotice, setSaveNotice] = useState('');
   const [draftNotice, setDraftNotice] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [dialog, setDialog] = useState(null);
   const [mazeDrawTool, setMazeDrawTool] = useState('wall');
   const hasHydratedDraftRef = useRef(false);
   const lastSavedSnapshotRef = useRef('');
@@ -570,7 +594,13 @@ const GameForm = ({ mode = 'create' }) => {
           config,
         });
       } catch (error) {
-        window.alert(getApiErrorMessage(error, 'تعذر تحميل اللعبة.'));
+        setDialog({
+          title: 'تعذر التحميل',
+          message: getApiErrorMessage(error, 'تعذر تحميل اللعبة.'),
+          confirmText: 'حسناً',
+          hideCancelButton: true,
+          isDestructive: false,
+        });
         navigate('/admin/games');
       } finally {
         setLoading(false);
@@ -856,16 +886,23 @@ const GameForm = ({ mode = 'create' }) => {
   // Auto-initialize options if empty
   useEffect(() => {
     if (
-      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal'].includes(currentActivityType) && 
+      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal', 'image.complete_part'].includes(currentActivityType) && 
       currentActivity
     ) {
       if (!currentActivity.options || currentActivity.options.length === 0) {
+        const isImageCompletePart = currentActivityType === 'image.complete_part';
         updateCurrentActivity((activity) => ({
           ...activity,
-          options: [
-            { id: `opt_${Date.now()}_1`, textAr: '', image: '', isCorrect: true },
-            { id: `opt_${Date.now()}_2`, textAr: '', image: '', isCorrect: false },
-          ],
+          options: isImageCompletePart
+            ? [
+              { id: `opt_${Date.now()}_1`, textAr: '', image: '', isCorrect: false },
+              { id: `opt_${Date.now()}_2`, textAr: '', image: '', isCorrect: false },
+              { id: `opt_${Date.now()}_3`, textAr: '', image: '', isCorrect: false },
+            ]
+            : [
+              { id: `opt_${Date.now()}_1`, textAr: '', image: '', isCorrect: true },
+              { id: `opt_${Date.now()}_2`, textAr: '', image: '', isCorrect: false },
+            ],
         }));
       }
     }
@@ -1203,6 +1240,12 @@ const GameForm = ({ mode = 'create' }) => {
           if (activity.missingCellIds.length < Number(activity.missingPartCount || 1)) {
             return `حدد كل الأجزاء الناقصة المطلوبة في المستوى ${level.levelNumber}.`;
           }
+          if ((activity.options || []).length < 1) {
+            return `أضف صور الاختيارات في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.options || []).some((option) => !option.image?.trim())) {
+            return `أكمل صور الاختيارات في المستوى ${level.levelNumber}.`;
+          }
         }
 
         if (activityType === 'matching.different') {
@@ -1279,6 +1322,13 @@ const GameForm = ({ mode = 'create' }) => {
         if (activityType === 'puzzle.jigsaw') {
           if (!activity.image?.trim()) {
             return `أضف صورة البازل في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.puzzleMode || 'jigsaw') === 'missing-piece') {
+            const gridSize = Math.max(2, Number(activity.gridSize || 0));
+            const slotIndex = Number(activity.missingSlotIndex);
+            if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= gridSize * gridSize) {
+              return `حدد الخانة الناقصة بشكل صحيح في المستوى ${level.levelNumber}.`;
+            }
           }
         }
 
@@ -1906,60 +1956,122 @@ const GameForm = ({ mode = 'create' }) => {
                           {currentActivity.image ? (
                             <div className="space-y-3">
                               <div className="text-sm font-bold text-slate-700">
-                                اضغط على الخانة أو الخانتين اللي عاوزهم يبقوا الجزء الناقص
+                                اسحب القطعة الصحيحة إلى الخانة أو الخانتين اللي عاوزهم يبقوا الجزء الناقص
                               </div>
                               <div
                                 dir="ltr"
-                                className="relative mx-auto grid max-w-[320px] overflow-hidden rounded-[1.5rem] border-4 border-white bg-white shadow-[0_12px_28px_-18px_rgba(15,111,166,0.18)]"
-                                style={{ gridTemplateColumns: `repeat(${Number(currentActivity.gridCols || 2)}, minmax(0, 1fr))` }}
+                                className="relative mx-auto overflow-hidden rounded-[1.5rem] border-4 border-white bg-white shadow-[0_12px_28px_-18px_rgba(15,111,166,0.18)]"
+                                style={{
+                                  aspectRatio: `${Number(currentActivity.gridCols || 2)} / ${Number(currentActivity.gridRows || 2)}`,
+                                  maxWidth: '320px',
+                                }}
                               >
-                                {Array.from(
-                                  {
-                                    length:
-                                      Number(currentActivity.gridRows || 2) *
-                                      Number(currentActivity.gridCols || 2),
-                                  },
-                                  (_, cellIndex) => {
-                                    const cellId = String(cellIndex);
-                                    const isSelected = (currentActivity.missingCellIds || []).map((id) => String(id)).includes(cellId);
+                                <img
+                                  src={currentActivity.image}
+                                  alt="المعاينة"
+                                  className="absolute inset-0 h-full w-full object-cover"
+                                />
 
-                                    return (
-                                      <button
-                                        key={cellId}
-                                        type="button"
-                                        onClick={() => toggleCompletePartCell(cellId)}
-                                        className={`relative aspect-square overflow-hidden border border-white/80 transition-all ${
-                                          isSelected
-                                            ? 'ring-4 ring-amber-300'
-                                            : 'hover:opacity-90'
-                                        }`}
-                                      >
-                                        <div
-                                          className="h-full w-full bg-cover bg-no-repeat"
-                                          style={{
-                                            backgroundImage: `url(${currentActivity.image})`,
-                                            backgroundSize: `${Number(currentActivity.gridCols || 2) * 100}% ${Number(currentActivity.gridRows || 2) * 100}%`,
-                                            backgroundPosition: `${(cellIndex % Number(currentActivity.gridCols || 2)) * (100 / Math.max(Number(currentActivity.gridCols || 2) - 1, 1))}% ${Math.floor(cellIndex / Number(currentActivity.gridCols || 2)) * (100 / Math.max(Number(currentActivity.gridRows || 2) - 1, 1))}%`,
-                                          }}
-                                        />
-                                        <div
-                                          className={`absolute inset-0 flex items-center justify-center text-lg font-black ${
-                                            isSelected ? 'bg-amber-400/50 text-white' : 'bg-slate-900/12 text-white'
+                                <div
+                                  className="absolute inset-0 grid"
+                                  style={{
+                                    gridTemplateColumns: `repeat(${Number(currentActivity.gridCols || 2)}, minmax(0, 1fr))`,
+                                    gridTemplateRows: `repeat(${Number(currentActivity.gridRows || 2)}, minmax(0, 1fr))`,
+                                  }}
+                                >
+                                  {Array.from(
+                                    {
+                                      length:
+                                        Number(currentActivity.gridRows || 2) *
+                                        Number(currentActivity.gridCols || 2),
+                                    },
+                                    (_, cellIndex) => {
+                                      const cellId = String(cellIndex);
+                                      const isSelected = (currentActivity.missingCellIds || []).map((id) => String(id)).includes(cellId);
+
+                                      return (
+                                        <button
+                                          key={cellId}
+                                          type="button"
+                                          onClick={() => toggleCompletePartCell(cellId)}
+                                          className={`relative border border-white/40 transition-all ${
+                                            isSelected
+                                              ? 'bg-amber-300/12 ring-4 ring-amber-300/80'
+                                              : 'bg-transparent hover:bg-white/8'
                                           }`}
                                         >
-                                          {cellIndex + 1}
-                                        </div>
-                                      </button>
-                                    );
-                                  }
-                                )}
+                                          {isSelected && (
+                                            <div className="absolute inset-0 border-2 border-dashed border-amber-300/90" />
+                                          )}
+                                        </button>
+                                      );
+                                    }
+                                  )}
+                                </div>
                               </div>
                             </div>
                           ) : (
                             <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 px-4 py-6 text-center text-sm font-bold text-slate-500">
-                              ارفع الصورة أولاً لتحديد الجزء الناقص من الشبكة.
+                              ارفع الصورة أولاً ثم اسحب الجزء الناقص على الشبكة لتحديده.
                             </div>
                           )}
+                        </div>
+
+                        <div className="rounded-2xl border border-[#D9EAF2] bg-white px-4 py-4 space-y-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-bold text-[#0F6FA6]">صور الاختيارات</div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={addOption}
+                              className="!py-2 !px-4 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-100"
+                            >
+                              <Plus size={18} />
+                              <span>إضافة اختيار</span>
+                            </Button>
+                          </div>
+
+                          <div className="text-sm font-bold text-slate-600">
+                            الصورة الصحيحة بتتسحب تلقائيًا من الخانة المختارة، وأنت تضيف باقي صور الاختيارات هنا.
+                          </div>
+
+                          <div className="grid gap-4 md:grid-cols-2">
+                            {(currentActivity.options || []).map((option, optionIndex) => (
+                              <div key={option.id} className="rounded-[1.6rem] border border-[#dbe7f3] bg-[#f8fbff] p-4 space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <h4 className="font-black text-slate-800">اختيار {optionIndex + 1}</h4>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeOption(optionIndex)}
+                                    disabled={(currentActivity.options || []).length <= 1}
+                                    className={`inline-flex items-center justify-center rounded-xl border p-2 transition-colors ${
+                                      (currentActivity.options || []).length <= 1
+                                        ? 'text-slate-400 border-slate-200 bg-slate-100 cursor-not-allowed'
+                                        : 'text-red-500 border-red-200 bg-red-50 hover:text-red-600 hover:bg-red-100'
+                                    }`}
+                                    title={(currentActivity.options || []).length <= 1 ? 'لا يمكن الحذف: يجب وجود اختيار واحد على الأقل' : 'حذف الاختيار'}
+                                  >
+                                    <Trash2 size={18} />
+                                  </button>
+                                </div>
+
+                                <input
+                                  type="text"
+                                  value={option.textAr || ''}
+                                  onChange={(event) => updateOption(optionIndex, 'textAr', event.target.value)}
+                                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                                  placeholder="اسم الاختيار (اختياري)"
+                                />
+
+                                <ImageAssetField
+                                  label="صورة الاختيار"
+                                  value={option.image || ''}
+                                  onSelect={(value) => updateOption(optionIndex, 'image', value)}
+                                  token={adminSession?.token}
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -2113,12 +2225,18 @@ const GameForm = ({ mode = 'create' }) => {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
                           <ImagePlus size={24} />
-                          <h3 className="text-xl font-black">إعدادات البازل (الإجابات)</h3>
+                          <h3 className="text-xl font-black">
+                            {(currentActivity.puzzleMode || 'jigsaw') === 'missing-piece'
+                              ? 'إعدادات الجزء الناقص'
+                              : 'إعدادات البازل (الإجابات)'}
+                          </h3>
                         </div>
                       </div>
 
                       <div className="rounded-2xl bg-amber-50/80 border border-amber-100/80 px-4 py-3 text-sm font-bold text-amber-700/90">
-                        قم برفع الصورة التي سيقوم الطفل بتركيبها، وحدد مستوى الصعوبة (عدد القطع).
+                        {(currentActivity.puzzleMode || 'jigsaw') === 'missing-piece'
+                          ? 'قم برفع الصورة ثم حدد الخانة الناقصة، وسيُعرض الجزء الناقص كاختيارات منفصلة.'
+                          : 'قم برفع الصورة التي سيقوم الطفل بتركيبها، وحدد مستوى الصعوبة (عدد القطع).'}
                       </div>
 
                       <div className="rounded-[1.8rem] border border-[#dbe7f3] bg-[#f8fbff] p-5 space-y-4">
@@ -2140,7 +2258,18 @@ const GameForm = ({ mode = 'create' }) => {
                               <button
                                 type="button"
                                 key={mode.value}
-                                onClick={() => setActivityField('puzzleMode', mode.value)}
+                                onClick={() =>
+                                  updateCurrentActivity((activity) => ({
+                                    ...activity,
+                                    puzzleMode: mode.value,
+                                    missingSlotIndex:
+                                      mode.value === 'missing-piece'
+                                        ? Number.isInteger(Number(activity.missingSlotIndex))
+                                          ? Number(activity.missingSlotIndex)
+                                          : 0
+                                        : activity.missingSlotIndex ?? 0,
+                                  }))
+                                }
                                 className={`py-3 rounded-xl border-2 font-bold transition-all ${
                                   (currentActivity.puzzleMode || 'jigsaw') === mode.value
                                     ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
@@ -2156,13 +2285,91 @@ const GameForm = ({ mode = 'create' }) => {
                               <button
                                 type="button"
                                 key={size} 
-                                onClick={() => setActivityField('gridSize', size)}
+                                onClick={() =>
+                                  updateCurrentActivity((activity) => {
+                                    const currentSlot = Number.isInteger(Number(activity.missingSlotIndex))
+                                      ? Number(activity.missingSlotIndex)
+                                      : 0;
+
+                                    return {
+                                      ...activity,
+                                      gridSize: size,
+                                      missingSlotIndex: Math.min(currentSlot, size * size - 1),
+                                    };
+                                  })
+                                }
                                 className={`py-3 rounded-xl border-2 font-bold transition-all ${currentActivity.gridSize === size ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-200 bg-white text-slate-500'}`}
                               >
                                 {size}x{size}
                               </button>
                             ))}
                           </div>
+                          {(currentActivity.puzzleMode || 'jigsaw') === 'missing-piece' && (
+                            <div className="space-y-3 pt-1">
+                              <div className="text-sm font-bold text-slate-700">
+                                اضغط على الخانة التي تريد أن تكون ناقصة
+                              </div>
+
+                              {currentActivity.image ? (
+                                <div
+                                  dir="ltr"
+                                  className="relative mx-auto overflow-hidden rounded-[1.5rem] border-4 border-white bg-white shadow-[0_12px_28px_-18px_rgba(15,111,166,0.18)]"
+                                  style={{
+                                    aspectRatio: '1 / 1',
+                                    maxWidth: '320px',
+                                  }}
+                                >
+                                  <img
+                                    src={currentActivity.image}
+                                    alt="المعاينة"
+                                    className="absolute inset-0 h-full w-full object-cover"
+                                  />
+
+                                  <div
+                                    className="absolute inset-0 grid"
+                                    style={{
+                                      gridTemplateColumns: `repeat(${Number(currentActivity.gridSize || 3)}, minmax(0, 1fr))`,
+                                      gridTemplateRows: `repeat(${Number(currentActivity.gridSize || 3)}, minmax(0, 1fr))`,
+                                    }}
+                                  >
+                                    {Array.from(
+                                      {
+                                        length:
+                                          Number(currentActivity.gridSize || 3) *
+                                          Number(currentActivity.gridSize || 3),
+                                      },
+                                      (_, cellIndex) => {
+                                        const isSelected =
+                                          Number.isInteger(Number(currentActivity.missingSlotIndex)) &&
+                                          Number(currentActivity.missingSlotIndex) === cellIndex;
+
+                                        return (
+                                          <button
+                                            key={cellIndex}
+                                            type="button"
+                                            onClick={() => setActivityField('missingSlotIndex', cellIndex)}
+                                            className={`relative border border-white/35 transition-all ${
+                                              isSelected
+                                                ? 'bg-amber-300/12 ring-4 ring-amber-300/80'
+                                                : 'bg-transparent hover:bg-white/8'
+                                            }`}
+                                          >
+                                            {isSelected && (
+                                              <div className="absolute inset-0 border-2 border-dashed border-amber-300/90" />
+                                            )}
+                                          </button>
+                                        );
+                                      },
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-4 py-5 text-center text-sm font-bold text-slate-500">
+                                  ارفع صورة البازل أولًا علشان تختار الخانة الناقصة من المعاينة.
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2984,6 +3191,21 @@ const GameForm = ({ mode = 'create' }) => {
           </Button>
         </div>
       </form>
+
+      {dialog && (
+        <ConfirmModal
+          isOpen
+          onClose={() => setDialog(null)}
+          onConfirm={() => setDialog(null)}
+          title={dialog.title}
+          message={dialog.message}
+          confirmText={dialog.confirmText}
+          cancelText={dialog.cancelText}
+          hideCancelButton={dialog.hideCancelButton}
+          isDestructive={dialog.isDestructive}
+          position="top"
+        />
+      )}
     </div>
   );
 };

@@ -1101,6 +1101,7 @@ export default function LibraryPage() {
         message={`هل تريد حذف خطة "${deleteTarget?.name || ''}"؟ سيتم حذف الخطة فقط بدون حذف الألعاب نفسها.`}
         confirmText="حذف الخطة"
         cancelText="إلغاء"
+        position="top"
       />
     </div>
   );

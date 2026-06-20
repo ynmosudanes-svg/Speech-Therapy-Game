@@ -26,8 +26,10 @@ const GameEngine = ({
     timeSpent: 0,
   });
 
-  const assistantRef = useRef(null);
   const assistantActionsRef = useRef({});
+  const idleTimerRef = useRef(null);
+  const activityHelpUsedRef = useRef(false);
+  const activityHelpTypesRef = useRef([]);
 
   const config = game?.config || {};
   const levels = Array.isArray(config?.levels) ? config.levels : [];
@@ -51,42 +53,80 @@ const GameEngine = ({
     });
   }, [game?.id, startLevel]);
 
+  const clearIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) {
+      window.clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+  }, []);
+
   const registerAssistantActions = useCallback((actions = {}) => {
     assistantActionsRef.current = actions;
   }, []);
 
-  const pauseAssistant = useCallback(() => {
-    assistantRef.current?.pauseAssistant?.();
+  const triggerBirdHint = useCallback(() => {
+    if (activityHelpUsedRef.current) return;
+
+    activityHelpUsedRef.current = true;
+    activityHelpTypesRef.current = ['bird'];
+    assistantActionsRef.current.onVisualHint?.();
   }, []);
 
-  useEffect(() => {
-    assistantRef.current?.resetAssistant?.();
-  }, [activityIndex, activityRunKey, game?.id]);
+  const startIdleTimer = useCallback(() => {
+    clearIdleTimer();
 
-  useEffect(() => {
-    if (assistantSuspended) {
-      assistantRef.current?.stopAssistant?.();
+    const idleTime = Number(assistantOptions?.idleTime || 8000);
+    if (assistantSuspended || idleTime <= 0 || activityHelpUsedRef.current) {
       return;
     }
 
-    assistantRef.current?.resetAssistant?.();
-  }, [assistantSuspended, activityIndex, activityRunKey, game?.id]);
+    idleTimerRef.current = window.setTimeout(() => {
+      triggerBirdHint();
+    }, idleTime);
+  }, [assistantOptions?.idleTime, assistantSuspended, clearIdleTimer, triggerBirdHint]);
+
+  const pauseAssistant = useCallback(() => {
+    if (assistantSuspended) return;
+    startIdleTimer();
+  }, [assistantSuspended, startIdleTimer]);
+
+  useEffect(() => {
+    activityHelpUsedRef.current = false;
+    activityHelpTypesRef.current = [];
+    startIdleTimer();
+
+    return () => clearIdleTimer();
+  }, [activityIndex, activityRunKey, game?.id, startIdleTimer, clearIdleTimer]);
+
+  useEffect(() => {
+    if (assistantSuspended) {
+      clearIdleTimer();
+      return;
+    }
+
+    activityHelpUsedRef.current = false;
+    activityHelpTypesRef.current = [];
+    startIdleTimer();
+  }, [assistantSuspended, activityIndex, activityRunKey, game?.id, clearIdleTimer, startIdleTimer]);
 
   useEffect(() => () => {
-    assistantRef.current?.stopAssistant?.();
-  }, []);
+    clearIdleTimer();
+  }, [clearIdleTimer]);
 
   const handleRestartActivity = () => {
-    assistantRef.current?.stopAssistant?.();
     assistantActionsRef.current = {};
+    activityHelpUsedRef.current = false;
+    activityHelpTypesRef.current = [];
+    clearIdleTimer();
+    startIdleTimer();
     setActivityRunKey((current) => current + 1);
   };
 
   const handleActivityComplete = (stats) => {
-    const helpsUsed = assistantRef.current?.getHelpsUsed?.() || [];
-    const helpCount = assistantRef.current?.getHelpCount?.() || 0;
+    const helpsUsed = activityHelpTypesRef.current.length ? [...activityHelpTypesRef.current] : [];
+    const helpCount = helpsUsed.length ? 1 : 0;
 
-    assistantRef.current?.stopAssistant?.();
+    clearIdleTimer();
 
     const enrichedStats = {
       ...stats,
@@ -113,6 +153,8 @@ const GameEngine = ({
 
     setAggregateStats(nextStats);
     setActivityRunKey(0);
+    activityHelpUsedRef.current = false;
+    activityHelpTypesRef.current = [];
     setActivityIndex((current) => current + 1);
   };
 
@@ -150,7 +192,7 @@ const GameEngine = ({
     gameId: `${game.id}-${activeLevel.levelNumber}-${currentActivity.id}-${activityRunKey}`,
   });
 
-  const idleTime = assistantOptions?.idleTime || 15000;
+  const idleTime = Number(assistantOptions?.idleTime || 8000);
   const helpVoiceEnabled = assistantOptions?.helpVoiceEnabled ?? false;
   const progress = ((activityIndex + 1) / Math.max(activities.length, 1)) * 100;
 

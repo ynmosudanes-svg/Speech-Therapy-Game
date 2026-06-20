@@ -324,6 +324,7 @@ const TherapistsList = () => {
         }
         cancelText="إلغاء"
         isDestructive={confirmModal.actionType === 'delete' || confirmModal.currentStatus}
+        position="top"
       />
     </div>
   );

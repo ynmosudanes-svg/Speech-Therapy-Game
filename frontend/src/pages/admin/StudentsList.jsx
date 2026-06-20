@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, Pencil, Play, Printer, Trash2, UserPlus, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/Button';
+import ConfirmModal from '../../components/ConfirmModal';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 
 const StudentsList = () => {
   const navigate = useNavigate();
   const { deleteStudent, fetchStudents, loadingStudents, students } = useTherapyStore();
   const [actionError, setActionError] = useState('');
+  const [deleteStudentId, setDeleteStudentId] = useState(null);
 
   const safeStudents = useMemo(() => (Array.isArray(students) ? students : []), [students]);
 
@@ -24,16 +26,7 @@ const StudentsList = () => {
 
 
   const handleDeleteStudent = async (studentId) => {
-    if (!window.confirm('هل تريد حذف هذا الطالب؟')) {
-      return;
-    }
-
-    try {
-      setActionError('');
-      await deleteStudent(studentId);
-    } catch (error) {
-      setActionError(error?.response?.data?.message || error?.message || 'تعذر حذف الطالب.');
-    }
+    setDeleteStudentId(studentId);
   };
 
   const handlePrintCode = (student) => {
@@ -205,6 +198,28 @@ const StudentsList = () => {
           </Button>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(deleteStudentId)}
+        onClose={() => setDeleteStudentId(null)}
+        onConfirm={async () => {
+          if (!deleteStudentId) return;
+          try {
+            setActionError('');
+            await deleteStudent(deleteStudentId);
+          } catch (error) {
+            setActionError(error?.response?.data?.message || error?.message || 'تعذر حذف الطالب.');
+          } finally {
+            setDeleteStudentId(null);
+          }
+        }}
+        title="حذف الطالب"
+        message="هل تريد حذف هذا الطالب؟ لا يمكن التراجع عن هذه الخطوة."
+        confirmText="نعم، احذف الطالب"
+        cancelText="إلغاء"
+        isDestructive={true}
+        position="top"
+      />
     </div>
   );
 };

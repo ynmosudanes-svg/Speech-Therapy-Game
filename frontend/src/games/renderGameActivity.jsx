@@ -61,7 +61,7 @@ const renderGameActivity = ({
     return <AudioCardsGame {...sharedProps} />;
   }
 
-  if (game?.type === 'puzzle.jigsaw') {
+  if (game?.type === 'puzzle.jigsaw' && game?.config?.puzzleMode !== 'missing-piece') {
     return <PuzzleGame {...sharedProps} />;
   }
 
@@ -73,7 +73,7 @@ const renderGameActivity = ({
     return <PictureRevealGame {...sharedProps} />;
   }
 
-  if (game?.type === 'image.complete_part') {
+  if (game?.type === 'puzzle.jigsaw' || game?.type === 'image.complete_part') {
     return <ImageCompletePartGame {...sharedProps} />;
   }
 

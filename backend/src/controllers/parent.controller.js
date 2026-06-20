@@ -54,6 +54,15 @@ const linkChild = asyncHandler(async (req, res) => {
   });
 });
 
+const unlinkChild = asyncHandler(async (req, res) => {
+  const student = await parentService.unlinkChild(req.user, req.params.studentId);
+  res.json({
+    success: true,
+    message: 'Child unlinked successfully.',
+    data: student,
+  });
+});
+
 const requestChild = asyncHandler(async (req, res) => {
   const student = await parentService.requestChild(req.user, req.body);
   res.status(201).json({
@@ -70,5 +79,6 @@ module.exports = {
   deactivateParent,
   deleteParent,
   linkChild,
+  unlinkChild,
   requestChild,
 };

@@ -17,6 +17,7 @@ const FindSimilarGame = ({
   onComplete,
   therapistControlsEnabled = false,
   therapistPromptLevel = 'none',
+  registerAssistantActions,
 }) => {
   const [selectedOption, setSelectedOption] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -24,6 +25,7 @@ const FindSimilarGame = ({
   const [startTime] = useState(Date.now());
   const [attempts, setAttempts] = useState(0);
   const [shuffledOptions, setShuffledOptions] = useState([]);
+  const [visualPulse, setVisualPulse] = useState(false);
 
   const avatarState = showFeedback ? (isCorrect ? 'celebration' : 'error') : 'learning';
 
@@ -35,6 +37,18 @@ const FindSimilarGame = ({
       playAudioUrl(game.questionAudio);
     }
   }, [game]);
+
+  useEffect(() => {
+    if (!registerAssistantActions) return undefined;
+
+    registerAssistantActions({
+      onVisualHint: () => {
+        setVisualPulse(true);
+      },
+    });
+
+    return () => registerAssistantActions({});
+  }, [registerAssistantActions]);
 
   const handleSelect = (option) => {
     if (showFeedback) return;
@@ -69,7 +83,11 @@ const FindSimilarGame = ({
   if (!game) return null;
 
   return (
-    <GameContainer className="max-w-4xl" dir="rtl">
+    <GameContainer
+      className="max-w-4xl"
+      dir="rtl"
+      style={{ maxWidth: 'min(100%, clamp(18rem, 46vw, 34rem))' }}
+    >
       <ChildGameBackdrop />
       <GameHeader
         instruction={game.questionTextAr || 'ورّيني الصورة اللي زي دي'}
@@ -90,17 +108,18 @@ const FindSimilarGame = ({
         />
       </GameSection>
 
-      <GameGrid className="mx-auto max-w-2xl" minWidth="clamp(118px, 22vw, 180px)">
+      <GameGrid className="mx-auto mt-8 max-w-xl" minWidth="clamp(104px, 18vw, 156px)">
         {shuffledOptions.map((option) => {
           const isActive = selectedOption?.id === option.id;
-          const choiceState = isActive ? (isCorrect ? 'correct' : 'wrong') : 'idle';
+          const isHintedCorrect = visualPulse && option.isCorrect;
+          const choiceState = isActive ? (isCorrect ? 'correct' : 'wrong') : isHintedCorrect ? 'hint' : 'idle';
 
           return (
             <GameChoice
               key={option.id}
               onClick={() => handleSelect(option)}
               state={choiceState}
-              className="min-h-[clamp(128px,38vw,178px)] sm:min-h-[clamp(138px,24vw,190px)]"
+              className="min-h-[clamp(104px,26vw,144px)] sm:min-h-[clamp(114px,20vw,150px)] lg:min-h-[clamp(108px,14vw,132px)]"
             >
               <GameImage
                 src={option.image}

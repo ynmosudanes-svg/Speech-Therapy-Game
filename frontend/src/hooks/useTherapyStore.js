@@ -118,6 +118,7 @@ const normalizeStudent = (student) => ({
 
 const mapFrontendPromptToApi = (promptLevel) => {
   if (!promptLevel || promptLevel === 'none' || promptLevel === 'independent') return 'INDEPENDENT';
+  if (promptLevel === 'assisted') return 'PARTIAL';
   if (promptLevel === 'physical' || promptLevel === 'full_physical' || promptLevel === 'partial_physical') return 'FULL';
   return 'PARTIAL'; // visual, verbal, gestural, modeling
 };

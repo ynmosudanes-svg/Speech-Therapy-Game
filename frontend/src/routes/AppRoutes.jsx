@@ -26,6 +26,7 @@ import StudentHome from '../pages/student/StudentHome';
 import StudentWorkspaceSection from '../pages/student/StudentWorkspaceSection';
 import GamesLibrary from '../pages/student/GamesLibrary';
 import ParentDashboard from '../pages/parent/ParentDashboard';
+import ParentChildReport from '../pages/parent/ParentChildReport';
 import { useTherapyStore } from '../hooks/useTherapyStore';
 
 const AppRoutes = () => {
@@ -37,6 +38,7 @@ const AppRoutes = () => {
       <Route path="/auth/register" element={<Navigate to="/" replace state={{ mode: 'register' }} />} />
       <Route path="/auth/staff-login" element={<Navigate to="/" replace state={{ mode: 'staff' }} />} />
       <Route path="/parent/dashboard" element={<ParentDashboard />} />
+      <Route path="/parent/reports/:studentId" element={<ParentChildReport />} />
       <Route path="/account/dashboard" element={<Navigate to="/" replace />} />
       <Route path="/trial/dashboard" element={<Navigate to="/" replace />} />
       <Route

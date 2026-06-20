@@ -49,7 +49,7 @@ const linkChild = asyncHandler(async (req, res) => {
   const student = await parentService.linkChildByAccessCode(req.user, req.body.accessCode);
   res.json({
     success: true,
-    message: 'Child linked successfully.',
+    message: 'Child link request submitted successfully.',
     data: student,
   });
 });

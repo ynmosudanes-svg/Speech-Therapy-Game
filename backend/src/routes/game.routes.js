@@ -23,6 +23,8 @@ const supportedTypes = [
   'navigation.maze',
   'text.missing_word',
   'cards.audio_flashcards',
+  'memory.cards',
+  'memory.grid',
   'puzzle.jigsaw',
   'matching.connect',
 ];

@@ -7,6 +7,8 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'matching.shadow') return 'انظر إلى الظل واختر الصورة المناسبة';
   if (type === 'picture.reveal') return 'اكشف الصورة ثم اختر الإجابة الصحيحة';
   if (type === 'image.complete_part') return 'اسحب الجزء الصحيح إلى الخانة الناقصة لإكمال الصورة';
+  if (type === 'memory.cards') return 'افتح كارتين وابحث عن الصور المتطابقة';
+  if (type === 'memory.grid') return 'تذكر أماكن الصور ثم ابحث عن الصورة المطلوبة';
   return 'اكتب السؤال هنا';
 };
 
@@ -40,6 +42,22 @@ const createDragItem = (id, startPosition = 'bottom', isCorrect = false) => ({
   isCorrect,
 });
 
+const createMemoryCards = () => [
+  { id: `memory_${Date.now()}_1`, image: '', textAr: 'قطة', audioUrl: '', emoji: '🐱', category: 'animals' },
+  { id: `memory_${Date.now()}_2`, image: '', textAr: 'تفاحة', audioUrl: '', emoji: '🍎', category: 'fruits' },
+  { id: `memory_${Date.now()}_3`, image: '', textAr: 'سيارة', audioUrl: '', emoji: '🚗', category: 'vehicles' },
+  { id: `memory_${Date.now()}_4`, image: '', textAr: 'نجمة', audioUrl: '', emoji: '⭐', category: 'shapes' },
+];
+
+const createMemoryGridCards = () => [
+  ...createMemoryCards(),
+  { id: `memory_grid_${Date.now()}_5`, image: '', textAr: 'كرة', audioUrl: '', emoji: '⚽', category: 'objects' },
+  { id: `memory_grid_${Date.now()}_6`, image: '', textAr: 'كتاب', audioUrl: '', emoji: '📘', category: 'household' },
+  { id: `memory_grid_${Date.now()}_7`, image: '', textAr: 'موزة', audioUrl: '', emoji: '🍌', category: 'fruits' },
+  { id: `memory_grid_${Date.now()}_8`, image: '', textAr: 'كلب', audioUrl: '', emoji: '🐶', category: 'animals' },
+  { id: `memory_grid_${Date.now()}_9`, image: '', textAr: 'بيت', audioUrl: '', emoji: '🏠', category: 'household' },
+];
+
 export const getDefaultActivityForType = (type, activityIndex = 0) => {
   if (type === 'cards.audio_flashcards') {
     return {
@@ -53,6 +71,31 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
         { id: `card_${Date.now()}_1`, image: '', textAr: '', audioUrl: '' },
         { id: `card_${Date.now()}_2`, image: '', textAr: '', audioUrl: '' },
       ],
+    };
+  }
+  if (type === 'memory.cards') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      pairCount: 4,
+      cards: createMemoryCards(),
+    };
+  }
+  if (type === 'memory.grid') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'medium',
+      gridSize: 3,
+      viewSeconds: 4,
+      cards: createMemoryGridCards(),
     };
   }
   if (type === 'matching.similar') {
@@ -578,6 +621,53 @@ export const buildActivityRuntimeGame = ({
           instructionAr: activity?.questionAr || 'استمع للبطاقات وتعلم',
           instructionAudio: activity?.instructionAudio || '',
           cards: Array.isArray(activity?.cards) ? activity.cards : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'memory.cards') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          instructionAudio: activity?.instructionAudio || '',
+          pairCount: Number(activity?.pairCount ?? activity?.cards?.length ?? 4),
+          maxPairs: Number(activity?.pairCount ?? activity?.cards?.length ?? 4),
+          cards: Array.isArray(activity?.cards) ? activity.cards : createMemoryCards(),
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'memory.grid') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          instructionAudio: activity?.instructionAudio || '',
+          difficulty: activity?.difficulty || 'medium',
+          gridSize: Number(activity?.gridSize ?? 3),
+          viewSeconds: Number(activity?.viewSeconds ?? 4),
+          cards: Array.isArray(activity?.cards) ? activity.cards : createMemoryGridCards(),
         },
         feedback: {
           successSound: sharedMedia?.successSound || '',

@@ -111,6 +111,18 @@ const GAME_TYPE_CARDS = [
     accent: 'from-fuchsia-100 to-purple-100',
   },
   {
+    value: 'memory.cards',
+    title: 'لعبة الذاكرة',
+    description: 'كروت مقلوبة يظهر كل عنصر مرتين. يتذكر الطفل أماكن الصور ويطابق الأزواج مع نطق اسم كل عنصر.',
+    accent: 'from-sky-100 to-cyan-100',
+  },
+  {
+    value: 'memory.grid',
+    title: 'شبكة الذاكرة',
+    description: 'يعرض شبكة صور لثوان قليلة، ثم تختفي الصور ويطلب من الطفل إيجاد صورة محددة من الذاكرة.',
+    accent: 'from-cyan-100 to-emerald-100',
+  },
+  {
     value: 'puzzle.jigsaw',
     title: 'لعبة البازل',
     description: 'يقوم الطفل بتركيب أجزاء الصورة لإكمال الشكل النهائي، لتنمية مهارات التركيز وحل المشكلات.',
@@ -1248,6 +1260,33 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
+        if (activityType === 'memory.cards') {
+          if ((activity.cards || []).length < 2) {
+            return `لعبة الذاكرة تحتاج عنصرين على الأقل في المستوى ${level.levelNumber}.`;
+          }
+          if (
+            (activity.cards || []).some(
+              (card) => !card.image?.trim() && !card.textAr?.trim()
+            )
+          ) {
+            return `كل كارت في لعبة الذاكرة يحتاج صورة أو كلمة في المستوى ${level.levelNumber}.`;
+          }
+        }
+
+        if (activityType === 'memory.grid') {
+          const neededCards = Math.max(4, Number(activity.gridSize || 3) * Number(activity.gridSize || 3));
+          if ((activity.cards || []).length < neededCards) {
+            return `شبكة الذاكرة تحتاج ${neededCards} صور/عناصر في المستوى ${level.levelNumber}.`;
+          }
+          if (
+            (activity.cards || []).some(
+              (card) => !card.image?.trim() && !card.textAr?.trim()
+            )
+          ) {
+            return `كل عنصر في شبكة الذاكرة يحتاج صورة أو كلمة في المستوى ${level.levelNumber}.`;
+          }
+        }
+
         if (activityType === 'matching.different') {
           if (!activity.heroImage?.trim()) {
             return `أضف الصورة الرئيسية في المستوى ${level.levelNumber}.`;
@@ -2148,12 +2187,18 @@ const GameForm = ({ mode = 'create' }) => {
 
 
 
-                  {currentActivityType === 'cards.audio_flashcards' && (
+                  {(currentActivityType === 'cards.audio_flashcards' || currentActivityType === 'memory.cards' || currentActivityType === 'memory.grid') && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
                           <ImagePlus size={24} />
-                          <h3 className="text-xl font-black">الكروت الصوتية (الإجابات)</h3>
+                          <h3 className="text-xl font-black">
+                            {currentActivityType === 'memory.grid'
+                              ? 'صور شبكة الذاكرة'
+                              : currentActivityType === 'memory.cards'
+                              ? 'كروت لعبة الذاكرة'
+                              : 'الكروت الصوتية (الإجابات)'}
+                          </h3>
                         </div>
                         <Button type="button" variant="outline" onClick={addCard} className="!py-2 !px-4 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-100">
                           <Plus size={18} />
@@ -2162,8 +2207,68 @@ const GameForm = ({ mode = 'create' }) => {
                       </div>
 
                       <div className="rounded-2xl bg-amber-50/80 border border-amber-100/80 px-4 py-3 text-sm font-bold text-amber-700/90">
-                        قم بإضافة الصورة، الكلمة، وملف النطق الصوتي الذي سيعمل عند قلب الكارت.
+                        {currentActivityType === 'memory.grid'
+                          ? 'اكتب السؤال بالأعلى، واجعل أول كارت هو الإجابة المطلوبة. اللعبة تعرض الكروت أولًا ثم تقلبها ليبحث الطفل عن الإجابة.'
+                          : currentActivityType === 'memory.cards'
+                            ? 'أضف العناصر مرة واحدة فقط، واللعبة ستكرر كل عنصر تلقائيًا لصناعة زوج مطابق. الاسم العربي يُنطق عند فتح الكارت.'
+                          : 'قم بإضافة الصورة، الكلمة، وملف النطق الصوتي الذي سيعمل عند قلب الكارت.'}
                       </div>
+
+                      {currentActivityType === 'memory.grid' && (
+                        <div className="rounded-[1.5rem] border border-sky-100 bg-sky-50/70 p-4">
+                          <label className="block text-sm font-black text-slate-700 mb-2">مستوى الصعوبة</label>
+                          <div className="grid gap-2 sm:grid-cols-3">
+                            {[
+                              { difficulty: 'easy', label: 'سهل', gridSize: 2, viewSeconds: 5, helper: '2x2 - 5 ثواني' },
+                              { difficulty: 'medium', label: 'متوسط', gridSize: 3, viewSeconds: 4, helper: '3x3 - 4 ثواني' },
+                              { difficulty: 'hard', label: 'صعب', gridSize: 4, viewSeconds: 3, helper: '4x4 - 3 ثواني' },
+                            ].map((level) => (
+                              <button
+                                key={level.difficulty}
+                                type="button"
+                                onClick={() =>
+                                  updateCurrentActivity((activity) => ({
+                                    ...activity,
+                                    difficulty: level.difficulty,
+                                    gridSize: level.gridSize,
+                                    viewSeconds: level.viewSeconds,
+                                  }))
+                                }
+                                className={`rounded-xl border-2 px-3 py-3 text-sm font-black transition-all ${
+                                  (currentActivity.difficulty || 'medium') === level.difficulty
+                                    ? 'border-sky-400 bg-white text-sky-700 shadow-sm'
+                                    : 'border-sky-100 bg-white/70 text-slate-500'
+                                }`}
+                              >
+                                <span className="block">{level.label}</span>
+                                <span className="mt-1 block text-xs opacity-70">{level.helper}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {currentActivityType === 'memory.cards' && (
+                        <div className="rounded-[1.5rem] border border-sky-100 bg-sky-50/70 p-4">
+                          <label className="block text-sm font-black text-slate-700 mb-2">عدد الأزواج في اللعبة</label>
+                          <div className="grid grid-cols-4 gap-2">
+                            {[3, 4, 6, 8].map((pairCount) => (
+                              <button
+                                key={pairCount}
+                                type="button"
+                                onClick={() => setActivityField('pairCount', pairCount)}
+                                className={`rounded-xl border-2 px-3 py-2 text-sm font-black transition-all ${
+                                  Number(currentActivity.pairCount || 4) === pairCount
+                                    ? 'border-sky-400 bg-white text-sky-700 shadow-sm'
+                                    : 'border-sky-100 bg-white/70 text-slate-500'
+                                }`}
+                              >
+                                {pairCount} أزواج
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="grid gap-4">
                         {(currentActivity.cards || []).map((card, cardIndex) => (
@@ -2205,7 +2310,7 @@ const GameForm = ({ mode = 'create' }) => {
                               label={
                                 <div className="flex items-center gap-2">
                                   <Volume2 size={18} className="text-emerald-600" />
-                                  <span>الملف الصوتي للكلمة</span>
+                                  <span>{currentActivityType === 'memory.cards' || currentActivityType === 'memory.grid' ? 'نطق الكلمة اختياريًا' : 'الملف الصوتي للكلمة'}</span>
                                 </div>
                               }
                               value={card.audioUrl || ''}

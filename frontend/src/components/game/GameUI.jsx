@@ -15,6 +15,12 @@ export const GAME_UI_TOKENS = {
   choiceMinWidth: 'clamp(96px, 17vw, 138px)',
 };
 
+export const GAME_ASSISTANT_HINT_CLASS =
+  '!border-sky-400 bg-sky-50/75 ring-[3px] ring-sky-300/95 shadow-[0_0_0_5px_rgba(125,211,252,0.32),0_14px_30px_rgba(14,165,233,0.2)] scale-[1.01]';
+
+export const GAME_ASSISTANT_HINT_OVERLAY_CLASS =
+  'pointer-events-none absolute inset-[-1px] z-20 rounded-[inherit] ring-[3px] ring-sky-300/90 opacity-95';
+
 const shellClassName =
   'border border-[#dbe7f3] bg-white/82 backdrop-blur-[10px]';
 
@@ -114,7 +120,7 @@ export function GameChoice({
       : state === 'wrong'
         ? 'border-rose-300 bg-rose-50/90'
         : state === 'hint'
-          ? 'border-sky-300 bg-white/98 ring-[6px] ring-sky-300/75 shadow-[0_0_0_14px_rgba(14,165,233,0.18)] scale-[1.01]'
+          ? GAME_ASSISTANT_HINT_CLASS
           : 'border-[#dbe7f3] bg-white/94';
 
   return (
@@ -132,7 +138,7 @@ export function GameChoice({
     >
       {state === 'hint' && (
         <div
-          className="pointer-events-none absolute inset-[-1px] z-20 rounded-[inherit] ring-2 ring-sky-300/80 opacity-95 animate-pulse"
+          className={GAME_ASSISTANT_HINT_OVERLAY_CLASS}
           aria-hidden="true"
         />
       )}

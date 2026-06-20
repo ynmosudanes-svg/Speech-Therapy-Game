@@ -12,8 +12,11 @@ const RoleRoute = ({ allowedRoles }) => {
   const userRole = adminSession?.user?.role;
 
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    // If not allowed, redirect to a safe page like dashboard or students list
-    return <Navigate to={userRole === 'SUPER_ADMIN' ? '/admin/dashboard' : '/admin/students'} replace />;
+    if (userRole === 'PARENT') {
+      return <Navigate to="/parent/dashboard" replace />;
+    }
+
+    return <Navigate to={userRole === 'SUPER_ADMIN' ? '/admin/dashboard' : '/admin/patients'} replace />;
   }
 
   return <Outlet />;

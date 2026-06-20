@@ -35,6 +35,8 @@ const GAME_TYPE_ORDER = [
   'navigation.maze',
   'text.missing_word',
   'cards.audio_flashcards',
+  'memory.cards',
+  'memory.grid',
   'puzzle.jigsaw',
   'matching.connect',
 ];
@@ -51,6 +53,8 @@ const GAME_TYPE_LABELS = {
   'navigation.maze': 'لعبة المتاهة',
   'text.missing_word': 'أكمل الكلمة',
   'cards.audio_flashcards': 'الكروت الصوتية',
+  'memory.cards': 'لعبة الذاكرة',
+  'memory.grid': 'شبكة الذاكرة',
   'puzzle.jigsaw': 'البازل',
   'matching.connect': 'التوصيل',
 };
@@ -67,6 +71,8 @@ const GAME_TYPE_LABELS_AR = {
   'navigation.maze': 'لعبة المتاهة',
   'text.missing_word': 'أكمل الكلمة',
   'cards.audio_flashcards': 'الكروت الصوتية',
+  'memory.cards': 'لعبة الذاكرة',
+  'memory.grid': 'شبكة الذاكرة',
   'puzzle.jigsaw': 'البازل',
   'matching.connect': 'التوصيل',
 };

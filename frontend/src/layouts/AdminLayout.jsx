@@ -30,7 +30,7 @@ const PAGE_TITLES = {
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { adminSession, currentStudent, logoutAdmin } = useTherapyStore();
+  const { adminSession, currentStudent, logoutAdmin, students } = useTherapyStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
   if (!adminSession?.token) {
@@ -41,12 +41,21 @@ const AdminLayout = () => {
   const currentTitle = activePath ? PAGE_TITLES[activePath] : 'لوحة الإدارة';
 
   const activeStudentName = currentStudent?.name || 'المستفيد';
+  const pendingPatientRequestsCount = Array.isArray(students)
+    ? students.filter((student) => student?.requestStatus === 'PENDING').length
+    : 0;
 
   const menuItems = [
     ...(adminSession?.user?.role === 'SUPER_ADMIN'
       ? [{ path: '/admin/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' }]
       : []),
-    { path: '/admin/patients', icon: Users, label: 'المرضى' },
+    {
+      path: '/admin/patients',
+      icon: Users,
+      label: 'المرضى',
+      badgeCount: pendingPatientRequestsCount,
+      badgeLabel: 'طلبات معلقة',
+    },
     { path: '/admin/library', icon: FolderOpen, label: 'المكتبة' },
     { path: '/admin/games', icon: Gamepad2, label: 'الألعاب' },
     { path: '/admin/reports', icon: FileText, label: 'التقارير' },
@@ -121,7 +130,8 @@ const AdminLayout = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`w-full flex items-center py-3.5 rounded-2xl font-bold text-[16px] transition-all duration-200 ${
+                title={item.badgeCount > 0 ? `${item.label} - ${item.badgeCount} ${item.badgeLabel}` : item.label}
+                className={`relative w-full flex items-center py-3.5 rounded-2xl font-bold text-[16px] transition-all duration-200 ${
                   isSidebarOpen ? 'gap-4 px-5 justify-start' : 'justify-center px-0'
                 } ${
                   isActive
@@ -129,8 +139,20 @@ const AdminLayout = () => {
                     : 'admin-nav-idle'
                 }`}
               >
-                <Icon size={22} strokeWidth={2} className={isActive ? 'text-white' : 'text-[#64748B]'} />
+                <span className="relative inline-flex">
+                  <Icon size={22} strokeWidth={2} className={isActive ? 'text-white' : 'text-[#64748B]'} />
+                  {!isSidebarOpen && item.badgeCount > 0 && (
+                    <span className="absolute -right-2 -top-2 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-white bg-orange-500 px-1 text-[10px] font-black leading-none text-white shadow-md">
+                      {item.badgeCount > 9 ? '9+' : item.badgeCount}
+                    </span>
+                  )}
+                </span>
                 <span className={isSidebarOpen ? 'block' : 'hidden'}>{item.label}</span>
+                {isSidebarOpen && item.badgeCount > 0 && (
+                  <span className="mr-auto inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full border border-orange-200 bg-orange-50 px-2 text-xs font-black text-orange-600 shadow-sm">
+                    {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                  </span>
+                )}
               </Link>
             );
           })}

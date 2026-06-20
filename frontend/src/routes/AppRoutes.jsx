@@ -83,7 +83,15 @@ const AppRoutes = () => {
         path="/admin"
         element={
           <Navigate
-            to={adminSession?.token ? (adminSession?.user?.role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/admin/patients') : '/'}
+            to={
+              adminSession?.token
+                ? adminSession?.user?.role === 'PARENT'
+                  ? '/parent/dashboard'
+                  : adminSession?.user?.role === 'SUPER_ADMIN'
+                    ? '/admin/dashboard'
+                    : '/admin/patients'
+                : '/'
+            }
             state={adminSession?.token ? undefined : { mode: 'staff' }}
             replace
           />
@@ -96,7 +104,9 @@ const AppRoutes = () => {
         <Route path="patients/create" element={<StudentForm mode="create" />} />
         <Route path="patients/edit/:studentId" element={<StudentForm mode="edit" />} />
         <Route path="patients/:id" element={<PatientDetails />} />
-        <Route path="library" element={<LibraryPage />} />
+        <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'THERAPIST']} />}>
+          <Route path="library" element={<LibraryPage />} />
+        </Route>
         <Route path="curriculum" element={<Navigate to="/admin/games" replace />} />
 
         <Route path="games" element={<GamesManager />} />

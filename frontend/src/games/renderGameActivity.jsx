@@ -10,6 +10,8 @@ import PuzzleGame from './PuzzleGame';
 import MatchingConnectGame from './MatchingConnectGame';
 import PictureRevealGame from './PictureRevealGame';
 import ImageCompletePartGame from './ImageCompletePartGame';
+import MemoryCardsGame from './MemoryCardsGame';
+import MemoryGridGame from './MemoryGridGame';
 
 const renderGameActivity = ({
   game,
@@ -59,6 +61,14 @@ const renderGameActivity = ({
 
   if (game?.type === 'cards.audio_flashcards') {
     return <AudioCardsGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'memory.cards') {
+    return <MemoryCardsGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'memory.grid') {
+    return <MemoryGridGame {...sharedProps} />;
   }
 
   if (game?.type === 'puzzle.jigsaw' && game?.config?.puzzleMode !== 'missing-piece') {

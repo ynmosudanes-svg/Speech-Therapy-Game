@@ -62,7 +62,7 @@ async function listStudents(currentUser) {
     currentUser.role === 'SUPER_ADMIN'
       ? {}
       : currentUser.role === 'PARENT'
-        ? { parentId: currentUser.userId, requestStatus: 'APPROVED' }
+        ? { parentId: currentUser.userId }
         : { therapistId: currentUser.userId };
 
   const students = await prisma.student.findMany({

@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
 import {
+  GAME_ASSISTANT_HINT_CLASS,
   GameChoice,
   GameContainer,
   GameSection,
 } from '../components/game/GameUI';
+import BirdHint from '../components/game/BirdHint';
 import { playAudioUrl } from '../utils/soundEffects';
 import ChildGameBackdrop from './ChildGameBackdrop';
 import {
@@ -87,6 +89,8 @@ const ImageCompletePartGame = ({
   const [optionTiles, setOptionTiles] = useState([]);
   const [draggedTileId, setDraggedTileId] = useState(null);
   const [dropTargetCellId, setDropTargetCellId] = useState(null);
+  const [hintedTileId, setHintedTileId] = useState(null);
+  const [gestureHintTileId, setGestureHintTileId] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
@@ -103,6 +107,8 @@ const ImageCompletePartGame = ({
     setActiveCellId(missingCellIds[0] || null);
     setDraggedTileId(null);
     setDropTargetCellId(null);
+    setHintedTileId(null);
+    setGestureHintTileId(null);
     setShowFeedback(false);
     setIsCorrect(false);
     setAttempts(0);
@@ -183,14 +189,21 @@ const ImageCompletePartGame = ({
   useEffect(() => {
     if (!registerAssistantActions) return undefined;
 
+    const showMissingPieceHint = ({ gesture = false } = {}) => {
+      const firstOpenCell = missingCellIds.find((id) => !filledCells[id]);
+      if (!firstOpenCell) return;
+
+      setActiveCellId(firstOpenCell);
+      setHintedTileId(firstOpenCell);
+      setGestureHintTileId(gesture ? firstOpenCell : null);
+    };
+
     registerAssistantActions({
       onVisualHint: () => {
-        const firstOpenCell = missingCellIds.find((id) => !filledCells[id]);
-        if (firstOpenCell) setActiveCellId(firstOpenCell);
+        showMissingPieceHint();
       },
       onGestureHint: () => {
-        const firstOpenCell = missingCellIds.find((id) => !filledCells[id]);
-        if (firstOpenCell) setActiveCellId(firstOpenCell);
+        showMissingPieceHint({ gesture: true });
       },
       onVerbalHint: () => {
         if (helpVoiceEnabled) {
@@ -233,6 +246,8 @@ const ImageCompletePartGame = ({
     if (!missingCellIds.includes(cellId) || filledCells[cellId]) return;
     onAssistantInteraction?.();
     setActiveCellId(cellId);
+    setHintedTileId(null);
+    setGestureHintTileId(null);
   };
 
   const handleTileDragStart = (event, tile) => {
@@ -240,6 +255,8 @@ const ImageCompletePartGame = ({
     event.dataTransfer.setData('text/plain', tile.id);
     setDraggedTileId(tile.id);
     setDropTargetCellId(null);
+    setHintedTileId(null);
+    setGestureHintTileId(null);
   };
 
   const handleTileDragEnd = () => {
@@ -278,6 +295,8 @@ const ImageCompletePartGame = ({
     if (!targetCellId) return;
 
     onAssistantInteraction?.();
+    setHintedTileId(null);
+    setGestureHintTileId(null);
     setAttempts((current) => current + 1);
 
     if (tile.id !== targetCellId) {
@@ -302,6 +321,8 @@ const ImageCompletePartGame = ({
     setActiveCellId(missingCellIds[0] || null);
     setDraggedTileId(null);
     setDropTargetCellId(null);
+    setHintedTileId(null);
+    setGestureHintTileId(null);
     setShowFeedback(false);
     setIsCorrect(false);
     setAttempts(0);
@@ -380,6 +401,7 @@ const ImageCompletePartGame = ({
                   const isMissing = missingCellIds.includes(id);
                   const isFilled = Boolean(filledCells[id]);
                   const isActive = activeCellId === id && isMissing && !isFilled;
+                  const isHintedCell = hintedTileId === id && isMissing && !isFilled;
                   const showTileImage = !isMissing || isFilled;
 
                   return (
@@ -412,6 +434,8 @@ const ImageCompletePartGame = ({
                           className={`absolute inset-[12%] rounded-[clamp(10px,1.2vw,14px)] border-2 border-dashed transition-all ${
                             dropTargetCellId === id
                               ? 'border-emerald-300/90 bg-emerald-100/15'
+                              : isHintedCell
+                                ? 'border-sky-300 bg-sky-50/70 ring-2 ring-sky-300/40'
                               : 'border-sky-300/80 bg-white/55'
                           }`}
                         />
@@ -438,19 +462,39 @@ const ImageCompletePartGame = ({
           style={{ gap: 'clamp(6px, 0.9vw, 12px)', maxWidth: 'min(100%, 28rem)' }}
         >
           {optionTiles.map((tile) => (
-            <GameChoice
-              key={`option-${tile.id}`}
-              draggable
-              onDragStart={(event) => handleTileDragStart(event, tile)}
-              onDragEnd={handleTileDragEnd}
-              onClick={() => handleOptionSelect(tile)}
-              className={`mx-auto w-full max-w-[116px] overflow-hidden p-0 sm:max-w-[126px] md:max-w-[140px] ${
-                draggedTileId === tile.id ? 'opacity-60 scale-[0.98]' : ''
+            <div
+              key={`option-wrap-${tile.id}`}
+              className={`relative mx-auto w-full max-w-[116px] rounded-[clamp(16px,1.6vw,20px)] transition-all duration-200 sm:max-w-[126px] md:max-w-[140px] ${
+                hintedTileId === tile.id ? 'scale-[1.01]' : ''
               }`}
-              style={{ aspectRatio: tileAspectRatio }}
             >
-              <img src={tile.image} alt={`option-${tile.id}`} className="h-full w-full object-cover" />
-            </GameChoice>
+              {hintedTileId === tile.id && (
+                <div className="pointer-events-none absolute -top-16 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center">
+                  <BirdHint className="h-16 w-16 drop-shadow-[0_10px_18px_rgba(6,182,212,0.28)]" />
+                  {gestureHintTileId === tile.id && (
+                    <span className="-mt-2 whitespace-nowrap rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black text-white shadow-lg">
+                      اسحب هذه القطعة
+                    </span>
+                  )}
+                </div>
+              )}
+              <GameChoice
+                draggable
+                onDragStart={(event) => handleTileDragStart(event, tile)}
+                onDragEnd={handleTileDragEnd}
+                onClick={() => handleOptionSelect(tile)}
+                className={`mx-auto w-full overflow-hidden p-0 ${
+                  draggedTileId === tile.id ? 'opacity-60 scale-[0.98]' : ''
+                } ${
+                  hintedTileId === tile.id
+                    ? GAME_ASSISTANT_HINT_CLASS
+                    : ''
+                }`}
+                style={{ aspectRatio: tileAspectRatio }}
+              >
+                <img src={tile.image} alt={`option-${tile.id}`} className="h-full w-full object-cover" />
+              </GameChoice>
+            </div>
           ))}
         </div>
       </GameSection>

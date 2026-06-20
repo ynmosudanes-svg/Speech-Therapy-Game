@@ -11,6 +11,8 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'navigation.maze',
   'text.missing_word',
   'cards.audio_flashcards',
+  'memory.cards',
+  'memory.grid',
   'puzzle.jigsaw',
   'matching.connect',
 ];
@@ -228,6 +230,23 @@ function normalizeActivity(activity, type, index) {
   if (activityType === 'cards.audio_flashcards') {
     return {
       ...baseActivity,
+      cards: Array.isArray(activity?.cards) ? activity.cards : [],
+    };
+  }
+
+  if (activityType === 'memory.cards') {
+    return {
+      ...baseActivity,
+      pairCount: Number(activity?.pairCount || activity?.cards?.length || 4),
+      cards: Array.isArray(activity?.cards) ? activity.cards : [],
+    };
+  }
+
+  if (activityType === 'memory.grid') {
+    return {
+      ...baseActivity,
+      gridSize: Number(activity?.gridSize || 3),
+      viewSeconds: Number(activity?.viewSeconds || 4),
       cards: Array.isArray(activity?.cards) ? activity.cards : [],
     };
   }

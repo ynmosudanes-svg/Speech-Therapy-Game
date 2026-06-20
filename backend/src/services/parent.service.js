@@ -183,7 +183,7 @@ async function linkChildByAccessCode(currentUser, accessCode) {
 
   return prisma.student.update({
     where: { id: student.id },
-    data: { parentId: currentUser.userId, requestStatus: 'APPROVED' },
+    data: { parentId: currentUser.userId, requestStatus: 'PENDING' },
     include: {
       assignedGames: {
         orderBy: { order: 'asc' },

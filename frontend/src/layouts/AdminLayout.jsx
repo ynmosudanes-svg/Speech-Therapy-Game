@@ -202,7 +202,7 @@ const AdminLayout = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5 rounded-2xl border border-[#D9EAF2] bg-white px-2.5 py-1.5 shadow-sm">
+            <div className="hidden items-center gap-2.5 rounded-2xl border border-[#D9EAF2] bg-white px-2.5 py-1.5 shadow-sm lg:flex">
               <div className="text-right leading-tight">
                 <div className="text-[10px] font-bold text-[#138fbc]">
                   {currentStudent ? 'المستفيد الحالي' : 'لوحة التحكم'}

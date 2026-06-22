@@ -99,12 +99,6 @@ const GAME_TYPE_CARDS = [
     accent: 'from-indigo-100 to-cyan-100',
   },
   {
-    value: 'text.missing_word',
-    title: 'أكمل الكلمة الناقصة',
-    description: 'عرض كلمة بها حرف ناقص مع خيارات متعددة ليختار الطفل الحرف الصحيح.',
-    accent: 'from-teal-100 to-emerald-100',
-  },
-  {
     value: 'cards.audio_flashcards',
     title: 'الكروت الصوتية',
     description: 'كروت تعليمية بالصور والكلمات لتشغيل النطق التلقائي عند الضغط عليها.',
@@ -812,8 +806,41 @@ const GameForm = ({ mode = 'create' }) => {
     setSelectedActivity((current) => Math.max(Math.min(current, currentActivities.length - 2), 0));
   };
 
+  const createMemoryCardDraft = (index = 0) => ({
+    id: 'card_' + Date.now() + '_' + index,
+    image: '',
+    textAr: '',
+    audioUrl: '',
+  });
+
+  const syncMemoryCardsToPairCount = (activity, pairCount) => {
+    const targetCount = Math.max(2, Math.min(8, Number(pairCount) || 4));
+    const currentCards = Array.isArray(activity.cards) ? activity.cards : [];
+
+    if (currentCards.length === targetCount) {
+      return activity;
+    }
+
+    const nextCards = currentCards.slice(0, targetCount);
+    while (nextCards.length < targetCount) {
+      nextCards.push(createMemoryCardDraft(nextCards.length));
+    }
+
+    return {
+      ...activity,
+      cards: nextCards,
+      pairCount: targetCount,
+    };
+  };
+
   const setActivityField = (field, value) => {
-    updateCurrentActivity((activity) => ({ ...activity, [field]: value }));
+    updateCurrentActivity((activity) => {
+      if (field === 'pairCount' && currentActivityType === 'memory.cards') {
+        return syncMemoryCardsToPairCount(activity, value);
+      }
+
+      return { ...activity, [field]: value };
+    });
   };
 
   const toggleCompletePartCell = (cellId) => {
@@ -1252,12 +1279,6 @@ const GameForm = ({ mode = 'create' }) => {
           if (activity.missingCellIds.length < Number(activity.missingPartCount || 1)) {
             return `حدد كل الأجزاء الناقصة المطلوبة في المستوى ${level.levelNumber}.`;
           }
-          if ((activity.options || []).length < 1) {
-            return `أضف صور الاختيارات في المستوى ${level.levelNumber}.`;
-          }
-          if ((activity.options || []).some((option) => !option.image?.trim())) {
-            return `أكمل صور الاختيارات في المستوى ${level.levelNumber}.`;
-          }
         }
 
         if (activityType === 'memory.cards') {
@@ -1363,7 +1384,7 @@ const GameForm = ({ mode = 'create' }) => {
             return `أضف صورة البازل في المستوى ${level.levelNumber}.`;
           }
           if ((activity.puzzleMode || 'jigsaw') === 'missing-piece') {
-            const gridSize = Math.max(2, Number(activity.gridSize || 0));
+            const gridSize = Math.max(3, Number(activity.gridSize || 0));
             const slotIndex = Number(activity.missingSlotIndex);
             if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= gridSize * gridSize) {
               return `حدد الخانة الناقصة بشكل صحيح في المستوى ${level.levelNumber}.`;
@@ -1419,19 +1440,53 @@ const GameForm = ({ mode = 'create' }) => {
     setSaving(true);
 
     const configWithActivityTypes = normalizeActivityTypesForConfig(builderState.config, builderState.type);
+    const configReadyForSave = {
+      ...configWithActivityTypes,
+      levels: configWithActivityTypes.levels.map((level) => ({
+        ...level,
+        activities: (level.activities || []).map((activity) => {
+          if (activity?.type !== 'puzzle.jigsaw' || activity?.puzzleMode !== 'missing-piece') {
+            return activity;
+          }
+
+          const gridSize = Math.max(3, Number(activity.gridSize || 3));
+          const totalCells = gridSize * gridSize;
+          const rawMissingSlotIndex = Number(activity.missingSlotIndex ?? activity.missingCellIds?.[0] ?? 0);
+          const missingSlotIndex = Number.isFinite(rawMissingSlotIndex)
+            ? Math.min(Math.max(0, Math.floor(rawMissingSlotIndex)), totalCells - 1)
+            : 0;
+
+          return {
+            ...activity,
+            type: 'image.complete_part',
+            gridSize,
+            gridRows: gridSize,
+            gridCols: gridSize,
+            missingPartCount: 1,
+            missingSlotIndex,
+            missingCellIds: [String(missingSlotIndex)],
+          };
+        }),
+      })),
+    };
+
+    const savedActivities = configReadyForSave.levels.flatMap((level) => level.activities || []);
+    const allActivitiesAreCompletePart =
+      savedActivities.length > 0 && savedActivities.every((activity) => activity?.type === 'image.complete_part');
+    const payloadType = allActivitiesAreCompletePart ? 'image.complete_part' : builderState.type;
 
     const payload = {
       gameCode: builderState.gameCode.trim(),
       name: builderState.name.trim() || builderState.nameAr.trim(),
       nameAr: builderState.nameAr.trim(),
-      type: builderState.type,
+      type: payloadType,
       level: 1,
       isActive: builderState.isActive,
       config: {
-        ...configWithActivityTypes,
+        ...configReadyForSave,
         name: builderState.name.trim() || builderState.nameAr.trim(),
         nameAr: builderState.nameAr.trim(),
-        templateType: builderState.type,
+        templateType: payloadType,
       },
     };
 
@@ -2348,7 +2403,30 @@ const GameForm = ({ mode = 'create' }) => {
                         <ImageAssetField
                           label="صورة البازل"
                           value={currentActivity.image || ''}
-                          onSelect={(value) => setActivityField('image', value)}
+                          onSelect={(value) =>
+                            updateCurrentActivity((activity) => {
+                              const gridSize = Math.max(3, Number(activity.gridSize || 3));
+                              const currentSlot = Number.isInteger(Number(activity.missingSlotIndex))
+                                ? Number(activity.missingSlotIndex)
+                                : 0;
+                              const missingSlotIndex = Math.min(currentSlot, gridSize * gridSize - 1);
+
+                              return {
+                                ...activity,
+                                image: value,
+                                gridSize,
+                                gridRows: gridSize,
+                                gridCols: gridSize,
+                                missingPartCount: (activity.puzzleMode || 'jigsaw') === 'missing-piece'
+                                  ? 1
+                                  : activity.missingPartCount ?? 1,
+                                missingSlotIndex,
+                                missingCellIds: (activity.puzzleMode || 'jigsaw') === 'missing-piece'
+                                  ? [String(missingSlotIndex)]
+                                  : activity.missingCellIds,
+                              };
+                            })
+                          }
                           token={adminSession?.token}
                           initialQuery="puzzle image"
                         />
@@ -2364,16 +2442,24 @@ const GameForm = ({ mode = 'create' }) => {
                                 type="button"
                                 key={mode.value}
                                 onClick={() =>
-                                  updateCurrentActivity((activity) => ({
-                                    ...activity,
-                                    puzzleMode: mode.value,
-                                    missingSlotIndex:
-                                      mode.value === 'missing-piece'
-                                        ? Number.isInteger(Number(activity.missingSlotIndex))
-                                          ? Number(activity.missingSlotIndex)
-                                          : 0
-                                        : activity.missingSlotIndex ?? 0,
-                                  }))
+                                  updateCurrentActivity((activity) => {
+                                    const nextGridSize = Math.max(3, Number(activity.gridSize || 3));
+                                    const currentSlot = Number.isInteger(Number(activity.missingSlotIndex))
+                                      ? Number(activity.missingSlotIndex)
+                                      : 0;
+                                    const nextMissingSlotIndex = Math.min(currentSlot, nextGridSize * nextGridSize - 1);
+
+                                    return {
+                                      ...activity,
+                                      puzzleMode: mode.value,
+                                      gridSize: nextGridSize,
+                                      gridRows: nextGridSize,
+                                      gridCols: nextGridSize,
+                                      missingPartCount: mode.value === 'missing-piece' ? 1 : activity.missingPartCount ?? 1,
+                                      missingSlotIndex: nextMissingSlotIndex,
+                                      missingCellIds: mode.value === 'missing-piece' ? [String(nextMissingSlotIndex)] : activity.missingCellIds,
+                                    };
+                                  })
                                 }
                                 className={`py-3 rounded-xl border-2 font-bold transition-all ${
                                   (currentActivity.puzzleMode || 'jigsaw') === mode.value
@@ -2385,8 +2471,8 @@ const GameForm = ({ mode = 'create' }) => {
                               </button>
                             ))}
                           </div>
-                          <div className="grid grid-cols-3 gap-3">
-                            {[2, 3, 4].map((size) => (
+                          <div className="grid grid-cols-2 gap-3">
+                            {[3, 4].map((size) => (
                               <button
                                 type="button"
                                 key={size} 
@@ -2396,14 +2482,21 @@ const GameForm = ({ mode = 'create' }) => {
                                       ? Number(activity.missingSlotIndex)
                                       : 0;
 
+                                    const nextMissingSlotIndex = Math.min(currentSlot, size * size - 1);
+
                                     return {
                                       ...activity,
                                       gridSize: size,
-                                      missingSlotIndex: Math.min(currentSlot, size * size - 1),
+                                      gridRows: size,
+                                      gridCols: size,
+                                      missingSlotIndex: nextMissingSlotIndex,
+                                      missingCellIds: (activity.puzzleMode || 'jigsaw') === 'missing-piece'
+                                        ? [String(nextMissingSlotIndex)]
+                                        : activity.missingCellIds,
                                     };
                                   })
                                 }
-                                className={`py-3 rounded-xl border-2 font-bold transition-all ${currentActivity.gridSize === size ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-200 bg-white text-slate-500'}`}
+                                className={`py-3 rounded-xl border-2 font-bold transition-all ${Number(currentActivity.gridSize || 3) === size ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-200 bg-white text-slate-500'}`}
                               >
                                 {size}x{size}
                               </button>
@@ -2452,7 +2545,14 @@ const GameForm = ({ mode = 'create' }) => {
                                           <button
                                             key={cellIndex}
                                             type="button"
-                                            onClick={() => setActivityField('missingSlotIndex', cellIndex)}
+                                            onClick={() =>
+                                              updateCurrentActivity((activity) => ({
+                                                ...activity,
+                                                missingSlotIndex: cellIndex,
+                                                missingCellIds: [String(cellIndex)],
+                                                missingPartCount: 1,
+                                              }))
+                                            }
                                             className={`relative border border-white/35 transition-all ${
                                               isSelected
                                                 ? 'bg-amber-300/12 ring-4 ring-amber-300/80'

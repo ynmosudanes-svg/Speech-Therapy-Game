@@ -1,279 +1,423 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, RefreshCw, Trophy, CheckCircle2, Hand, Image as ImageIcon } from 'lucide-react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { DndContext, DragOverlay, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
+import confetti from 'canvas-confetti';
+import { Sparkles } from 'lucide-react';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
-import { playAudioUrl } from '../utils/soundEffects';
+import { playAudioUrl, playErrorSound, playMoveSound, playSuccessSound } from '../utils/soundEffects';
 import GameHeader from '../components/game/GameHeader';
+import BirdHint from '../components/game/BirdHint';
 
-// ==========================================
-// خوارزمية رسم مسارات البازل (Jigsaw Shapes)
-// ==========================================
-const generatePiecePath = (row, col, gridSize, joints) => {
-  let d = `M 20 20 `;
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop';
+const PIECE_VIEWBOX = 140;
+const TILE_SIZE = 100;
+const PIECE_PAD = 20;
 
-  if (row === 0) d += `L 120 20 `; 
-  else {
+const buildPuzzlePath = (row, col, gridSize, joints) => {
+  let d = 'M 20 20 ';
+
+  if (row === 0) {
+    d += 'L 120 20 ';
+  } else {
     const joint = joints.bottom[row - 1][col];
-    if (joint === 1) d += `L 60 20 C 50 20, 50 40, 70 40 C 90 40, 90 20, 80 20 L 120 20 `; 
-    else d += `L 60 20 C 50 20, 50 0, 70 0 C 90 0, 90 20, 80 20 L 120 20 `; 
+    d += joint === 1
+      ? 'L 60 20 C 50 20, 50 38, 70 38 C 90 38, 90 20, 80 20 L 120 20 '
+      : 'L 60 20 C 50 20, 50 2, 70 2 C 90 2, 90 20, 80 20 L 120 20 ';
   }
 
-  if (col === gridSize - 1) d += `L 120 120 `; 
-  else {
+  if (col === gridSize - 1) {
+    d += 'L 120 120 ';
+  } else {
     const joint = joints.right[row][col];
-    if (joint === 1) d += `L 120 60 C 120 50, 140 50, 140 70 C 140 90, 120 90, 120 80 L 120 120 `; 
-    else d += `L 120 60 C 120 50, 100 50, 100 70 C 100 90, 120 90, 120 80 L 120 120 `; 
+    d += joint === 1
+      ? 'L 120 60 C 120 50, 138 50, 138 70 C 138 90, 120 90, 120 80 L 120 120 '
+      : 'L 120 60 C 120 50, 102 50, 102 70 C 102 90, 120 90, 120 80 L 120 120 ';
   }
 
-  if (row === gridSize - 1) d += `L 20 120 `; 
-  else {
+  if (row === gridSize - 1) {
+    d += 'L 20 120 ';
+  } else {
     const joint = joints.bottom[row][col];
-    if (joint === 1) d += `L 80 120 C 90 120, 90 140, 70 140 C 50 140, 50 120, 60 120 L 20 120 `; 
-    else d += `L 80 120 C 90 120, 90 100, 70 100 C 50 100, 50 120, 60 120 L 20 120 `; 
+    d += joint === 1
+      ? 'L 80 120 C 90 120, 90 138, 70 138 C 50 138, 50 120, 60 120 L 20 120 '
+      : 'L 80 120 C 90 120, 90 102, 70 102 C 50 102, 50 120, 60 120 L 20 120 ';
   }
 
-  if (col === 0) d += `L 20 20 `; 
-  else {
-    const joint = joints.right[row][col - 1]; 
-    if (joint === 1) d += `L 20 80 C 20 90, 40 90, 40 70 C 40 50, 20 50, 20 60 L 20 20 `; 
-    else d += `L 20 80 C 20 90, 0 90, 0 70 C 0 50, 20 50, 20 60 L 20 20 `; 
+  if (col === 0) {
+    d += 'L 20 20 ';
+  } else {
+    const joint = joints.right[row][col - 1];
+    d += joint === 1
+      ? 'L 20 80 C 20 90, 38 90, 38 70 C 38 50, 20 50, 20 60 L 20 20 '
+      : 'L 20 80 C 20 90, 2 90, 2 70 C 2 50, 20 50, 20 60 L 20 20 ';
   }
 
-  d += `Z`;
-  return d.replace(/\d+(\.\d+)?/g, (match) => (parseFloat(match) / 140).toFixed(5));
+  return `${d}Z`;
 };
 
-export default function PuzzleGame({ 
-  game, 
-  onComplete, 
+const translatePath = (path, dx, dy) => {
+  let numberIndex = 0;
+  return path.replace(/-?\d+(?:\.\d+)?/g, (value) => {
+    const translated = Number(value) + (numberIndex % 2 === 0 ? dx : dy);
+    numberIndex += 1;
+    return Number(translated.toFixed(4)).toString();
+  });
+};
+const makePuzzlePieces = (gridSize) => {
+  const joints = { right: [], bottom: [] };
+
+  for (let row = 0; row < gridSize; row += 1) {
+    joints.right[row] = [];
+    joints.bottom[row] = [];
+    for (let col = 0; col < gridSize; col += 1) {
+      joints.right[row][col] = Math.random() > 0.5 ? 1 : -1;
+      joints.bottom[row][col] = Math.random() > 0.5 ? 1 : -1;
+    }
+  }
+
+  return Array.from({ length: gridSize * gridSize }, (_, index) => {
+    const row = Math.floor(index / gridSize);
+    const col = index % gridSize;
+
+    const path = buildPuzzlePath(row, col, gridSize, joints);
+
+    return {
+      id: index,
+      originalPos: index,
+      row,
+      col,
+      path,
+      boardPath: translatePath(path, col * TILE_SIZE - PIECE_PAD, row * TILE_SIZE - PIECE_PAD),
+    };
+  });
+};
+
+const shuffle = (items) => [...items].sort(() => Math.random() - 0.5);
+
+function BoardReferenceImage({ imageSrc, gridSize, className = '', opacity = 1 }) {
+  const boardImageSize = gridSize * TILE_SIZE;
+
+  return (
+    <svg
+      viewBox={`0 0 ${boardImageSize} ${boardImageSize}`}
+      className={className}
+      aria-hidden="true"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <image
+        href={imageSrc}
+        x="0"
+        y="0"
+        width={boardImageSize}
+        height={boardImageSize}
+        preserveAspectRatio="xMidYMin slice"
+        opacity={opacity}
+      />
+    </svg>
+  );
+}
+
+function PuzzlePiece({
+  piece,
+  imageSrc,
+  gridSize,
+  size = '100%',
+  disabled = false,
+  isActive = false,
+  isHinted = false,
+  isWrong = false,
+}) {
+  const reactId = useId();
+  const clipId = 'puzzle-piece-' + reactId.replace(/:/g, '') + '-' + piece.id;
+  const boardUnits = gridSize * TILE_SIZE;
+  const imageX = PIECE_PAD - piece.col * TILE_SIZE;
+  const imageY = PIECE_PAD - piece.row * TILE_SIZE;
+
+  return (
+    <div
+      className={`relative touch-none select-none transition-transform duration-200 ${disabled ? '' : 'cursor-grab active:cursor-grabbing'} ${isActive ? 'scale-105' : ''}`}
+      style={{ width: size, height: size }}
+    >
+      <svg
+        viewBox={`0 0 ${PIECE_VIEWBOX} ${PIECE_VIEWBOX}`}
+        className="h-full w-full overflow-visible drop-shadow-[0_10px_16px_rgba(15,23,42,0.15)]"
+        aria-hidden="true"
+      >
+        <defs>
+          <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+            <path d={piece.path} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${clipId})`}>
+          <image
+            href={imageSrc}
+            x={imageX}
+            y={imageY}
+            width={boardUnits}
+            height={boardUnits}
+            preserveAspectRatio="xMidYMin slice"
+          />
+          <rect x="0" y="0" width={PIECE_VIEWBOX} height={PIECE_VIEWBOX} fill="rgba(255,255,255,0.04)" />
+        </g>
+        <path
+          d={piece.path}
+          fill="none"
+          stroke={isWrong ? '#fb7185' : isHinted ? '#22d3ee' : 'rgba(255,255,255,0.95)'}
+          strokeWidth={isHinted || isWrong ? '4' : '2.4'}
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function BoardPlacedLayer({ placedPieces, pieceById, imageSrc, gridSize, successSlotIndex }) {
+  const reactId = useId();
+  const imageClipId = 'board-placed-image-' + reactId.replace(/:/g, '');
+  const boardUnits = gridSize * TILE_SIZE;
+  const placedItems = placedPieces
+    .map((pieceId, slotIndex) => {
+      if (pieceId === null) return null;
+      const piece = pieceById.get(pieceId);
+      return piece ? { piece, slotIndex } : null;
+    })
+    .filter(Boolean);
+
+  return (
+    <svg
+      viewBox={`0 0 ${boardUnits} ${boardUnits}`}
+      className="absolute inset-0 h-full w-full overflow-visible drop-shadow-[0_8px_14px_rgba(15,23,42,0.14)]"
+      aria-hidden="true"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <clipPath id={imageClipId} clipPathUnits="userSpaceOnUse">
+          {placedItems.map(({ piece }) => (
+            <path key={piece.id} d={piece.boardPath} />
+          ))}
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${imageClipId})`}>
+        <image
+          href={imageSrc}
+          x="0"
+          y="0"
+          width={boardUnits}
+          height={boardUnits}
+          preserveAspectRatio="xMidYMin slice"
+        />
+        <rect x="0" y="0" width={boardUnits} height={boardUnits} fill="rgba(255,255,255,0.04)" />
+      </g>
+      {placedItems.map(({ piece, slotIndex }) => {
+        const isSuccess = successSlotIndex === slotIndex;
+
+        return (
+          <path
+            key={piece.id}
+            d={piece.boardPath}
+            fill="none"
+            stroke={isSuccess ? '#22c55e' : 'rgba(255,255,255,0.95)'}
+            strokeWidth={isSuccess ? '4' : '2.4'}
+            strokeLinejoin="round"
+          />
+        );
+      })}
+    </svg>
+  );
+}
+function DraggablePiece({ piece, imageSrc, gridSize, pieceSize, isHinted, isWrong }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `piece-${piece.id}`,
+    data: { pieceId: piece.id },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`relative flex items-center justify-center rounded-[1.35rem] bg-white/80 p-1.5 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.45)] ring-1 ring-sky-100 transition-all duration-200 ${isDragging ? 'opacity-25' : 'opacity-100'} ${isHinted ? 'z-20 ring-4 ring-cyan-200' : ''}`}
+      style={{
+        width: pieceSize,
+        height: pieceSize,
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+      }}
+    >
+      {isHinted && (
+        <BirdHint className="pointer-events-none absolute -top-9 left-1/2 z-30 h-11 w-11 -translate-x-1/2 drop-shadow-[0_10px_18px_rgba(6,182,212,0.28)]" />
+      )}
+      <PuzzlePiece piece={piece} imageSrc={imageSrc} gridSize={gridSize} size="100%" isHinted={isHinted} isWrong={isWrong} />
+    </div>
+  );
+}
+
+function BoardSlot({ index, isHinted, isCorrectFlash }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `slot-${index}`,
+    data: { slotIndex: index },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`relative flex items-center justify-center overflow-visible border border-dashed transition-all duration-200 ${
+        isCorrectFlash
+          ? 'z-20 border-emerald-400 bg-emerald-50/60 shadow-[inset_0_0_18px_rgba(34,197,94,0.28)]'
+          : isHinted
+            ? 'z-10 border-cyan-400 bg-cyan-50/60 shadow-[inset_0_0_16px_rgba(34,211,238,0.24)]'
+            : isOver
+              ? 'z-10 border-sky-400 bg-sky-50/50 shadow-[inset_0_0_14px_rgba(14,165,233,0.24)]'
+              : 'border-slate-300/80 bg-white/10'
+      }`}
+    />
+  );
+}
+
+export default function PuzzleGame({
+  game,
+  onComplete,
   previewMode,
   onAssistantInteraction,
   registerAssistantActions,
   helpVoiceEnabled = false,
 }) {
-  // --- إعدادات اللعبة القادمة من السيرفر ---
   const config = game?.config || {};
-  const imageSrc = config.image || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop';
-  const gridSize = Number(config.gridSize) || 3;
-  const puzzleMode = config.puzzleMode || 'jigsaw';
-  const instructionAr = config.instructionAr || 'قم بتركيب قطع البازل لتكوين الصورة الصحيحة';
+  const imageSrc = config.image || DEFAULT_IMAGE;
+  const requestedGridSize = Number(config.gridSize) || 3;
+  const gridSize = requestedGridSize >= 4 ? 4 : 3;
+  const instructionAr = config.instructionAr || 'ركب الصورة';
   const instructionAudio = config.instructionAudio || '';
-
   const { speak } = useSpeechSynthesis();
 
-  const playInstruction = () => {
-    if (instructionAudio) {
-      playAudioUrl(instructionAudio);
-    }
-  };
-
-  // --- حالة اللعبة ---
-  const [gameState, setGameState] = useState('playing');
-  const [trayPieces, setTrayPieces] = useState([]);
-  const [boardPieces, setBoardPieces] = useState([]);
-  const [selectedPieceId, setSelectedPieceId] = useState(null);
-  const [moves, setMoves] = useState(0);
-  const [startTime, setStartTime] = useState(null);
-  const [missingSlotIndex, setMissingSlotIndex] = useState(null);
-  const [wrongPieceId, setWrongPieceId] = useState(null);
-  const [snappedPieceId, setSnappedPieceId] = useState(null);
-  const [boardSize, setBoardSize] = useState(0);
-  
-  // --- Assistant Hint States ---
+  const [pieces, setPieces] = useState([]);
+  const [trayPieceIds, setTrayPieceIds] = useState([]);
+  const [placedPieces, setPlacedPieces] = useState([]);
+  const [activePieceId, setActivePieceId] = useState(null);
   const [hintPieceId, setHintPieceId] = useState(null);
   const [hintSlotIndex, setHintSlotIndex] = useState(null);
-  const [gestureHint, setGestureHint] = useState(false);
+  const [wrongPieceId, setWrongPieceId] = useState(null);
+  const [successSlotIndex, setSuccessSlotIndex] = useState(null);
+  const [completed, setCompleted] = useState(false);
+  const [moves, setMoves] = useState(0);
+  const [startTime, setStartTime] = useState(Date.now());
 
-  const boardRef = useRef(null);
+  const completedRef = useRef(false);
   const hintTimersRef = useRef([]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 80, tolerance: 8 } }),
+  );
 
-  useEffect(() => {
-    if (!boardRef.current || typeof ResizeObserver === 'undefined') return undefined;
+  const pieceById = useMemo(() => new Map(pieces.map((piece) => [piece.id, piece])), [pieces]);
+  const activePiece = activePieceId !== null ? pieceById.get(activePieceId) : null;
+  const remainingPieces = trayPieceIds.map((id) => pieceById.get(id)).filter(Boolean);
 
-    const resizeObserver = new ResizeObserver(([entry]) => {
-      setBoardSize(entry.contentRect.width);
-    });
-
-    resizeObserver.observe(boardRef.current);
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  const clearHintTimers = () => {
+  const clearHintTimers = useCallback(() => {
     hintTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     hintTimersRef.current = [];
-  };
+  }, []);
 
-  const clearHints = () => {
+  const clearHints = useCallback(() => {
     clearHintTimers();
     setHintPieceId(null);
     setHintSlotIndex(null);
-    setGestureHint(false);
-  };
+  }, [clearHintTimers]);
 
-  const scheduleHintClear = (delay = 3000) => {
+  const scheduleHintClear = useCallback((delay = 5200) => {
     clearHintTimers();
     const timer = window.setTimeout(() => clearHints(), delay);
     hintTimersRef.current.push(timer);
-  };
+  }, [clearHintTimers, clearHints]);
 
-  const getNextHintPiece = useCallback(() => {
-    if (puzzleMode === 'missing-piece' && missingSlotIndex !== null) {
-      return trayPieces.find((piece) => piece.originalPos === missingSlotIndex) || null;
-    }
-
-    if (trayPieces.length > 0) {
-      return trayPieces[0];
-    }
-
-    const misplacedIndex = boardPieces.findIndex((piece, index) => piece && piece.originalPos !== index);
-    if (misplacedIndex !== -1) {
-      return boardPieces[misplacedIndex];
-    }
-
-    return null;
-  }, [trayPieces, boardPieces, puzzleMode, missingSlotIndex]);
-
-  const getNextHintPieceRef = useRef(getNextHintPiece);
-  getNextHintPieceRef.current = getNextHintPiece;
+  const startGame = useCallback(() => {
+    const nextPieces = makePuzzlePieces(gridSize);
+    completedRef.current = false;
+    setPieces(nextPieces);
+    setTrayPieceIds(shuffle(nextPieces.map((piece) => piece.id)));
+    setPlacedPieces(Array(gridSize * gridSize).fill(null));
+    setActivePieceId(null);
+    setHintPieceId(null);
+    setHintSlotIndex(null);
+    setWrongPieceId(null);
+    setSuccessSlotIndex(null);
+    setCompleted(false);
+    setMoves(0);
+    setStartTime(Date.now());
+  }, [gridSize]);
 
   useEffect(() => {
     startGame();
-  }, [game?.id, gridSize, imageSrc, puzzleMode]);
+    return () => clearHintTimers();
+  }, [startGame, clearHintTimers, game?.id, imageSrc]);
 
-  const startGame = () => {
-    const newJoints = { right: [], bottom: [] };
-    for (let r = 0; r < gridSize; r++) {
-      newJoints.right[r] = [];
-      newJoints.bottom[r] = [];
-      for (let c = 0; c < gridSize; c++) {
-        newJoints.right[r][c] = Math.random() > 0.5 ? 1 : -1;
-        newJoints.bottom[r][c] = Math.random() > 0.5 ? 1 : -1;
-      }
-    }
-
-    const totalPieces = gridSize * gridSize;
-    let initialPieces = [];
-    
-    for (let i = 0; i < totalPieces; i++) {
-      const r = Math.floor(i / gridSize);
-      const c = i % gridSize;
-      initialPieces.push({
-        id: i,
-        originalPos: i,
-        path: generatePiecePath(r, c, gridSize, newJoints)
-      });
-    }
-
-    if (puzzleMode === 'missing-piece') {
-      const randomMissingIndex = Math.floor(Math.random() * totalPieces);
-      const correctPiece = initialPieces[randomMissingIndex];
-      const distractors = [...initialPieces]
-        .filter((piece) => piece.id !== correctPiece.id)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, Math.min(2, totalPieces - 1));
-
-      setMissingSlotIndex(randomMissingIndex);
-      setBoardPieces(initialPieces.map((piece, index) => (index === randomMissingIndex ? null : piece)));
-      setTrayPieces([correctPiece, ...distractors].sort(() => Math.random() - 0.5));
-    } else {
-      setMissingSlotIndex(null);
-      setTrayPieces([...initialPieces].sort(() => Math.random() - 0.5));
-      setBoardPieces(Array(totalPieces).fill(null));
-    }
-    setSelectedPieceId(null);
-    setWrongPieceId(null);
-    setSnappedPieceId(null);
-    setMoves(0);
-    setGameState('playing');
-    setStartTime(Date.now());
+  const playInstruction = () => {
+    if (instructionAudio) playAudioUrl(instructionAudio);
   };
 
-  const handleWin = () => {
-    setGameState('won');
+  const finishGame = useCallback((moveCount) => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    setCompleted(true);
+    playSuccessSound();
+    confetti({ particleCount: 130, spread: 75, origin: { y: 0.58 } });
+    confetti({ particleCount: 70, spread: 55, origin: { x: 0.2, y: 0.65 } });
+    confetti({ particleCount: 70, spread: 55, origin: { x: 0.8, y: 0.65 } });
+
     if (onComplete && !previewMode) {
-      const timeSpent = Math.floor((Date.now() - startTime) / 1000);
       onComplete({
         correctAnswers: 1,
         wrongAnswers: 0,
-        attempts: [Math.max(moves, 1)],
-        timeSpent,
-        prompts: []
+        attempts: [Math.max(moveCount, 1)],
+        timeSpent: Math.floor((Date.now() - startTime) / 1000),
+        prompts: [],
       });
     }
-  };
+  }, [onComplete, previewMode, startTime]);
 
-  const movePieceToBoard = useCallback((pieceId, targetSlotIndex, fromAssistant = false) => {
-    let piece = trayPieces.find(p => p.id === pieceId) || boardPieces.find(p => p && p.id === pieceId);
-    if (!piece) return;
+  const placePieceIfCorrect = useCallback((pieceId, slotIndex, fromAssistant = false) => {
+    const piece = pieceById.get(pieceId);
+    if (!piece || placedPieces[slotIndex] !== null || completedRef.current) return;
 
-    if (puzzleMode === 'missing-piece') {
-      if (targetSlotIndex !== missingSlotIndex) return;
-
-      const currentMoves = moves + 1;
-      setMoves(currentMoves);
-      clearHints();
-      if (!fromAssistant) {
-        onAssistantInteraction?.();
+    setMoves((currentMoves) => {
+      const nextMoves = currentMoves + 1;
+      if (piece.originalPos === slotIndex) {
+        setPlacedPieces((currentPlaced) => {
+          if (currentPlaced[slotIndex] !== null) return currentPlaced;
+          const nextPlaced = [...currentPlaced];
+          nextPlaced[slotIndex] = pieceId;
+          if (nextPlaced.every((id) => id !== null)) {
+            window.setTimeout(() => finishGame(nextMoves), 180);
+          }
+          return nextPlaced;
+        });
       }
+      return nextMoves;
+    });
 
-      if (piece.originalPos !== missingSlotIndex) {
-        setWrongPieceId(piece.id);
-        window.setTimeout(() => setWrongPieceId(null), 900);
-        setSelectedPieceId(null);
-        return;
-      }
+    clearHints();
+    if (!fromAssistant) onAssistantInteraction?.();
 
-      const newBoard = [...boardPieces];
-      newBoard[targetSlotIndex] = piece;
-      setBoardPieces(newBoard);
-      setTrayPieces([]);
-      setSelectedPieceId(null);
-      setSnappedPieceId(piece.id);
-      window.setTimeout(() => setSnappedPieceId(null), 280);
-      handleWin();
+    if (piece.originalPos !== slotIndex) {
+      setWrongPieceId(pieceId);
+      playErrorSound();
+      window.setTimeout(() => setWrongPieceId(null), 520);
       return;
     }
 
-    const currentBoardIndex = boardPieces.findIndex(p => p && p.id === pieceId);
-    if (currentBoardIndex !== -1 && piece.originalPos === currentBoardIndex) return;
+    playMoveSound();
+    setSuccessSlotIndex(slotIndex);
+    window.setTimeout(() => setSuccessSlotIndex(null), 520);
+    setTrayPieceIds((current) => current.filter((id) => id !== pieceId));
+  }, [clearHints, finishGame, onAssistantInteraction, pieceById, placedPieces]);
 
-    const newBoard = [...boardPieces];
-    const newTray = trayPieces.filter(p => p.id !== pieceId);
+  const getNextHintPiece = useCallback(() => {
+    const nextId = trayPieceIds[0];
+    return nextId === undefined ? null : pieceById.get(nextId) || null;
+  }, [pieceById, trayPieceIds]);
 
-    if (currentBoardIndex !== -1) {
-      newBoard[currentBoardIndex] = null;
-    }
-
-    if (newBoard[targetSlotIndex] !== null) {
-      if (newBoard[targetSlotIndex].originalPos !== targetSlotIndex) {
-        newTray.push(newBoard[targetSlotIndex]);
-      } else {
-        return; 
-      }
-    }
-
-    newBoard[targetSlotIndex] = piece;
-
-    setBoardPieces(newBoard);
-    setTrayPieces(newTray);
-    setSelectedPieceId(null);
-    if (piece.originalPos === targetSlotIndex) {
-      setSnappedPieceId(piece.id);
-      window.setTimeout(() => setSnappedPieceId(null), 280);
-    }
-    const currentMoves = moves + 1;
-    setMoves(currentMoves);
-    clearHints();
-    if (!fromAssistant) {
-      onAssistantInteraction?.();
-    }
-
-    if (newBoard.every((p, i) => p && p.originalPos === i)) {
-      handleWin();
-    }
-  }, [boardPieces, trayPieces, moves, onAssistantInteraction, puzzleMode, missingSlotIndex]);
-
-  const movePieceToBoardRef = useRef(movePieceToBoard);
-  movePieceToBoardRef.current = movePieceToBoard;
+  const getNextHintPieceRef = useRef(getNextHintPiece);
+  getNextHintPieceRef.current = getNextHintPiece;
+  const placePieceIfCorrectRef = useRef(placePieceIfCorrect);
+  placePieceIfCorrectRef.current = placePieceIfCorrect;
 
   useEffect(() => {
     if (!registerAssistantActions) return undefined;
@@ -284,39 +428,31 @@ export default function PuzzleGame({
         if (!piece) return;
         setHintPieceId(piece.id);
         setHintSlotIndex(null);
-        setGestureHint(false);
-        scheduleHintClear(3000);
+        scheduleHintClear();
       },
       onGestureHint: () => {
         const piece = getNextHintPieceRef.current();
         if (!piece) return;
         setHintPieceId(piece.id);
         setHintSlotIndex(piece.originalPos);
-        setGestureHint(true);
-        scheduleHintClear(4000);
+        scheduleHintClear();
       },
       onVerbalHint: () => {
         const piece = getNextHintPieceRef.current();
         if (!piece) return;
         setHintPieceId(piece.id);
         setHintSlotIndex(piece.originalPos);
-        setGestureHint(true);
-        if (helpVoiceEnabled) {
-          speak('شوف القطعة اللي بتلمع واركبها في المكان الأخضر على اللوحة.');
-        }
-        scheduleHintClear(4000);
+        if (helpVoiceEnabled) speak('ضع القطعة المضيئة في المكان المضيء على اللوحة.');
+        scheduleHintClear();
       },
       onPhysicalPrompt: () => {
         const piece = getNextHintPieceRef.current();
         if (!piece) return;
         setHintPieceId(piece.id);
         setHintSlotIndex(piece.originalPos);
-        if (helpVoiceEnabled) {
-          speak('هيا نركّب القطعة سوا في مكانها الصح.');
-        }
         window.setTimeout(() => {
-          movePieceToBoardRef.current?.(piece.id, piece.originalPos, true);
-        }, 800);
+          placePieceIfCorrectRef.current?.(piece.id, piece.originalPos, true);
+        }, 700);
       },
     });
 
@@ -324,148 +460,28 @@ export default function PuzzleGame({
       registerAssistantActions({});
       clearHintTimers();
     };
-  }, [helpVoiceEnabled, registerAssistantActions, speak]);
+  }, [clearHintTimers, helpVoiceEnabled, registerAssistantActions, scheduleHintClear, speak]);
 
-  const returnPieceToTray = (pieceId) => {
-    if (puzzleMode === 'missing-piece') return;
-    const slotIndex = boardPieces.findIndex(p => p && p.id === pieceId);
-    if (slotIndex === -1) return;
-    
-    const piece = boardPieces[slotIndex];
-    if (piece.originalPos === slotIndex) return; 
-
-    const newBoard = [...boardPieces];
-    newBoard[slotIndex] = null;
-
-    setBoardPieces(newBoard);
-    setTrayPieces([...trayPieces, piece]);
-    setSelectedPieceId(null);
-    clearHints();
-    onAssistantInteraction?.();
+  const handleDragStart = ({ active }) => {
+    const pieceId = active.data.current?.pieceId;
+    setActivePieceId(typeof pieceId === 'number' ? pieceId : null);
   };
 
-  const handleDragStart = (e, pieceId) => {
-    e.dataTransfer.setData('pieceId', pieceId);
-    setSelectedPieceId(pieceId);
+  const handleDragEnd = ({ active, over }) => {
+    const pieceId = active.data.current?.pieceId;
+    const slotIndex = over?.data.current?.slotIndex;
+    setActivePieceId(null);
 
-    const boardRect = boardRef.current?.getBoundingClientRect();
-    if (!boardRect?.width) return;
-
-    const slotSize = boardRect.width / gridSize;
-    const dragPreview = e.currentTarget.cloneNode(true);
-    dragPreview.style.position = 'fixed';
-    dragPreview.style.top = '-1000px';
-    dragPreview.style.left = '-1000px';
-    dragPreview.style.width = `${slotSize}px`;
-    dragPreview.style.height = `${slotSize}px`;
-    dragPreview.style.pointerEvents = 'none';
-    dragPreview.style.zIndex = '-1';
-    document.body.appendChild(dragPreview);
-    e.dataTransfer.setDragImage(dragPreview, slotSize / 2, slotSize / 2);
-    window.setTimeout(() => dragPreview.remove(), 0);
+    if (typeof pieceId !== 'number' || typeof slotIndex !== 'number') return;
+    placePieceIfCorrect(pieceId, slotIndex);
   };
 
-  const boardSlotSize = boardSize ? boardSize / gridSize : 0;
-  const trayPieceSize = boardSlotSize
-    ? Math.max(36, Math.min(56, boardSlotSize * 0.3))
-    : 44;
-
-  const handleDropOnBoard = (e, slotIndex) => {
-    e.preventDefault();
-    const pieceId = parseInt(e.dataTransfer.getData('pieceId'));
-    if (!isNaN(pieceId)) movePieceToBoard(pieceId, slotIndex);
-  };
-
-  const handleDropOnTray = (e) => {
-    e.preventDefault();
-    const pieceId = parseInt(e.dataTransfer.getData('pieceId'));
-    if (!isNaN(pieceId)) returnPieceToTray(pieceId);
-  };
-
-  const renderPiece = (piece, isPlacedOnBoard = false, slotIndex = -1) => {
-    const originalCol = piece.originalPos % gridSize;
-    const originalRow = Math.floor(piece.originalPos / gridSize);
-    const pieceScale = 1.4;
-    const imageWidth = (gridSize * 100) / pieceScale;
-    const imageLeft = ((0.2 - originalCol) * 100) / pieceScale;
-    const imageTop = ((0.2 - originalRow) * 100) / pieceScale;
-
-    const isSelected = selectedPieceId === piece.id;
-    const isCorrect = isPlacedOnBoard && piece.originalPos === slotIndex;
-    const isWrongCandidate = wrongPieceId === piece.id;
-    const isSnapping = snappedPieceId === piece.id;
-
-    return (
-      <div
-        draggable={!isCorrect}
-        onDragStart={(e) => handleDragStart(e, piece.id)}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (isCorrect) return;
-          if (isPlacedOnBoard && selectedPieceId === null) {
-            returnPieceToTray(piece.id); 
-          } else {
-            setSelectedPieceId(isSelected ? null : piece.id); 
-          }
-        }}
-        className={`relative h-full w-full ${!isCorrect ? 'cursor-grab active:cursor-grabbing' : ''} ${(isSelected || hintPieceId === piece.id) ? 'z-50 ring-4 ring-amber-400 rounded-lg' : 'z-10'} ${isWrongCandidate ? 'ring-4 ring-rose-400 rounded-lg' : ''}`}
-      >
-        <div
-          className="absolute"
-          style={{
-            width: '140%',
-            height: '140%',
-            top: '-20%',
-            left: '-20%',
-            filter: isWrongCandidate
-              ? 'drop-shadow(0 0 10px rgba(248,113,113,0.35))'
-              : hintPieceId === piece.id 
-              ? 'drop-shadow(0 0 10px rgba(74,222,128,0.4))' 
-              : (isCorrect ? 'drop-shadow(0 8px 14px rgba(15,23,42,0.14))' : (isSelected ? 'drop-shadow(0 0 10px rgba(6, 182, 212, 0.6))' : 'drop-shadow(0 8px 18px rgba(15,23,42,0.2))')),
-            transform: isSnapping ? 'scale(1.035)' : 'scale(1)',
-            transformOrigin: 'center',
-            transition: isPlacedOnBoard ? 'transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 240ms ease' : 'filter 160ms ease',
-          }}
-        >
-          <div className="absolute h-full w-full overflow-hidden" style={{ clipPath: `url(#piece-${piece.id})`, WebkitClipPath: `url(#piece-${piece.id})` }}>
-            <img
-              src={imageSrc}
-              alt="piece"
-              className="absolute max-w-none pointer-events-none"
-              style={{
-                width: `${imageWidth}%`,
-                height: `${imageWidth}%`,
-                left: `${imageLeft}%`,
-                top: `${imageTop}%`,
-                objectFit: 'cover',
-                objectPosition: 'center',
-              }}
-            />
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: isPlacedOnBoard
-                  ? 'linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 45%, rgba(15,23,42,0.04) 100%)'
-                  : 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.04) 45%, rgba(15,23,42,0.08) 100%)',
-                mixBlendMode: 'soft-light',
-                opacity: 0.9,
-              }}
-            />
-          </div>
-        </div>
-        {isCorrect && gameState === 'playing' && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/95 rounded-full text-emerald-500 shadow-lg pointer-events-none z-50 p-1">
-            <CheckCircle2 size={24} strokeWidth={3} />
-          </div>
-        )}
-      </div>
-    );
-  };
+  const boardSizeClass = 'w-[min(82vw,400px)] md:w-[400px]';
+  const trayColumns = gridSize === 4 ? 'grid-cols-2 md:grid-cols-2 xl:grid-cols-4' : 'grid-cols-2 md:grid-cols-2 xl:grid-cols-3';
+  const pieceSize = gridSize === 4 ? 'clamp(3.1rem, 9vw, 4.45rem)' : 'clamp(3.7rem, 10.5vw, 5.25rem)';
 
   return (
-    <div dir="rtl" className="mx-auto flex h-full w-full max-w-none flex-col items-center space-y-2.5 px-2 pb-4 sm:px-0 md:space-y-4 md:pb-7">
-      
-      {/* Header مع زر الصوت وإعادة اللعب */}
+    <div dir="rtl" className="mx-auto flex h-full w-full flex-col items-center gap-4 px-3 pb-6 sm:px-4 md:gap-5">
       <GameHeader
         instruction={instructionAr}
         instructionAudio={instructionAudio}
@@ -473,107 +489,71 @@ export default function PuzzleGame({
         onRestart={startGame}
       />
 
-
-      <div className="w-full rounded-[1.1rem] border border-slate-200 bg-white p-1 shadow-md sm:rounded-[1.25rem] sm:p-1.5 md:rounded-[2rem] md:p-3" style={{ maxWidth: 'clamp(15.5rem, 72vw, 19rem)' }}>
-        <div 
-          ref={boardRef}
-          dir="ltr"
-          className="relative aspect-square w-full overflow-hidden rounded-[0.9rem] border-2 border-slate-100 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(241,245,249,0.92)_44%,rgba(226,232,240,0.95))] shadow-inner md:rounded-2xl"
-        >
-          <svg width="0" height="0" className="absolute pointer-events-none">
-            <defs>
-              {[...trayPieces, ...boardPieces.filter(Boolean)].map(p => (
-                <clipPath id={`piece-${p.id}`} clipPathUnits="objectBoundingBox" key={p.id}><path d={p.path} /></clipPath>
-              ))}
-            </defs>
-          </svg>
-
-          {gameState !== 'won' && (
-            <img
-              src={imageSrc}
-              className="absolute inset-0 h-full w-full object-fill pointer-events-none"
-              style={{
-                opacity: 0.34,
-                mixBlendMode: 'multiply',
-              }}
-              alt="Hint"
-            />
-          )}
-
-          <div 
-            className="absolute inset-0 grid"
-            style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)`, gridTemplateRows: `repeat(${gridSize}, 1fr)` }}
-          >
-            {boardPieces.map((piece, index) => (
-              <div 
-                key={index}
-                className={`relative h-full w-full overflow-visible transition-colors duration-150
-                  ${hintSlotIndex === index
-                    ? 'z-20 bg-emerald-100/70 outline outline-2 outline-emerald-400 shadow-[inset_0_0_12px_rgba(74,222,128,0.3)] ring-2 ring-emerald-200'
-                    : selectedPieceId !== null && !piece && (puzzleMode !== 'missing-piece' || index === missingSlotIndex)
-                      ? 'z-10 cursor-pointer bg-white/20 outline outline-2 outline-dashed outline-yellow-400 shadow-[inset_0_0_10px_rgba(250,204,21,0.28)]'
-                      : 'bg-transparent outline outline-[0.5px] outline-white/35 shadow-[inset_0_1px_3px_rgba(255,255,255,0.35),inset_0_-1px_2px_rgba(15,23,42,0.035)]'
-                  }
-                `}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => handleDropOnBoard(e, index)}
-                onClick={() => {
-                  if (selectedPieceId !== null) movePieceToBoard(selectedPieceId, index);
-                }}
-              >
-                {piece && renderPiece(piece, true, index)}
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActivePieceId(null)}>
+        <div className="flex w-full max-w-5xl flex-col items-center justify-center gap-4 md:flex-row md:items-start md:gap-6 xl:flex-col xl:items-center" dir="ltr">
+          <section className="order-1 flex flex-col items-center gap-3" dir="rtl">
+            <div className={`relative ${boardSizeClass} aspect-square rounded-[2rem] border-[10px] border-white bg-white p-2 shadow-[0_24px_52px_-34px_rgba(15,23,42,0.45)]`}>
+              <div className="absolute inset-2 overflow-hidden rounded-[1.45rem] bg-slate-50">
+                <BoardReferenceImage imageSrc={imageSrc} gridSize={gridSize} className="h-full w-full" opacity={0.2} />
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      {gameState === 'playing' && (
-        <div 
-          className="w-full min-h-[104px] rounded-[1.35rem] border-2 border-dashed border-slate-200 bg-white p-3 shadow-sm sm:min-h-[116px] sm:p-3.5 md:min-h-[148px] md:rounded-3xl md:p-5"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDropOnTray}
-        >
-          <div className="mb-2.5 flex items-center justify-center gap-2 text-slate-500 md:mb-4">
-            <Hand size={16} />
-            <p className="text-xs font-semibold sm:text-sm">اسحب القطع من هنا وركبها في اللوحة</p>
-          </div>
-          
-          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 md:gap-4">
-            {trayPieces.length === 0 ? (
-              <p className="text-slate-400 text-sm mt-4">تم استخدام كل القطع!</p>
-            ) : (
-              trayPieces.map(piece => (
-                <div
-                  key={piece.id}
-                  className={`relative flex-shrink-0 rounded-lg bg-white/70 shadow-[0_10px_18px_-14px_rgba(15,23,42,0.45)] ring-1 ring-white/80 sm:rounded-xl ${
-                    hintPieceId === piece.id
-                      ? 'ring-4 ring-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.35)] z-20'
-                      : ''
-                  }`}
-                  style={{
-                    width: `${trayPieceSize}px`,
-                    height: `${trayPieceSize}px`,
-                  }}
-                >
-                  {hintPieceId === piece.id && gestureHint && (
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl pointer-events-none z-30 animate-none">
-                      👆
-                    </span>
-                  )}
-                  {renderPiece(piece, false)}
+              <div
+                dir="ltr"
+                className="relative z-10 grid h-full w-full overflow-visible rounded-[1.45rem]"
+                style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))` }}
+              >
+                {placedPieces.map((_, index) => (
+                  <BoardSlot key={index} index={index} isHinted={hintSlotIndex === index} isCorrectFlash={successSlotIndex === index} />
+                ))}
+              </div>
+
+              <div className="pointer-events-none absolute inset-2 z-20 overflow-visible rounded-[1.45rem]">
+                <BoardPlacedLayer
+                  placedPieces={placedPieces}
+                  pieceById={pieceById}
+                  imageSrc={imageSrc}
+                  gridSize={gridSize}
+                  successSlotIndex={successSlotIndex}
+                />
+              </div>
+
+              {completed && (
+                <div className="absolute inset-0 z-30 flex items-center justify-center rounded-[2rem] bg-white/62 backdrop-blur-[2px]">
+                  <div className="rounded-[2rem] bg-white px-8 py-5 text-center shadow-[0_22px_44px_-28px_rgba(15,23,42,0.5)] ring-1 ring-emerald-100">
+                    <Sparkles className="mx-auto mb-2 h-9 w-9 text-amber-400" />
+                    <p className="text-3xl font-black text-emerald-600">أحسنت!</p>
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+              )}
+            </div>
+          </section>
 
-      <style dangerouslySetInnerHTML={{__html: `
-        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-      `}} />
+          <aside className="order-2 w-full max-w-[min(92vw,380px)] rounded-[2rem] border-2 border-dashed border-sky-100 bg-white/88 p-4 shadow-[0_24px_52px_-38px_rgba(15,23,42,0.42)] xl:max-w-[44rem]" dir="rtl">
+            <div className={`grid ${trayColumns} justify-items-center gap-2.5`} dir="ltr">
+              {remainingPieces.length === 0 && !completed ? (
+                <p className="col-span-full py-6 text-center text-sm font-bold text-slate-400">كل القطع على اللوحة</p>
+              ) : (
+                remainingPieces.map((piece) => (
+                  <DraggablePiece
+                    key={piece.id}
+                    piece={piece}
+                    imageSrc={imageSrc}
+                    gridSize={gridSize}
+                    pieceSize={pieceSize}
+                    isHinted={hintPieceId === piece.id}
+                    isWrong={wrongPieceId === piece.id}
+                  />
+                ))
+              )}
+            </div>
+          </aside>
+        </div>
+        <DragOverlay dropAnimation={null}>
+          {activePiece ? <PuzzlePiece piece={activePiece} imageSrc={imageSrc} gridSize={gridSize} size={pieceSize} isActive /> : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }
+
 

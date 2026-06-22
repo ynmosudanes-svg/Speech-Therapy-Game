@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import BirdHint from '../components/game/BirdHint';
 import GameHeader from '../components/game/GameHeader';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import { GAME_ASSISTANT_HINT_CLASS, GameContainer, GameSection } from '../components/game/GameUI';
 import { useTherapySounds } from '../hooks/useTherapySounds';
-import { playAudioUrl, playSpokenArabic } from '../utils/soundEffects';
+import { playAudioUrl } from '../utils/soundEffects';
 import ChildGameBackdrop from './ChildGameBackdrop';
 
 const FALLBACK_ITEMS = [
@@ -57,14 +58,14 @@ const normalizeItems = (cards = [], neededCount = 9) => {
   return merged.slice(0, neededCount);
 };
 
-const speakTarget = (card) => {
+const speakTarget = (card, speak) => {
   if (!card) return;
   if (card.audioUrl) {
     playAudioUrl(card.audioUrl);
     return;
   }
   if (card.textAr) {
-    playSpokenArabic(`ابحث عن ${card.textAr}`);
+    speak(`ابحث عن ${card.textAr}`);
   }
 };
 
@@ -101,6 +102,7 @@ const MemoryGridGame = ({
   const [startTime, setStartTime] = useState(Date.now());
   const completionSentRef = useRef(false);
   const { playTap, playCorrect, playWrong, playLevelComplete } = useTherapySounds({ soundEnabled: true });
+  const { speak } = useSpeechSynthesis();
 
   const resetGame = useCallback(() => {
     const nextItems = shuffle(items);
@@ -125,7 +127,7 @@ const MemoryGridGame = ({
       playAudioUrl(instructionAudio);
       return;
     }
-    playSpokenArabic(instructionAr);
+    speak(instructionAr);
   }, [instructionAr, instructionAudio]);
 
   useEffect(() => {
@@ -138,7 +140,7 @@ const MemoryGridGame = ({
     if (phase !== 'preview') return undefined;
     if (secondsLeft <= 0) {
       setPhase('question');
-      speakTarget(targetItem);
+      speakTarget(targetItem, speak);
       return undefined;
     }
 
@@ -153,7 +155,7 @@ const MemoryGridGame = ({
     if (phase === 'preview') return;
     setHintTarget(true);
     if (helpVoiceEnabled) {
-      playSpokenArabic('انظر إلى المربع المضيء.');
+      speak('انظر إلى المربع المضيء.');
     }
   }, [helpVoiceEnabled, phase]);
 
@@ -164,7 +166,7 @@ const MemoryGridGame = ({
       onVisualHint: showHint,
       onGestureHint: showHint,
       onVerbalHint: () => {
-        if (targetItem?.textAr) playSpokenArabic(`نبحث الآن عن ${targetItem.textAr}`);
+        if (targetItem?.textAr) speak(`نبحث الآن عن ${targetItem.textAr}`);
       },
       onPhysicalPrompt: showHint,
     });
@@ -218,7 +220,7 @@ const MemoryGridGame = ({
     window.setTimeout(() => {
       setSelectedId(null);
       setPhase('question');
-      speakTarget(targetItem);
+      speakTarget(targetItem, speak);
     }, 1500);
   };
 
@@ -230,27 +232,27 @@ const MemoryGridGame = ({
       : phase === 'success'
         ? 'أحسنت! إجابة صحيحة'
         : phase === 'wrong'
-          ? 'حاول مرة أخرى. المربع الصحيح يضيء الآن.'
+          ? '\u0627\u0644\u0645\u0631\u0628\u0639 \u0627\u0644\u0635\u062D\u064A\u062D \u064A\u0636\u064A\u0621 \u0627\u0644\u0622\u0646.'
           : targetQuestion;
 
   return (
     <GameContainer
       className={previewMode ? 'max-w-4xl' : 'max-w-5xl'}
       dir="rtl"
-      style={{ maxWidth: 'min(100%, clamp(22rem, 68vw, 56rem))' }}
+      style={{ maxWidth: 'min(100%, clamp(22rem, 52vw, 44rem))' }}
     >
       <ChildGameBackdrop previewMode={previewMode} />
 
       <GameHeader
         instruction={headerInstruction}
         avatarState={phase === 'success' ? 'celebration' : phase === 'wrong' ? 'error' : 'learning'}
-        onPlayAudio={() => (phase === 'preview' ? playInstruction() : speakTarget(targetItem))}
+        onPlayAudio={() => (phase === 'preview' ? playInstruction() : speakTarget(targetItem, speak))}
         onRestart={resetGame}
       />
 
       <GameSection className="overflow-visible">
         <div
-          className="mx-auto grid max-w-[min(92vw,520px)] gap-2 sm:gap-3"
+          className="mx-auto grid max-w-[min(84vw,460px)] gap-2 sm:gap-3"
           style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}
         >
           {gridItems.map((item) => {

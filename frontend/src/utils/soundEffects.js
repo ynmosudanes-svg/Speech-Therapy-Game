@@ -66,7 +66,7 @@ export const SOUND_PRESET_OPTIONS = {
   ],
   fail: [
     { value: '', label: 'بدون صوت' },
-    { value: 'preset:fail-voice', label: 'حاول ثانية' },
+    { value: 'preset:fail-voice', label: 'تنبيه لطيف' },
     { value: 'preset:fail-buzz', label: 'تنبيه' },
   ],
 };
@@ -152,9 +152,6 @@ const playLayeredClip = (src, volume = 0.5) => {
 export const playSuccessSound = () => {
   try {
     playLayeredClip('/sounds/clap.mp3', 0.34);
-    window.setTimeout(() => {
-      speakArabicText('أحسنت يا بطل');
-    }, 120);
   } catch (error) {
     console.warn('Error playing success sounds:', error);
   }
@@ -162,10 +159,7 @@ export const playSuccessSound = () => {
 
 export const playErrorSound = () => {
   try {
-    playLayeredClip('/sounds/failbuzz.mp3', 0.28);
-    window.setTimeout(() => {
-      speakArabicText('حاول مرة ثانية');
-    }, 90);
+    playLayeredClip('/sounds/failbuzz.mp3', 0.22);
   } catch (error) {
     console.warn('Error playing error sounds:', error);
   }
@@ -211,8 +205,7 @@ const playFailDropSound = () => {
 export const playPresetSound = (presetId) => {
   switch (presetId) {
     case 'preset:success-voice':
-      speakArabicText('أحسنت');
-      return true;
+      return false;
     case 'preset:success-chime':
       playSuccessSound();
       return true;
@@ -223,7 +216,7 @@ export const playPresetSound = (presetId) => {
       playSuccessPopSound();
       return true;
     case 'preset:fail-voice':
-      speakArabicText('حاول مرة أخرى');
+      playFailSoftSound();
       return true;
     case 'preset:fail-soft':
       playFailSoftSound();

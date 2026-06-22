@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import {
   GameChoice,
   GameContainer,
@@ -11,12 +12,6 @@ import {
 import { playAudioUrl } from '../utils/soundEffects';
 import ChildGameBackdrop from './ChildGameBackdrop';
 
-const speakArabic = (text) => {
-  if (!text || typeof window === 'undefined') return;
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ar-SA';
-  window.speechSynthesis.speak(utterance);
-};
 
 const MatchingGame = ({
   game,
@@ -36,6 +31,7 @@ const MatchingGame = ({
   const [shadowRevealed, setShadowRevealed] = useState(false);
   const [shadowHeroPreviewSrc, setShadowHeroPreviewSrc] = useState('');
   const [startTime] = useState(Date.now());
+  const { speak } = useSpeechSynthesis();
   const [visualPulse, setVisualPulse] = useState(false);
   const [gestureArrow, setGestureArrow] = useState(false);
   const [physicalHighlight, setPhysicalHighlight] = useState(false);
@@ -126,7 +122,7 @@ const MatchingGame = ({
       playAudioUrl(questionAudio);
       return;
     }
-    speakArabic(instructionAr);
+    speak(instructionAr);
   };
 
   useEffect(() => {
@@ -145,7 +141,7 @@ const MatchingGame = ({
         const hint = correctOption?.textAr
           ? `ركز كويس، الإجابة قريبة من "${correctOption.textAr}"`
           : 'ركز كويس وبص على الصور تاني.';
-        if (helpVoiceEnabled) speakArabic(hint);
+        if (helpVoiceEnabled) speak(hint);
       },
       onPhysicalPrompt: () => {
         setPhysicalHighlight(true);

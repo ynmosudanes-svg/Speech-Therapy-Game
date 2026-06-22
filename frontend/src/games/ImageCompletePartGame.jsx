@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import {
   GAME_ASSISTANT_HINT_CLASS,
   GameChoice,
@@ -95,6 +96,7 @@ const ImageCompletePartGame = ({
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [startTime] = useState(Date.now());
+  const { speak } = useSpeechSynthesis();
 
   const totalCells = gridRows * gridCols;
   const missingCellIds = configuredMissingCellIds
@@ -207,9 +209,7 @@ const ImageCompletePartGame = ({
       },
       onVerbalHint: () => {
         if (helpVoiceEnabled) {
-          const utterance = new SpeechSynthesisUtterance('اختر الجزء الصحيح لإكمال الصورة.');
-          utterance.lang = 'ar-SA';
-          window.speechSynthesis.speak(utterance);
+          speak('اختر الجزء الصحيح لإكمال الصورة.');
         }
       },
       onPhysicalPrompt: () => {
@@ -366,9 +366,7 @@ const ImageCompletePartGame = ({
           }
 
           if (helpVoiceEnabled) {
-            const utterance = new SpeechSynthesisUtterance(instructionAr);
-            utterance.lang = 'ar-SA';
-            window.speechSynthesis.speak(utterance);
+            speak(instructionAr);
           }
         }}
         onRestart={handleRestart}

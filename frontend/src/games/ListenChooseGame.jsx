@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import {
   GameChoice,
   GameContainer,
@@ -21,6 +22,7 @@ const ListenChooseGame = ({
   const [isCorrect, setIsCorrect] = useState(false);
   const [startTime] = useState(Date.now());
   const [attempts, setAttempts] = useState(0);
+  const { speak } = useSpeechSynthesis();
 
   const avatarState = showFeedback ? (isCorrect ? 'celebration' : 'error') : 'learning';
 
@@ -71,9 +73,7 @@ const ListenChooseGame = ({
           if (game.questionAudio) {
             playAudioUrl(game.questionAudio);
           } else if (game.questionTextAr) {
-            const utterance = new SpeechSynthesisUtterance(game.questionTextAr);
-            utterance.lang = 'ar-SA';
-            window.speechSynthesis.speak(utterance);
+            speak(game.questionTextAr);
           }
         }}
         onRestart={handleRestart}

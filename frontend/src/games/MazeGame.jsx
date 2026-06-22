@@ -4,6 +4,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw, Volume2 } from 'l
 import { playAudioUrl, playBoundarySound, playMoveSound, playSuccessSound } from '../utils/soundEffects';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 
 const CELL_SIZE = 52;
 const PREVIEW_CELL_SIZE = 26;
@@ -13,20 +14,13 @@ const parseGrid = (grid) =>
     ? grid.map((row) => (Array.isArray(row) ? row.map((cell) => (Number(cell) === 1 ? 1 : 0)) : []))
     : [];
 
-const speakArabic = (text) => {
-  if (!text || typeof window === 'undefined') return;
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ar-SA';
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
-};
 
 const ControlButton = ({ icon: Icon, onClick, className = '', highlighted = false }) => (
   <button
     type="button"
     onClick={onClick}
     className={`relative w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 rounded-2xl md:rounded-[1.5rem] bg-sky-500 text-white shadow-[0_5px_0_#0284c7] md:shadow-[0_6px_0_#0284c7] hover:bg-sky-400 active:translate-y-1 md:active:translate-y-1.5 active:shadow-none transition-all flex items-center justify-center ${
-      highlighted ? 'ring-4 ring-amber-400 scale-110 animate-pulse shadow-[0_0_24px_rgba(251,191,36,0.8)] z-10' : ''
+      highlighted ? `${GAME_ASSISTANT_HINT_CLASS} z-10` : ''
     } ${className}`}
   >
     <Icon size={24} className="md:w-8 md:h-8" />
@@ -63,6 +57,7 @@ const MazeGame = ({
   const [attempts, setAttempts] = useState(0);
   const [won, setWon] = useState(false);
   const [startTime] = useState(Date.now());
+  const { speak } = useSpeechSynthesis();
 
   /* ── Hint states ── */
   const [visualPulse, setVisualPulse] = useState(false);
@@ -183,7 +178,7 @@ const MazeGame = ({
         const firstStep = getFirstHintStep();
         const dir = firstStep?.dir || 'up';
         if (helpVoiceEnabled) {
-          speakArabic(`جرّب تمشي ${dirNames[dir] || ''} عشان تقرب من الهدف.`);
+          speak(`جرّب تمشي ${dirNames[dir] || ''} عشان تقرب من الهدف.`);
         }
       },
       onPhysicalPrompt: () => {
@@ -191,7 +186,7 @@ const MazeGame = ({
         setHintPathCells(path.map((step) => ({ x: step.x, y: step.y })));
         setPhysicalPath(true);
         if (helpVoiceEnabled) {
-          speakArabic('هوريك الطريق للهدف! اتبع الخلايا اللي بتلمع.');
+          speak('هوريك الطريق للهدف! اتبع الخلايا اللي بتلمع.');
         }
         window.setTimeout(() => {
           setPhysicalPath(false);
@@ -302,7 +297,7 @@ const MazeGame = ({
         instruction={content?.instructionAr || 'حرّك حتى تصل إلى الهدف'}
         onPlayAudio={() => {
           if (content?.instructionAudio) playAudioUrl(content.instructionAudio);
-          else speakArabic(content?.instructionAr || 'حرّك حتى تصل إلى الهدف');
+          else speak(content?.instructionAr || 'حرّك حتى تصل إلى الهدف');
         }}
         onRestart={() => {
           setPosition({ x: startX, y: startY });
@@ -353,9 +348,9 @@ const MazeGame = ({
                         isWall 
                           ? 'bg-slate-700 border-b-4 border-slate-800 shadow-sm' 
                           : isPathCell
-                            ? 'bg-cyan-200 ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.6)] animate-pulse z-20'
+                            ? 'bg-[#eefaff] ring-4 ring-[#7dd3fc] shadow-[0_0_24px_rgba(25,173,214,0.32)] animate-pulse z-20'
                             : isNextHintCell && (visualPulse || gestureDirection)
-                              ? 'bg-amber-100 ring-4 ring-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.7)] animate-pulse z-20'
+                              ? 'bg-[#eefaff] ring-4 ring-[#7dd3fc] shadow-[0_0_24px_rgba(25,173,214,0.32)] animate-pulse z-20'
                               : 'bg-white shadow-[inset_0_0_4px_rgba(0,0,0,0.05)]'
                       }`}
                     >

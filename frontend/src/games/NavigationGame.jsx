@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw, Volume2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import {
   playAudioUrl,
   playBoundarySound,
@@ -84,12 +85,6 @@ const useTransparentImageSrc = (src) => {
   return transparentSrc || src;
 };
 
-const speakArabic = (text) => {
-  if (!text || typeof window === 'undefined') return;
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ar-SA';
-  window.speechSynthesis.speak(utterance);
-};
 
 const preventKeyboardAudioTrigger = (event) => {
   if (event.key === 'Enter' || event.key === ' ') {
@@ -100,17 +95,17 @@ const preventKeyboardAudioTrigger = (event) => {
 
 const PlaceholderTile = ({ label, className = '' }) => (
   <div
-    className={`w-full h-full rounded-2xl border-2 border-dashed border-slate-300 bg-white/90 flex items-center justify-center text-center text-xs md:text-sm font-black text-slate-400 px-2 ${className}`}
+    className={`w-full h-full rounded-[1.5rem] border-2 border-slate-200 bg-white flex items-center justify-center text-center text-xs md:text-sm font-black text-slate-400 px-2 shadow-[0_8px_0_rgba(148,163,184,0.12)] ${className}`}
   >
     {label}
   </div>
 );
 
-const ControlButton = ({ icon: Icon, onClick, className = '' }) => (
+const ControlButton = ({ icon: Icon, onClick, className = '', pressed = false }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-2xl md:rounded-[1.25rem] bg-sky-500 text-white shadow-[0_5px_0_#0284c7] md:shadow-[0_5px_0_#0284c7] hover:bg-sky-400 active:translate-y-1 md:active:translate-y-1 active:shadow-none transition-all flex items-center justify-center ${className}`}
+    className={`relative w-16 h-12 sm:w-20 sm:h-14 md:w-24 md:h-16 rounded-[1.1rem] bg-white text-slate-700 border border-sky-100 shadow-[0_8px_0_#d7eaf7] hover:bg-sky-50 hover:border-sky-200 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center ${pressed ? 'bg-sky-50 border-sky-300 shadow-none translate-y-1' : ''} ${className}`}
   >
     <Icon size={20} className="md:w-6 md:h-6" />
   </button>
@@ -153,7 +148,9 @@ const NavigationGame = ({
   const [feedback, setFeedback] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [shake, setShake] = useState(false);
+  const [pressedDirection, setPressedDirection] = useState(null);
   const [startTime] = useState(Date.now());
+  const { speak } = useSpeechSynthesis();
 
   /* ── Hint states ── */
   const [visualPulse, setVisualPulse] = useState(false);
@@ -173,6 +170,7 @@ const NavigationGame = ({
     setAttempts(0);
     setFeedback(null);
     setShake(false);
+    setPressedDirection(null);
   }, [game?.id, startX, startY, targetX, targetY]);
 
   /* ── Auto-play audio from the game ── */
@@ -256,7 +254,7 @@ const NavigationGame = ({
       playAudioUrl(instructionAudio);
       return;
     }
-    speakArabic(instructionAr || 'حرّك العنصر حتى يصل إلى الهدف');
+    speak(instructionAr || 'حرّك العنصر حتى يصل إلى الهدف');
   };
 
   /* ── Compute direction hint from player to target ── */
@@ -295,7 +293,7 @@ const NavigationGame = ({
         const dir = computeDirectionHint();
         const dirNames = { up: 'فوق', down: 'تحت', left: 'شمال', right: 'يمين' };
         if (helpVoiceEnabled) {
-          speakArabic(`حرّك العنصر ${dirNames[dir] || ''} عشان تقرب من الهدف.`);
+          speak(`حرّك العنصر ${dirNames[dir] || ''} عشان تقرب من الهدف.`);
         }
       },
       onPhysicalPrompt: () => {
@@ -304,7 +302,7 @@ const NavigationGame = ({
         if (helpVoiceEnabled) {
           const dir = computeDirectionHint();
           const dirNames = { up: 'فوق', down: 'تحت', left: 'شمال', right: 'يمين' };
-          speakArabic(`اتجه ${dirNames[dir] || ''}! الهدف بيلمع… روح عليه!`);
+          speak(`اتجه ${dirNames[dir] || ''}! الهدف بيلمع… روح عليه!`);
         }
       },
     });
@@ -317,6 +315,7 @@ const NavigationGame = ({
     setAttempts(0);
     setFeedback(null);
     setShake(false);
+    setPressedDirection(null);
     setVisualPulse(false);
     setGestureDirection(null);
     setPhysicalPath(false);
@@ -377,6 +376,10 @@ const NavigationGame = ({
   const moveBy = (dx, dy) => {
     if (isIncomplete || feedback === 'success') return;
     onAssistantInteraction?.();
+    setPressedDirection(
+      dx === 1 ? 'right' : dx === -1 ? 'left' : dy === 1 ? 'down' : 'up'
+    );
+    window.setTimeout(() => setPressedDirection(null), 180);
 
     // Clear hints on interaction
     setVisualPulse(false);
@@ -420,9 +423,9 @@ const NavigationGame = ({
 
       <section 
         ref={boardContainerRef}
-        className="rounded-xl md:rounded-[2.4rem] border border-[#dbe7f3] bg-[#f8fbff] shadow-sm flex-1 min-h-0 flex items-center justify-center overflow-hidden w-full max-w-[44rem] mx-auto"
+        className="rounded-3xl md:rounded-[2.6rem] border border-[#dbe7f3] bg-[#f8fbff] shadow-[0_22px_60px_-40px_rgba(15,23,42,0.35)] flex-1 min-h-0 flex items-center justify-center overflow-hidden w-full max-w-[44rem] mx-auto"
       >
-        <div className="relative overflow-hidden rounded-lg md:rounded-[2rem] bg-white border border-[#dbe7f3] shrink-0" style={boardStyle}>
+        <div className="relative overflow-hidden rounded-3xl md:rounded-[2rem] bg-white border border-[#dbe7f3] shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]" style={boardStyle}>
             {sceneImage ? (
               <img
                 src={sceneImage}
@@ -439,7 +442,7 @@ const NavigationGame = ({
 
             <div className="absolute inset-0 pointer-events-none">
               <div
-                className={`absolute rounded-full border-4 ${showTargetHighlight ? 'border-[#168FC7] bg-[#168FC7]/20 scale-105' : 'border-emerald-400/80 bg-emerald-300/20 animate-pulse'}`}
+                className={`absolute rounded-[1.25rem] border-4 ${showTargetHighlight ? 'border-[#168FC7] bg-[#168FC7]/20 scale-105' : 'border-emerald-400/80 bg-emerald-300/20 animate-pulse'}`}
                 style={{
                   width: `${cellSize * Math.max(radius, 1)}px`,
                   height: `${cellSize * Math.max(radius, 1)}px`,
@@ -497,14 +500,14 @@ const NavigationGame = ({
         </div>
       )}
 
-      <section className="bg-white rounded-xl md:rounded-[2rem] border border-[#dbe7f3] py-3 md:p-4 shadow-sm shrink-0 max-w-[24rem] w-full mx-auto">
+      <section className="bg-white rounded-3xl md:rounded-[2rem] border border-[#dbe7f3] py-3 md:p-4 shadow-[0_16px_44px_-32px_rgba(15,23,42,0.45)] shrink-0 max-w-[26rem] w-full mx-auto">
         <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 w-fit mx-auto" dir="ltr">
           <div />
-          <ControlButton icon={ArrowUp} onClick={() => moveBy(0, -1)} />
+          <ControlButton icon={ArrowUp} onClick={() => moveBy(0, -1)} pressed={pressedDirection === 'up'} />
           <div />
-          <ControlButton icon={ArrowLeft} onClick={() => moveBy(-1, 0)} />
-          <ControlButton icon={ArrowDown} onClick={() => moveBy(0, 1)} />
-          <ControlButton icon={ArrowRight} onClick={() => moveBy(1, 0)} />
+          <ControlButton icon={ArrowLeft} onClick={() => moveBy(-1, 0)} pressed={pressedDirection === 'left'} />
+          <ControlButton icon={ArrowDown} onClick={() => moveBy(0, 1)} pressed={pressedDirection === 'down'} />
+          <ControlButton icon={ArrowRight} onClick={() => moveBy(1, 0)} pressed={pressedDirection === 'right'} />
         </div>
       </section>
 
@@ -520,3 +523,4 @@ const NavigationGame = ({
 };
 
 export default NavigationGame;
+

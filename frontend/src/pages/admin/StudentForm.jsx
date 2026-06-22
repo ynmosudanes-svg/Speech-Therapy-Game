@@ -38,6 +38,7 @@ const StudentForm = ({ mode = 'create' }) => {
   const [gamesFilter, setGamesFilter] = useState('');
   const [selectedLibraryId, setSelectedLibraryId] = useState('all');
   const [selectedTag, setSelectedTag] = useState('');
+  const [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
 
   const allAvailableTags = useMemo(() => {
@@ -82,6 +83,15 @@ const StudentForm = ({ mode = 'create' }) => {
 
     return result;
   }, [availableGames, gamesFilter, selectedLibrary, selectedTag]);
+
+  const orderedAssignedGameIds = useMemo(() => {
+    if (!selectedLibrary || !Array.isArray(selectedLibrary.gameIds)) {
+      return formData.assignedGameIds;
+    }
+
+    const allowedIds = new Set(selectedLibrary.gameIds.map((id) => String(id)));
+    return formData.assignedGameIds.filter((gameId) => allowedIds.has(String(gameId)));
+  }, [formData.assignedGameIds, selectedLibrary]);
 
   useEffect(() => {
     const fetchFormDependencies = async () => {
@@ -206,27 +216,38 @@ const StudentForm = ({ mode = 'create' }) => {
     }));
   };
 
-  const moveGameUp = (gameId) => {
+  const moveAssignedGame = (gameId, direction) => {
     setFormData((current) => {
       const ids = [...current.assignedGameIds];
-      const index = ids.indexOf(gameId);
-      if (index > 0) {
-        [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]];
+      const allowedIds = selectedLibrary && Array.isArray(selectedLibrary.gameIds)
+        ? new Set(selectedLibrary.gameIds.map((libraryGameId) => String(libraryGameId)))
+        : null;
+      const visibleIds = allowedIds
+        ? ids.filter((id) => allowedIds.has(String(id)))
+        : ids;
+      const visibleIndex = visibleIds.indexOf(gameId);
+      const targetVisibleIndex = visibleIndex + direction;
+
+      if (visibleIndex === -1 || targetVisibleIndex < 0 || targetVisibleIndex >= visibleIds.length) {
+        return current;
       }
+
+      const targetGameId = visibleIds[targetVisibleIndex];
+      const index = ids.indexOf(gameId);
+      const targetIndex = ids.indexOf(targetGameId);
+
+      if (index === -1 || targetIndex === -1) {
+        return current;
+      }
+
+      [ids[index], ids[targetIndex]] = [ids[targetIndex], ids[index]];
       return { ...current, assignedGameIds: ids };
     });
   };
 
-  const moveGameDown = (gameId) => {
-    setFormData((current) => {
-      const ids = [...current.assignedGameIds];
-      const index = ids.indexOf(gameId);
-      if (index < ids.length - 1 && index !== -1) {
-        [ids[index + 1], ids[index]] = [ids[index], ids[index + 1]];
-      }
-      return { ...current, assignedGameIds: ids };
-    });
-  };
+  const moveGameUp = (gameId) => moveAssignedGame(gameId, -1);
+
+  const moveGameDown = (gameId) => moveAssignedGame(gameId, 1);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -446,23 +467,65 @@ const StudentForm = ({ mode = 'create' }) => {
                   className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
                 />
               </div>
-              <select
-                value={selectedLibraryId}
-                onChange={(e) => setSelectedLibraryId(e.target.value)}
-                disabled={loadingGames || !libraries.length}
-                className="w-36 sm:w-44 bg-white border border-gray-200 text-gray-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
-              >
-                <option value="all">كل المكتبات</option>
-                {libraries.map((library) => (
-                  <option key={library.id} value={library.id}>
-                    {library.name}
-                  </option>
-                ))}
-              </select>
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setTagMenuOpen(!tagMenuOpen)}
+                  disabled={loadingGames || !libraries.length}
+                  onClick={() => {
+                    setLibraryMenuOpen((open) => !open);
+                    setTagMenuOpen(false);
+                  }}
+                  className="bg-white border border-gray-200 text-gray-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all w-36 sm:w-44 flex items-center justify-between gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="truncate font-medium">
+                    {selectedLibrary ? selectedLibrary.name : 'كل المكتبات'}
+                  </span>
+                  <ChevronDown size={16} className={`shrink-0 text-gray-400 transition-transform ${libraryMenuOpen ? 'rotate-180 text-[#178bb6]' : ''}`} />
+                </button>
+
+                {libraryMenuOpen && (
+                  <div className="absolute z-50 top-full mt-2 left-0 w-44 bg-white rounded-xl shadow-xl border border-slate-200 p-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedLibraryId('all');
+                        setLibraryMenuOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-right text-slate-500"
+                    >
+                      <span>كل المكتبات</span>
+                      {selectedLibraryId === 'all' && <Check size={16} className="text-[#178bb6]" />}
+                    </button>
+                    <div className="max-h-64 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                      {libraries.map((library) => {
+                        const isActive = String(selectedLibraryId) === String(library.id);
+
+                        return (
+                          <button
+                            key={library.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedLibraryId(String(library.id));
+                              setLibraryMenuOpen(false);
+                            }}
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-right"
+                          >
+                            <span className="truncate">{library.name}</span>
+                            {isActive && <Check size={16} className="text-[#178bb6]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTagMenuOpen((open) => !open);
+                    setLibraryMenuOpen(false);
+                  }}
                   className="bg-white border border-gray-200 text-gray-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all w-36 sm:w-44 flex items-center justify-between gap-2"
                 >
                   {selectedTag ? (
@@ -475,11 +538,6 @@ const StudentForm = ({ mode = 'create' }) => {
                   <ChevronDown size={16} className="text-gray-400" />
                 </button>
                 {tagMenuOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setTagMenuOpen(false)} 
-                    />
                     <div className="absolute z-50 top-full mt-2 left-0 w-44 bg-white rounded-xl shadow-xl border border-slate-200 p-2">
                       <div className="max-h-64 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                         <button
@@ -503,7 +561,6 @@ const StudentForm = ({ mode = 'create' }) => {
                         ))}
                       </div>
                     </div>
-                  </>
                 )}
               </div>
             </div>
@@ -573,14 +630,14 @@ const StudentForm = ({ mode = 'create' }) => {
               <p className="text-sm text-gray-500">يمكنك تغيير الترتيب باستخدام الأسهم</p>
             </div>
 
-            {formData.assignedGameIds.length === 0 ? (
+            {orderedAssignedGameIds.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-gray-400">
                 <Layers size={48} className="mb-4 opacity-20" />
                 <p>لم يتم تحديد أي ألعاب بعد</p>
               </div>
             ) : (
               <div className="space-y-3 max-h-[800px] overflow-y-auto custom-scrollbar pr-2">
-                {formData.assignedGameIds.map((gameId, index) => {
+                {orderedAssignedGameIds.map((gameId, index) => {
                   const game = availableGames.find(g => String(g.id) === gameId);
                   if (!game) return null;
                   const gameTitle = game.titleAr || game.title || game.name;
@@ -605,9 +662,9 @@ const StudentForm = ({ mode = 'create' }) => {
                         <button 
                           type="button"
                           onClick={() => moveGameDown(gameId)}
-                          disabled={index === formData.assignedGameIds.length - 1}
+                          disabled={index === orderedAssignedGameIds.length - 1}
                           className={`p-1 rounded-md transition-colors ${
-                            index === formData.assignedGameIds.length - 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-[#178bb6] hover:bg-[#178bb6]/10'
+                            index === orderedAssignedGameIds.length - 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-[#178bb6] hover:bg-[#178bb6]/10'
                           }`}
                         >
                           <ChevronDown size={20} />

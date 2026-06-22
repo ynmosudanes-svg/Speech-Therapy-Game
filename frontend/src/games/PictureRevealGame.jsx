@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Grid2x2 } from 'lucide-react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
 import {
@@ -15,6 +14,15 @@ import {
   CHILD_GAME_BOARD_MAX_WIDTH,
   CHILD_GAME_SHELL_CLASS,
 } from './childGameLayout';
+
+const shuffleArray = (items) => {
+  const next = [...items];
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+  }
+  return next;
+};
 
 const PictureRevealGame = ({
   game,
@@ -32,7 +40,7 @@ const PictureRevealGame = ({
   const questionAudio = content.questionAudio || game?.questionAudio || '';
   const image = content.image || '';
   const gridSize = Math.max(2, Math.min(6, Number(content.gridSize || 4)));
-  const revealCount = Math.max(1, Number(content.revealCount || 1));
+  const revealMode = content.revealMode || game?.revealMode || 'manual';
   const options = useMemo(() => (Array.isArray(content.options) ? content.options : []), [content]);
 
   const [revealedCells, setRevealedCells] = useState([]);
@@ -44,7 +52,36 @@ const PictureRevealGame = ({
   const [startTime] = useState(Date.now());
 
   const totalCells = gridSize * gridSize;
-  const answeredEnough = revealedCells.length >= Math.min(totalCells, revealCount);
+  const revealOneCell = (preferredCellIndex = null) => {
+    setRevealedCells((current) => {
+      const next = new Set(current);
+
+      if (
+        Number.isInteger(preferredCellIndex)
+        && preferredCellIndex >= 0
+        && preferredCellIndex < totalCells
+        && !next.has(preferredCellIndex)
+      ) {
+        next.add(preferredCellIndex);
+        return [...next];
+      }
+
+      for (let index = 0; index < totalCells; index += 1) {
+        if (!next.has(index)) {
+          next.add(index);
+          break;
+        }
+      }
+
+      return [...next];
+    });
+  };
+  const autoRevealOrder = useMemo(
+    () => shuffleArray(Array.from({ length: totalCells }, (_, index) => index)),
+    [game?.id, gridSize, totalCells],
+  );
+  const answeredEnough = revealedCells.length >= 1;
+  const isAutoReveal = revealMode === 'auto';
   const correctOption = options.find((option) => option.isCorrect);
   const avatarState = showFeedback ? (isCorrect ? 'celebration' : 'error') : 'learning';
 
@@ -55,13 +92,52 @@ const PictureRevealGame = ({
     setIsCorrect(false);
     setAttempts(0);
     setShowCorrectBird(false);
-  }, [game?.id, gridSize]);
+  }, [game?.id, gridSize, revealMode, image]);
 
   useEffect(() => {
     if (!previewMode && questionAudio) {
       playAudioUrl(questionAudio);
     }
   }, [previewMode, questionAudio]);
+
+  useEffect(() => {
+    if (!isAutoReveal || !image || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const maxReveals = 1;
+    let stepIndex = 0;
+    const intervalId = window.setInterval(() => {
+      setRevealedCells((current) => {
+        if (current.length >= maxReveals) {
+          window.clearInterval(intervalId);
+          return current;
+        }
+
+        const nextCellIndex = autoRevealOrder[stepIndex];
+        stepIndex += 1;
+
+        if (typeof nextCellIndex !== 'number') {
+          window.clearInterval(intervalId);
+          return current;
+        }
+
+        if (current.includes(nextCellIndex)) {
+          return current;
+        }
+
+        const next = [...current, nextCellIndex];
+        if (next.length >= maxReveals) {
+          window.clearInterval(intervalId);
+        }
+        return next;
+      });
+    }, 650);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [autoRevealOrder, image, isAutoReveal, totalCells]);
 
   useEffect(() => {
     if (!registerAssistantActions) {
@@ -72,23 +148,12 @@ const PictureRevealGame = ({
       onVisualHint: () => {
         setShowCorrectBird(true);
         window.setTimeout(() => setShowCorrectBird(false), 2500);
-        setRevealedCells((current) => {
-          const next = new Set(current);
-          for (let index = 0; index < totalCells; index += 1) {
-            if (next.size >= Math.min(totalCells, revealCount)) break;
-            next.add(index);
-          }
-          return [...next];
-        });
+        revealOneCell();
       },
       onGestureHint: () => {
         setShowCorrectBird(true);
         window.setTimeout(() => setShowCorrectBird(false), 2500);
-        setRevealedCells((current) => {
-          const next = new Set(current);
-          next.add(0);
-          return [...next];
-        });
+        revealOneCell(0);
       },
       onVerbalHint: () => {
         if (helpVoiceEnabled) {
@@ -101,15 +166,15 @@ const PictureRevealGame = ({
         }
       },
       onPhysicalPrompt: () => {
-        setRevealedCells(Array.from({ length: totalCells }, (_, index) => index));
+        revealOneCell();
       },
     });
 
     return () => registerAssistantActions({});
-  }, [correctOption, helpVoiceEnabled, registerAssistantActions, revealCount, totalCells]);
+  }, [correctOption, helpVoiceEnabled, registerAssistantActions, totalCells]);
 
   const handleCellClick = (cellIndex) => {
-    if (!image || revealedCells.includes(cellIndex)) return;
+    if (!image || isAutoReveal || revealedCells.includes(cellIndex)) return;
     onAssistantInteraction?.();
     setRevealedCells((current) => (current.includes(cellIndex) ? current : [...current, cellIndex]));
   };
@@ -180,16 +245,6 @@ const PictureRevealGame = ({
       />
 
       <GameSection>
-        <div className="mb-3 flex items-center justify-between text-sm font-black text-slate-500">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#eefafd] px-3 py-1 text-[#19add6]">
-            <Grid2x2 size={15} />
-            {gridSize} x {gridSize}
-          </span>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
-            كشف {revealedCells.length} / {Math.min(totalCells, revealCount)}
-          </span>
-        </div>
-
         <div className="mx-auto w-full" style={{ maxWidth: `${CHILD_GAME_BOARD_MAX_WIDTH}px` }}>
           <div className="relative">
             <GameImage

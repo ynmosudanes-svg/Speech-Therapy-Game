@@ -13,14 +13,10 @@ import confetti from 'canvas-confetti';
 import { Volume2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
-import { playAudioUrl, playErrorSound, playSuccessSound } from '../utils/soundEffects';
+import { GAME_ASSISTANT_HINT_CLASS } from '../components/game/GameUI';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
+import { playAudioUrl, playErrorSound, playMoveSound, playSuccessSound } from '../utils/soundEffects';
 
-const speakArabic = (text) => {
-  if (!text || typeof window === 'undefined') return;
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ar-SA';
-  window.speechSynthesis.speak(utterance);
-};
 
 const preventKeyboardAudioTrigger = (event) => {
   if (event.key === 'Enter' || event.key === ' ') {
@@ -50,13 +46,9 @@ function DraggableSequenceItem({ item, index }) {
       {...listeners}
       {...attributes}
       className={`relative touch-none select-none cursor-grab active:cursor-grabbing bg-white rounded-[1.6rem] border-2 shadow-md p-2 transition-all duration-150 will-change-transform hover:shadow-lg hover:-translate-y-1 ${
-        item.physicalHighlight
-          ? 'border-emerald-500 bg-emerald-50 shadow-[0_0_0_6px_rgba(5,150,105,0.25)] scale-105'
-          : item.gestureHighlight
-            ? 'border-amber-400 bg-amber-50 shadow-[0_0_0_4px_rgba(217,119,6,0.18)]'
-            : item.highlighted
-              ? 'border-[#168FC7] bg-[#eef7fc] shadow-[0_0_0_4px_rgba(22,143,199,0.18)] animate-pulse'
-              : 'border-blue-100'
+        item.physicalHighlight || item.gestureHighlight || item.highlighted
+          ? GAME_ASSISTANT_HINT_CLASS
+          : 'border-blue-100'
       }`}
     >
       {/* Physical prompt: show order number */}
@@ -67,7 +59,7 @@ function DraggableSequenceItem({ item, index }) {
       )}
       {/* Gesture arrow */}
       {item.gestureHighlight && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-amber-500 text-2xl animate-bounce z-10">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[#19add6] text-2xl animate-bounce z-10">
           👇
         </div>
       )}
@@ -142,6 +134,7 @@ const SequenceGame = ({
   const [feedback, setFeedback] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [startTime] = useState(Date.now());
+  const { speak } = useSpeechSynthesis();
 
   /* ── Hint states ── */
   const [highlightedStepId, setHighlightedStepId] = useState(null);
@@ -156,6 +149,17 @@ const SequenceGame = ({
     if (Array.isArray(game?.items)) return game.items;
     return [];
   }, [config, game]);
+
+  const orderedSteps = useMemo(
+    () => [...steps]
+      .map((step, index) => ({
+        ...step,
+        order: Number.isFinite(Number(step.order)) ? Number(step.order) : index + 1,
+        originalIndex: index,
+      }))
+      .sort((first, second) => first.order - second.order || first.originalIndex - second.originalIndex),
+    [steps],
+  );
 
   const successSound = config?.feedback?.successSound || game?.successSound || '';
   const failSound = config?.feedback?.failSound || game?.failSound || '';
@@ -176,22 +180,22 @@ const SequenceGame = ({
     setFeedback(null);
     setShowFeedback(false);
     setAttempts(0);
-    setPlacedItems(new Array(steps.length).fill(null));
-    setAvailableItems([...steps].sort(() => Math.random() - 0.5));
+    setPlacedItems(new Array(orderedSteps.length).fill(null));
+    setAvailableItems([...orderedSteps].sort(() => Math.random() - 0.5));
 
     if (!previewMode && instructionAudio) playAudioUrl(instructionAudio);
-  }, [steps, instructionAudio, previewMode]);
+  }, [orderedSteps, instructionAudio, previewMode]);
 
   const resetBoard = useCallback(() => {
     setCompleted(false);
     setFeedback(null);
     setShowFeedback(false);
-    setPlacedItems(new Array(steps.length).fill(null));
-    setAvailableItems([...steps].sort(() => Math.random() - 0.5));
+    setPlacedItems(new Array(orderedSteps.length).fill(null));
+    setAvailableItems([...orderedSteps].sort(() => Math.random() - 0.5));
     setHighlightedStepId(null);
     setGestureStepId(null);
     setPhysicalMode(false);
-  }, [steps]);
+  }, [orderedSteps]);
 
   /* ── Register 4 assistant callbacks ── */
   useEffect(() => {
@@ -202,28 +206,30 @@ const SequenceGame = ({
     registerAssistantActions({
       /* Visual: highlight the next needed step */
       onVisualHint: () => {
-        const nextOrder = placedItems.filter(Boolean).length + 1;
-        const nextStep = steps.find((item) => Number(item.order) === nextOrder) || steps.find((item) => Number(item.order) === 1);
+        const nextIndex = placedItems.findIndex((item) => item === null);
+        const nextStep = orderedSteps[nextIndex >= 0 ? nextIndex : 0];
         setHighlightedStepId(nextStep?.id || null);
         window.setTimeout(() => setHighlightedStepId(null), 2500);
       },
 
       /* Gesture: arrow pointing to next step */
       onGestureHint: () => {
-        const nextOrder = placedItems.filter(Boolean).length + 1;
-        const nextStep = steps.find((item) => Number(item.order) === nextOrder);
+        const nextIndex = placedItems.findIndex((item) => item === null);
+        const nextOrder = (nextIndex >= 0 ? nextIndex : 0) + 1;
+        const nextStep = orderedSteps[nextIndex >= 0 ? nextIndex : 0];
         setGestureStepId(nextStep?.id || null);
         window.setTimeout(() => setGestureStepId(null), 3000);
       },
 
       /* Verbal: speak the hint */
       onVerbalHint: () => {
-        const nextOrder = placedItems.filter(Boolean).length + 1;
-        const nextStep = steps.find((item) => Number(item.order) === nextOrder);
+        const nextIndex = placedItems.findIndex((item) => item === null);
+        const nextOrder = (nextIndex >= 0 ? nextIndex : 0) + 1;
+        const nextStep = orderedSteps[nextIndex >= 0 ? nextIndex : 0];
         const hint = nextStep?.labelAr
           ? `الخطوة التالية هي "${nextStep.labelAr}"`
           : `دور على الخطوة رقم ${nextOrder}`;
-        if (helpVoiceEnabled) speakArabic(hint);
+        if (helpVoiceEnabled) speak(hint);
       },
 
       /* Physical: show all order numbers on steps */
@@ -231,13 +237,13 @@ const SequenceGame = ({
         setPhysicalMode(true);
         window.setTimeout(() => setPhysicalMode(false), 4000);
         if (helpVoiceEnabled) {
-          speakArabic('هوريك ترتيب الخطوات كلها! بص على الأرقام.');
+          speak('هوريك ترتيب الخطوات كلها! بص على الأرقام.');
         }
       },
     });
 
     return () => registerAssistantActions({});
-  }, [helpVoiceEnabled, instructionAudio, placedItems, registerAssistantActions, steps]);
+  }, [helpVoiceEnabled, placedItems, registerAssistantActions, orderedSteps]);
 
   const checkCompletion = useCallback(
     (placed) => {
@@ -246,13 +252,11 @@ const SequenceGame = ({
       const nextAttempt = attempts + 1;
       setAttempts(nextAttempt);
 
-      const isCorrectOrder = placed.every((item, index) => Number(item.order) === index + 1);
+      const isCorrectOrder = placed.every((item, index) => item?.id === orderedSteps[index]?.id);
 
       if (!isCorrectOrder) {
-        setFeedback('error');
-        setShowFeedback(true);
-        if (failSound) playAudioUrl(failSound);
-        else playErrorSound();
+        playErrorSound();
+        window.setTimeout(() => resetBoard(), 350);
         return;
       }
 
@@ -269,7 +273,7 @@ const SequenceGame = ({
         colors: ['#2563eb', '#f59e0b', '#10b981', '#ec4899'],
       });
     },
-    [attempts, failSound, successSound]
+    [attempts, orderedSteps, resetBoard, successSound]
   );
 
   const handleFeedbackNext = () => {
@@ -320,6 +324,7 @@ const SequenceGame = ({
     nextPlacedItems[slotIndex] = draggedItem;
     setPlacedItems(nextPlacedItems);
     setAvailableItems((current) => current.filter((item) => item.id !== draggedItem.id));
+    playMoveSound();
 
     if (!nextPlacedItems.some((item) => item === null)) checkCompletion(nextPlacedItems);
   };
@@ -339,7 +344,7 @@ const SequenceGame = ({
         avatarState={avatarState}
         onPlayAudio={() => {
           if (instructionAudio) playAudioUrl(instructionAudio);
-          else speakArabic(instructionAr);
+          else speak(instructionAr);
         }}
         onRestart={resetBoard}
       />
@@ -347,7 +352,7 @@ const SequenceGame = ({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="bg-white rounded-[2rem] p-4 md:p-6 border-2 border-[#dbe7f3] shadow-sm">
           <div className="text-sm font-bold text-blue-600 mb-3 text-center">ضع الصور هنا بالترتيب الصحيح</div>
-          <div className={`grid gap-4 md:gap-5 ${steps.length <= 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-4'}`}>
+          <div className={`grid gap-4 md:gap-5 ${orderedSteps.length <= 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-4'}`}>
             {placedItems.map((item, index) => (
               <DroppableSlot key={index} slotIndex={index} placedItem={item} />
             ))}

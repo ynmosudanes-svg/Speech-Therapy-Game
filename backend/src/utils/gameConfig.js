@@ -1,4 +1,4 @@
-const SUPPORTED_TEMPLATE_TYPES = [
+﻿const SUPPORTED_TEMPLATE_TYPES = [
   'matching.similar',
   'matching.different',
   'matching.find',
@@ -208,7 +208,6 @@ function normalizeActivity(activity, type, index) {
       image: activity?.image || '',
       gridSize: Number(activity?.gridSize || 4),
       revealMode: activity?.revealMode || 'manual',
-      revealCount: Number(activity?.revealCount || 1),
       options: Array.isArray(activity?.options) ? activity.options.map(normalizeOption) : [],
     };
   }

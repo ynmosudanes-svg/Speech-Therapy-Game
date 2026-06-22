@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { RotateCcw, Star, Volume2 } from 'lucide-react';
+import { CheckCircle2, RotateCcw, Volume2 } from 'lucide-react';
 import Button from '../components/Button';
 import BirdHint from '../components/game/BirdHint';
 import GameHeader from '../components/game/GameHeader';
@@ -264,23 +264,16 @@ const MemoryCardsGame = ({
       <GameSection className="overflow-visible">
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-3 text-center">
-            <div className="text-xs font-black text-sky-600">الأزواج المتبقية</div>
+            <div className="text-xs font-black text-sky-600">??????? ????????</div>
             <div className="mt-1 text-2xl font-black text-slate-900">{remainingPairs}</div>
           </div>
           <div className="rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-center">
-            <div className="text-xs font-black text-amber-600">النجوم</div>
-            <div className="mt-1 flex justify-center gap-1 text-2xl text-amber-400">
-              {[1, 2, 3].map((star) => (
-                <Star
-                  key={star}
-                  className={`h-6 w-6 ${star <= earnedStars ? 'fill-current' : 'text-slate-200'}`}
-                />
-              ))}
-            </div>
+            <div className="text-xs font-black text-amber-600">???????</div>
+            <div className="mt-1 text-2xl font-black text-slate-900">{earnedStars}/3</div>
           </div>
           <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3">
             <div className="mb-2 flex items-center justify-between text-xs font-black text-emerald-700">
-              <span>التقدم</span>
+              <span>??????</span>
               <span>{progress}%</span>
             </div>
             <div className="h-3 overflow-hidden rounded-full bg-white">
@@ -353,7 +346,7 @@ const MemoryCardsGame = ({
                     )}
                     {isMatched && (
                       <div className="absolute right-2 top-2 rounded-full bg-emerald-500 p-1 text-white">
-                        <Star className="h-4 w-4 fill-current" />
+                        <CheckCircle2 className="h-4 w-4" />
                       </div>
                     )}
                     {isFlipped && !isMatched && (
@@ -371,26 +364,18 @@ const MemoryCardsGame = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-[2rem] border border-sky-100 bg-white p-6 text-center shadow-2xl">
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-orange-400 text-4xl shadow-lg">
-              🎉
+              ??
             </div>
-            <h2 className="text-2xl font-black text-slate-900 md:text-3xl">أحسنت! لقد أكملت اللعبة</h2>
-            <p className="mt-2 text-sm font-bold text-slate-500">جمعت {earnedStars} نجوم ووجدت كل الأزواج.</p>
-            <div className="my-5 flex justify-center gap-2 text-amber-400">
-              {[1, 2, 3].map((star) => (
-                <Star
-                  key={star}
-                  className={`h-9 w-9 ${star <= earnedStars ? 'fill-current' : 'text-slate-200'}`}
-                />
-              ))}
-            </div>
+            <h2 className="text-2xl font-black text-slate-900 md:text-3xl">?????! ??? ????? ??????</h2>
+            <p className="mt-2 text-sm font-bold text-slate-500">????? ?????? ????? {earnedStars}/3 ????? ?? ???????.</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <Button type="button" variant="outline" onClick={resetGame} className="!py-3">
                 <RotateCcw className="h-5 w-5" />
-                العب مرة أخرى
+                ???? ??? ????
               </Button>
               {!previewMode && (
                 <Button type="button" variant="primary" onClick={finishActivity} className="!py-3">
-                  إنهاء النشاط
+                  ????? ??????
                 </Button>
               )}
             </div>

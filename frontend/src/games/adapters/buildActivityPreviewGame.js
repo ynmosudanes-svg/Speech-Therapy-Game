@@ -1,4 +1,4 @@
-const fallbackName = 'لعبة علاجية';
+﻿const fallbackName = 'لعبة علاجية';
 const getDefaultActivityTitle = (index = 0) => `نشاط ${index + 1}`;
 const getDefaultInstructionForType = (type) => {
   if (type === 'matching.similar') return 'اختر الصورة المطابقة';
@@ -160,9 +160,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       difficulty: 'easy',
       image: '',
       gridSize: 4,
-      revealMode: 'manual',
-      revealCount: 1,
-      options: createRevealPreviewOptions(),
+      revealMode: 'manual',      options: createRevealPreviewOptions(),
     };
   }
 
@@ -450,7 +448,6 @@ export const buildActivityRuntimeGame = ({
           image: activity?.image || '',
           gridSize: Number(activity?.gridSize ?? 4),
           revealMode: activity?.revealMode || 'manual',
-          revealCount: Number(activity?.revealCount ?? 1),
           options: Array.isArray(activity?.options) ? activity.options : [],
         },
         feedback: {

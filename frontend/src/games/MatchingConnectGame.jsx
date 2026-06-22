@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import GameHeader from '../components/game/GameHeader';
+import BirdHint from '../components/game/BirdHint';
+import { playAudioUrl, playErrorSound, playSuccessSound } from '../utils/soundEffects';
 
 export default function MatchingConnectGame({ 
   game, 
@@ -104,21 +106,29 @@ export default function MatchingConnectGame({
 
   // Register Assistant Actions
   useEffect(() => {
-    if (registerAssistantActions) {
-      registerAssistantActions({
-        highlightCorrect: () => {
-          // Find an unmatched pair
-          const unmatchedId = pairs.find(p => !matchedIds.includes(p.id))?.id;
-          if (unmatchedId) {
-            setSelectedSource(unmatchedId);
-            setTimeout(() => {
-              setSelectedTarget(unmatchedId);
-              checkMatch(unmatchedId, unmatchedId);
-            }, 1000);
-          }
+    if (!registerAssistantActions) return undefined;
+
+    const highlightNextPair = ({ autoMatch = false } = {}) => {
+      const unmatchedId = pairs.find((pair) => !matchedIds.includes(pair.id))?.id;
+      if (!unmatchedId) return;
+
+      setSelectedSource(unmatchedId);
+      window.setTimeout(() => {
+        setSelectedTarget(unmatchedId);
+        if (autoMatch) {
+          checkMatch(unmatchedId, unmatchedId);
         }
-      });
-    }
+      }, 700);
+    };
+
+    registerAssistantActions({
+      onVisualHint: () => highlightNextPair(),
+      onGestureHint: () => highlightNextPair(),
+      onVerbalHint: () => highlightNextPair(),
+      onPhysicalPrompt: () => highlightNextPair({ autoMatch: true }),
+    });
+
+    return () => registerAssistantActions({});
   }, [registerAssistantActions, pairs, matchedIds]);
 
   // Calculate SVG Lines based on matched items
@@ -222,10 +232,8 @@ export default function MatchingConnectGame({
       setSelectedTarget(null);
 
       // Play success sound
-      if (feedback?.successSound) {
-        const audio = new Audio(feedback.successSound);
-        audio.play().catch(() => {});
-      }
+      if (feedback?.successSound) playAudioUrl(feedback.successSound);
+      else playSuccessSound();
 
       // Check win condition
       if (newMatched.length === pairs.length) {
@@ -245,10 +253,8 @@ export default function MatchingConnectGame({
       setWrongAttempt(true);
       setTempWrongLine({ sourceId, targetId });
       
-      if (feedback?.failSound) {
-        const audio = new Audio(feedback.failSound);
-        audio.play().catch(() => {});
-      }
+      if (feedback?.failSound) playAudioUrl(feedback.failSound);
+      else playErrorSound();
 
       setTimeout(() => {
         setSelectedSource(null);
@@ -327,6 +333,7 @@ export default function MatchingConnectGame({
                     const isSelected = selectedSource === item.id;
                     const isMatched = matchedIds.includes(item.id);
                     const isWrong = wrongAttempt && tempWrongLine?.sourceId === item.id;
+                    const showAssistantHere = isSelected && !selectedTarget && !isMatched && !wrongAttempt;
 
                     return (
                         <button
@@ -338,7 +345,7 @@ export default function MatchingConnectGame({
                                 relative w-full rounded-2xl sm:rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 p-3 sm:p-6 min-h-[100px] sm:min-h-[140px]
                                 border-4 shadow-sm bg-white
                                 ${isMatched ? 'bg-emerald-50/50 border-emerald-200 scale-95 opacity-50 cursor-default' : 
-                                  isSelected ? 'border-sky-500 shadow-sky-200 scale-105 shadow-xl z-20 ring-4 ring-sky-100' : 
+                                  isSelected ? 'border-[#19add6] bg-[#eefaff]/85 scale-105 shadow-[0_0_0_5px_rgba(25,173,214,0.26),0_16px_34px_rgba(25,173,214,0.22)] z-20 ring-4 ring-[#7dd3fc]/90' : 
                                   'border-slate-100 hover:border-sky-300 hover:shadow-lg hover:-translate-y-1'}
                                 ${isWrong ? 'animate-[shake_0.5s_ease-in-out] border-rose-500 bg-rose-50' : ''}
                             `}
@@ -355,6 +362,9 @@ export default function MatchingConnectGame({
                             <div className={`absolute top-1/2 -left-[10px] sm:-left-[14px] -translate-y-1/2 w-4 h-4 sm:w-6 sm:h-6 rounded-full border-2 sm:border-4 border-white transition-all duration-300 z-20 shadow-sm
                                 ${isMatched ? 'bg-emerald-500 border-emerald-100 scale-90' : isSelected ? 'bg-sky-500 scale-125 ring-2 ring-sky-200' : isWrong ? 'bg-rose-500' : 'bg-slate-300 hover:bg-sky-400'}
                             `} />
+                            {showAssistantHere && (
+                              <BirdHint className="absolute top-1/2 -left-16 z-40 h-14 w-14 -translate-y-1/2 drop-shadow-[0_10px_18px_rgba(6,182,212,0.28)] sm:-left-20 sm:h-16 sm:w-16" />
+                            )}
                         </button>
                     );
                 })}
@@ -366,6 +376,7 @@ export default function MatchingConnectGame({
                     const isSelected = selectedTarget === item.id;
                     const isMatched = matchedIds.includes(item.id);
                     const isWrong = wrongAttempt && tempWrongLine?.targetId === item.id;
+                    const showAssistantHere = isSelected && !isMatched && !wrongAttempt;
 
                     return (
                         <button
@@ -377,7 +388,7 @@ export default function MatchingConnectGame({
                                 relative w-full rounded-2xl sm:rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 p-3 sm:p-6 min-h-[100px] sm:min-h-[140px]
                                 border-4 shadow-sm bg-white
                                 ${isMatched ? 'bg-emerald-50/50 border-emerald-200 scale-95 opacity-50 cursor-default' : 
-                                  isSelected ? 'border-sky-500 shadow-sky-200 scale-105 shadow-xl z-20 ring-4 ring-sky-100' : 
+                                  isSelected ? 'border-[#19add6] bg-[#eefaff]/85 scale-105 shadow-[0_0_0_5px_rgba(25,173,214,0.26),0_16px_34px_rgba(25,173,214,0.22)] z-20 ring-4 ring-[#7dd3fc]/90' : 
                                   'border-slate-100 hover:border-sky-300 hover:shadow-lg hover:-translate-y-1'}
                                 ${isWrong ? 'animate-[shake_0.5s_ease-in-out] border-rose-500 bg-rose-50' : ''}
                             `}
@@ -394,6 +405,9 @@ export default function MatchingConnectGame({
                             <div className={`absolute top-1/2 -right-[10px] sm:-right-[14px] -translate-y-1/2 w-4 h-4 sm:w-6 sm:h-6 rounded-full border-2 sm:border-4 border-white transition-all duration-300 z-20 shadow-sm
                                 ${isMatched ? 'bg-emerald-500 border-emerald-100 scale-90' : isSelected ? 'bg-sky-500 scale-125 ring-2 ring-sky-200' : isWrong ? 'bg-rose-500' : 'bg-slate-300 hover:bg-sky-400'}
                             `} />
+                            {showAssistantHere && (
+                              <BirdHint className="absolute top-1/2 -right-16 z-40 h-14 w-14 -translate-y-1/2 drop-shadow-[0_10px_18px_rgba(6,182,212,0.28)] sm:-right-20 sm:h-16 sm:w-16" />
+                            )}
                         </button>
                     );
                 })}

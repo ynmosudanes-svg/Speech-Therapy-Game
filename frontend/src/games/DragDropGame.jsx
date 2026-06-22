@@ -12,7 +12,9 @@ import {
 import confetti from 'canvas-confetti';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import {
+  GAME_ASSISTANT_HINT_CLASS,
   GameCard,
   GameContainer,
   GameGrid,
@@ -22,12 +24,6 @@ import {
 import { playAudioUrl, playErrorSound, playSuccessSound } from '../utils/soundEffects';
 import ChildGameBackdrop from './ChildGameBackdrop';
 
-const speakArabic = (text) => {
-  if (!text || typeof window === 'undefined') return;
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ar-SA';
-  window.speechSynthesis.speak(utterance);
-};
 
 function DraggableCard({ item, disabled, matched }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -56,13 +52,9 @@ function DraggableCard({ item, disabled, matched }) {
       } ${
         matched
           ? 'border-emerald-300 bg-emerald-50/90'
-          : item.physicalHighlight
-            ? 'border-emerald-400 bg-emerald-50/90'
-            : item.gestureHighlight
-              ? 'border-amber-300 bg-amber-50/90'
-              : item.highlighted
-                ? 'border-sky-300 bg-sky-50/90'
-                : 'border-[#dbe7f3] bg-white/94'
+          : item.physicalHighlight || item.gestureHighlight || item.highlighted
+            ? GAME_ASSISTANT_HINT_CLASS
+            : 'border-[#dbe7f3] bg-white/94'
       }`}
     >
       <GameImage
@@ -141,6 +133,7 @@ const DragDropGame = ({
   const [showModal, setShowModal] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [startTime] = useState(Date.now());
+  const { speak } = useSpeechSynthesis();
   const [visualPulse, setVisualPulse] = useState(false);
   const [gestureArrow, setGestureArrow] = useState(false);
   const [physicalHighlight, setPhysicalHighlight] = useState(false);
@@ -176,7 +169,7 @@ const DragDropGame = ({
       playAudioUrl(instructionAudio);
       return;
     }
-    speakArabic(instructionAr);
+    speak(instructionAr);
   };
 
   useEffect(() => {
@@ -195,7 +188,7 @@ const DragDropGame = ({
         const hint = correctItem?.labelAr
           ? `جرب تسحب "${correctItem.labelAr}" للمشهد.`
           : 'ركز على العنصر الصحيح واسحبه للمشهد.';
-        if (helpVoiceEnabled) speakArabic(hint);
+        if (helpVoiceEnabled) speak(hint);
       },
       onPhysicalPrompt: () => {
         setPhysicalHighlight(true);

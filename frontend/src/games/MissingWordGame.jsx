@@ -5,6 +5,7 @@ import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
 import BirdHint from '../components/game/BirdHint';
+import { GAME_ASSISTANT_HINT_CLASS } from '../components/game/GameUI';
 import {
   playAudioUrl,
   playSuccessSound,
@@ -167,14 +168,8 @@ const MissingWordGame = ({
     if (feedback === 'success') {
       return 'bg-white border-slate-200 text-slate-300 opacity-50 cursor-not-allowed';
     }
-    if (physicalHighlight && option.isCorrect) {
-      return 'bg-emerald-50 border-emerald-400 text-emerald-700 ring-4 ring-emerald-400 shadow-emerald-200/50 scale-110';
-    }
-    if (gestureArrow && option.isCorrect) {
-      return 'bg-amber-50 border-amber-400 text-amber-700 ring-4 ring-amber-400 shadow-[0_0_40px_rgba(217,119,6,0.4)]';
-    }
-    if (visualPulse && option.isCorrect) {
-      return 'bg-yellow-50 border-yellow-400 text-yellow-700 ring-8 ring-yellow-400 animate-pulse shadow-[0_0_40px_rgba(250,204,21,0.5)]';
+    if ((physicalHighlight || gestureArrow || visualPulse) && option.isCorrect) {
+      return `${GAME_ASSISTANT_HINT_CLASS} text-[#126d8f]`;
     }
     return 'bg-white border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-400 hover:scale-105 active:scale-95';
   };

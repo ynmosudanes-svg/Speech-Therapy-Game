@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw, Volume2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
 import GameHeader from '../components/game/GameHeader';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
@@ -48,11 +48,10 @@ const removeNearWhiteBackground = (image) => {
 };
 
 const useTransparentImageSrc = (src) => {
-  const [transparentSrc, setTransparentSrc] = useState('');
+  const [transparentSrc, setTransparentSrc] = useState(src || '');
 
   useEffect(() => {
     if (!src || typeof window === 'undefined') {
-      setTransparentSrc('');
       return undefined;
     }
 
@@ -82,16 +81,10 @@ const useTransparentImageSrc = (src) => {
     };
   }, [src]);
 
-  return transparentSrc || src;
+  return src ? transparentSrc || src : '';
 };
 
 
-const preventKeyboardAudioTrigger = (event) => {
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-};
 
 const PlaceholderTile = ({ label, className = '' }) => (
   <div
@@ -149,7 +142,7 @@ const NavigationGame = ({
   const [showModal, setShowModal] = useState(false);
   const [shake, setShake] = useState(false);
   const [pressedDirection, setPressedDirection] = useState(null);
-  const [startTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(() => Date.now());
   const { speak } = useSpeechSynthesis();
 
   /* ── Hint states ── */
@@ -166,11 +159,16 @@ const NavigationGame = ({
     Number.isNaN(targetY);
 
   useEffect(() => {
-    setPosition({ x: startX, y: startY });
-    setAttempts(0);
-    setFeedback(null);
-    setShake(false);
-    setPressedDirection(null);
+    const timeoutId = window.setTimeout(() => {
+      setPosition({ x: startX, y: startY });
+      setAttempts(0);
+      setFeedback(null);
+      setShake(false);
+      setPressedDirection(null);
+      setStartTime(Date.now());
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [game?.id, startX, startY, targetX, targetY]);
 
   /* ── Auto-play audio from the game ── */
@@ -258,14 +256,14 @@ const NavigationGame = ({
   };
 
   /* ── Compute direction hint from player to target ── */
-  const computeDirectionHint = () => {
+  const computeDirectionHint = useCallback(() => {
     const dx = targetX - position.x;
     const dy = targetY - position.y;
     if (Math.abs(dx) >= Math.abs(dy)) {
       return dx > 0 ? 'right' : 'left';
     }
     return dy > 0 ? 'down' : 'up';
-  };
+  }, [position.x, position.y, targetX, targetY]);
 
   const directionArrow = {
     up: '⬆️',
@@ -308,7 +306,7 @@ const NavigationGame = ({
     });
 
     return () => registerAssistantActions({});
-  }, [helpVoiceEnabled, instructionAr, instructionAudio, position, targetX, targetY, registerAssistantActions]);
+  }, [computeDirectionHint, helpVoiceEnabled, registerAssistantActions, speak]);
 
   const resetGame = () => {
     setPosition({ x: startX, y: startY });
@@ -333,7 +331,7 @@ const NavigationGame = ({
     setTimeout(() => setShake(false), 260);
   };
 
-  const detectSuccess = (nextX, nextY, nextAttempts) => {
+  const detectSuccess = (nextX, nextY) => {
     const distance = Math.abs(nextX - targetX) + Math.abs(nextY - targetY);
     if (distance > radius) {
       return;
@@ -400,7 +398,7 @@ const NavigationGame = ({
 
     setAttempts(nextAttempts);
     setPosition({ x: nextX, y: nextY });
-    detectSuccess(nextX, nextY, nextAttempts);
+    detectSuccess(nextX, nextY);
   };
 
   if (isIncomplete) {
@@ -523,4 +521,3 @@ const NavigationGame = ({
 };
 
 export default NavigationGame;
-

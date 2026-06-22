@@ -40,6 +40,7 @@ const PictureRevealGame = ({
   const questionAudio = content.questionAudio || game?.questionAudio || '';
   const image = content.image || '';
   const gridSize = Math.max(2, Math.min(6, Number(content.gridSize || 4)));
+  const revealCount = Math.max(1, Number(content.revealCount || 1));
   const revealMode = content.revealMode || game?.revealMode || 'manual';
   const options = useMemo(() => (Array.isArray(content.options) ? content.options : []), [content]);
 
@@ -80,7 +81,7 @@ const PictureRevealGame = ({
     () => shuffleArray(Array.from({ length: totalCells }, (_, index) => index)),
     [game?.id, gridSize, totalCells],
   );
-  const answeredEnough = revealedCells.length >= 1;
+  const answeredEnough = revealedCells.length >= Math.min(totalCells, revealCount);
   const isAutoReveal = revealMode === 'auto';
   const correctOption = options.find((option) => option.isCorrect);
   const avatarState = showFeedback ? (isCorrect ? 'celebration' : 'error') : 'learning';
@@ -105,7 +106,7 @@ const PictureRevealGame = ({
       return undefined;
     }
 
-    const maxReveals = 1;
+    const maxReveals = isAutoReveal ? revealCount : 1;
     let stepIndex = 0;
     const intervalId = window.setInterval(() => {
       setRevealedCells((current) => {
@@ -132,7 +133,7 @@ const PictureRevealGame = ({
         }
         return next;
       });
-    }, 650);
+    }, 250);
 
     return () => {
       window.clearInterval(intervalId);

@@ -202,6 +202,24 @@ const playFailDropSound = () => {
   playTone({ frequency: 180, duration: 0.18, type: 'triangle', volume: 0.08, delay: 0.16 });
 };
 
+export const isPlayableMediaUrl = (url) => {
+  if (!url) return false;
+
+  const normalized = String(url).trim();
+  if (!normalized) return false;
+  if (/^(file|blob):/i.test(normalized)) return false;
+  if (/^[a-zA-Z]:[\/]/.test(normalized)) return false;
+
+  if (normalized.startsWith('preset:')) return true;
+
+  try {
+    const resolved = new URL(normalized, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+    return resolved.protocol === 'http:' || resolved.protocol === 'https:';
+  } catch {
+    return normalized.startsWith('/');
+  }
+};
+
 export const playPresetSound = (presetId) => {
   switch (presetId) {
     case 'preset:success-voice':
@@ -234,6 +252,11 @@ export const playPresetSound = (presetId) => {
 
 export const playAudioUrl = (url) => {
   if (!url || typeof window === 'undefined') return;
+
+  if (!isPlayableMediaUrl(url)) {
+    console.warn('Skipped local or unsupported audio URL:', url);
+    return;
+  }
 
   if (playPresetSound(url)) {
     return;

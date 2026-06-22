@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Play, Star, Lock, Medal, Gamepad2, Check, RotateCcw, Sparkles, Trophy, Lightbulb } from 'lucide-react';
+import { Play, Lock, Gamepad2, Check, Sparkles } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Autoplay } from 'swiper/modules';
@@ -9,12 +10,18 @@ import 'swiper/css';
 import 'swiper/css/pagination';
 import welcomeAnimation from '../../assets/Animation/3 Ani.json';
 import fourAniAnimation from '../../assets/Animation/4 Ani.json';
+import chickAnimation from '../../assets/Animation/Reading (1).json';
 
 const StudentHome = () => {
   const navigate = useNavigate();
   const { currentStudent, sessions } = useTherapyStore();
   const readingAnimationRef = useRef(null);
   const numberOneAnimationRef = useRef(null);
+  const progressMapRef = useRef(null);
+  const progressPathSvgRef = useRef(null);
+  const currentLevelRef = useRef(null);
+  const stageNodeRefs = useRef([]);
+  const [pathSegments, setPathSegments] = useState([]);
 
   const assignedGames = Array.isArray(currentStudent?.assignedGames) ? currentStudent.assignedGames : [];
   
@@ -44,11 +51,237 @@ const StudentHome = () => {
     return { unlockedGame: unlocked, completedGames: completed, lockedGames: locked };
   }, [assignedGames, completedGameIds]);
 
-  const planName = currentStudent?.planName || 'رحلة الأبطال! 🦸‍♂️';
   const progressPercentage = assignedGames.length > 0 ? (completedGames.length / assignedGames.length) * 100 : 0;
+  const scrollToProgressSection = () => {
+    progressMapRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
   const welcomeAnimationFrameClass = 'relative shrink-0 flex items-center justify-center w-[8.2rem] h-[8.2rem] md:w-40 md:h-40 lg:w-44 lg:h-44 translate-y-1 md:translate-y-3';
   const progressAnimationFrameClass = 'relative shrink-0 flex items-center justify-center w-[8rem] h-[8rem] md:w-40 md:h-40 lg:w-44 lg:h-44 translate-y-1 md:translate-y-2';
+  const heroSlideClass = 'bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[22rem] md:min-h-[240px]';
+  const getGameTitle = (game) => game.titleAr || game.config?.nameAr || game.title || game.name || 'لعبة علاجية';
+  const progressMapItems = [
+    ...completedGames.map((game) => ({ game, status: 'done' })),
+    ...(unlockedGame ? [{ game: unlockedGame, status: 'current' }] : []),
+    ...lockedGames.map((game) => ({ game, status: 'locked' })),
+  ];
 
+  useEffect(() => {
+    const scrollTimer = window.setTimeout(() => {
+      currentLevelRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    }, 180);
+
+    return () => window.clearTimeout(scrollTimer);
+  }, [unlockedGame?.id]);
+  useEffect(() => {
+    const container = progressMapRef.current;
+    const svg = progressPathSvgRef.current;
+    if (!container || !svg || progressMapItems.length < 2) {
+      setPathSegments([]);
+      return undefined;
+    }
+
+    let frameId = 0;
+
+    const calculatePaths = () => {
+      const svgRect = svg.getBoundingClientRect();
+      const nextSegments = [];
+
+      const getNodeGeometry = (node) => {
+        const rect = node.getBoundingClientRect();
+
+        return {
+          x: rect.left - svgRect.left + rect.width / 2,
+          y: rect.top - svgRect.top + rect.height / 2,
+          radius: Math.min(rect.width, rect.height) / 2,
+        };
+      };
+
+      const activeItems = [];
+      for (const item of progressMapItems) {
+        if (item?.status === 'locked') break;
+        activeItems.push(item);
+        if (item?.status === 'current') break;
+      }
+
+      if (activeItems.length < 2) {
+        setPathSegments([]);
+        return;
+      }
+
+      let pathData = '';
+
+      for (let index = 0; index < activeItems.length - 1; index += 1) {
+        const fromItem = activeItems[index];
+        const toItem = activeItems[index + 1];
+
+        const fromNode = stageNodeRefs.current[progressMapItems.indexOf(fromItem)];
+        const toNode = stageNodeRefs.current[progressMapItems.indexOf(toItem)];
+        if (!fromNode || !toNode) continue;
+
+        const fromNodeGeometry = getNodeGeometry(fromNode);
+        const toNodeGeometry = getNodeGeometry(toNode);
+        const dx = toNodeGeometry.x - fromNodeGeometry.x;
+        const dy = toNodeGeometry.y - fromNodeGeometry.y;
+        const angle = Math.atan2(dy, dx);
+        const connectionInset = index === 0 ? 12 : 5;
+        const startRadius = Math.max(fromNodeGeometry.radius - connectionInset, 0);
+        const endRadius = Math.max(toNodeGeometry.radius - connectionInset, 0);
+        const startX = fromNodeGeometry.x + Math.cos(angle) * startRadius;
+        const startY = fromNodeGeometry.y + Math.sin(angle) * startRadius;
+        const endX = toNodeGeometry.x - Math.cos(angle) * endRadius;
+        const endY = toNodeGeometry.y - Math.sin(angle) * endRadius;
+        const midX = (startX + endX) / 2;
+        const midY = (startY + endY) / 2;
+        const curveOffset = Math.min(Math.max(Math.abs(dx) * 0.5, 72), 120);
+        const controlX = midX + (index % 2 === 0 ? curveOffset : -curveOffset);
+        const controlY = midY;
+        const segment = `${index === 0 ? `M ${startX.toFixed(1)} ${startY.toFixed(1)}` : ''} Q ${controlX.toFixed(1)} ${controlY.toFixed(1)} ${endX.toFixed(1)} ${endY.toFixed(1)}`;
+        pathData += segment;
+      }
+
+      setPathSegments(pathData ? [{ key: 'progress-path', d: pathData.trim() }] : []);
+
+    };
+
+    const scheduleCalculation = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        frameId = window.requestAnimationFrame(calculatePaths);
+      });
+    };
+
+    scheduleCalculation();
+    const observer = new ResizeObserver(scheduleCalculation);
+    observer.observe(container);
+    observer.observe(svg);
+    stageNodeRefs.current.forEach((node) => {
+      if (node) observer.observe(node);
+    });
+    window.addEventListener('resize', scheduleCalculation);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      observer.disconnect();
+      window.removeEventListener('resize', scheduleCalculation);
+    };
+  }, [completedGames.length, lockedGames.length, progressMapItems.length, unlockedGame?.id]);
+
+  const BirdMascot = () => {
+    const mascotRef = useRef(null);
+
+    useEffect(() => {
+      if (!mascotRef.current) {
+        return undefined;
+      }
+
+      const instance = lottie.loadAnimation({
+        container: mascotRef.current,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        animationData: chickAnimation,
+        rendererSettings: {
+          preserveAspectRatio: 'xMidYMid meet',
+        },
+      });
+
+      return () => {
+        instance.destroy();
+      };
+    }, []);
+
+    return (
+      <motion.div
+        initial={{ scale: 1 }}
+        animate={{ y: [0, -6, 0] }}
+        transition={{ duration: 2.6, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+        className="pointer-events-none absolute -right-14 top-1/2 z-20 h-16 w-16 -translate-y-1/2 sm:-right-[4.5rem] sm:h-20 sm:w-20 md:-right-24 md:h-24 md:w-24 lg:-right-28 lg:h-28 lg:w-28"
+        aria-hidden="true"
+      >
+        <div className="absolute -bottom-1 left-1/2 h-3 w-10 -translate-x-1/2 rounded-full bg-[#b9d6df]/55 blur-md md:h-4 md:w-14" />
+        <div ref={mascotRef} className="relative z-10 h-full w-full drop-shadow-[0_12px_16px_rgba(15,111,166,0.18)]" />
+      </motion.div>
+    );
+  };
+  const ProgressStageNode = ({ game, status, index, nodeRef, levelRef, onPlay }) => {
+    const isCurrent = status === 'current';
+    const isDone = status === 'done';
+    const isLocked = status === 'locked';
+    const offsetClass = ['mr-[40%]', 'mr-[22%]', 'mr-[48%]', 'mr-[18%]'][index % 4];
+    const title = getGameTitle(game);
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-80px' }}
+        transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.2) }}
+        ref={levelRef}
+        className={`relative flex min-h-[5.35rem] w-full max-w-[19rem] sm:max-w-[26rem] md:max-w-[30rem] ${offsetClass}`}
+      >
+
+        <motion.button
+          type="button"
+          disabled={isLocked}
+          onClick={isLocked ? undefined : onPlay}
+          whileHover={isLocked ? undefined : { scale: isCurrent ? 1.04 : 1.025, y: -2 }}
+          whileTap={isLocked ? undefined : { scale: 0.97 }}
+          className="group relative z-10 flex items-center gap-3 text-right outline-none disabled:cursor-not-allowed"
+          aria-label={isLocked ? `${title} مقفلة` : `ابدأ ${title}`}
+        >
+          <span
+            ref={nodeRef}
+            className={`relative grid rounded-full transition-all duration-300 ${
+              isCurrent
+                ? 'h-[5.25rem] w-[5.25rem] place-items-center bg-[#def7ff] shadow-[0_0_0_6px_rgba(22,143,199,0.08),0_5px_0_#b9e2ef,0_14px_22px_-20px_rgba(15,111,166,0.45)]'
+                : 'h-[4.35rem] w-[4.35rem] place-items-center bg-[#eef4f7] shadow-[0_4px_0_#d2e0e6,0_10px_18px_-18px_rgba(15,111,166,0.26)]'
+            } ${isDone ? '!bg-[#e8fff6] !shadow-[0_0_0_6px_rgba(20,184,129,0.07),0_4px_0_#b8ead7,0_10px_18px_-18px_rgba(20,184,129,0.28)]' : ''}`}
+          >
+            {isCurrent && (
+              <span className="absolute -top-9 right-1/2 z-20 translate-x-1/2 animate-pulse rounded-xl border border-[#b8deec] bg-white px-4 py-1 text-xs font-black text-[#168FC7] shadow-[0_10px_18px_-16px_rgba(15,111,166,0.42)] after:absolute after:-bottom-1.5 after:right-1/2 after:h-2.5 after:w-2.5 after:translate-x-1/2 after:rotate-45 after:border-b after:border-r after:border-[#b8deec] after:bg-white">
+                ابدأ
+              </span>
+            )}
+            {isCurrent && (
+              <>
+                <Sparkles size={12} className="pointer-events-none absolute -left-2 top-1 text-amber-400" fill="currentColor" />
+                <Sparkles size={9} className="pointer-events-none absolute -right-3 top-4 text-cyan-400" fill="currentColor" />
+                <Sparkles size={10} className="pointer-events-none absolute bottom-0 left-1 text-cyan-400" fill="currentColor" />
+                <Sparkles size={8} className="pointer-events-none absolute bottom-3 -right-2 text-amber-400" fill="currentColor" />
+              </>
+            )}
+
+
+            <span
+              className={`grid rounded-full border-[4px] transition-all duration-300 ${
+                isCurrent
+                  ? 'h-[4rem] w-[4rem] place-items-center border-[#a7e9fb] bg-[linear-gradient(180deg,#22c7e8,#168FC7)] text-white shadow-[inset_0_-5px_0_rgba(15,111,166,0.38),0_0_10px_rgba(34,199,232,0.18)]'
+                  : isDone
+                    ? 'h-[3.35rem] w-[3.35rem] place-items-center border-[#b9f3dc] bg-[linear-gradient(180deg,#20d39a,#14b881)] text-white shadow-[inset_0_-4px_0_rgba(9,120,83,0.3),0_0_8px_rgba(20,184,129,0.15)]'
+                    : 'h-[3.35rem] w-[3.35rem] place-items-center border-[#d6e3e9] bg-[linear-gradient(180deg,#c8d7de,#9fb2bc)] text-[#eef6f9] shadow-[inset_0_-4px_0_rgba(80,105,116,0.22)]'
+              }`}
+            >
+              {isCurrent ? <Play size={26} fill="currentColor" /> : isDone ? <Check size={25} strokeWidth={4} /> : <Lock size={20} />}
+            </span>
+          </span>
+
+          {!isCurrent && (<span className={`pointer-events-none absolute right-[calc(100%+0.75rem)] top-1/2 hidden -translate-y-1/2 scale-95 rounded-xl border bg-white/95 px-4 py-2 opacity-0 shadow-[0_14px_24px_-20px_rgba(15,111,166,0.34)] transition-all duration-200 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100 sm:block border-[#dbe7f3]`}>
+            <span className="block text-xs font-black text-[#168FC7]">
+              {isDone ? 'اكتملت' : 'مقفلة'}
+            </span>
+          </span>)}
+        </motion.button>
+
+        {isCurrent && <BirdMascot />}
+      </motion.div>
+    );
+  };
   useEffect(() => {
     if (!readingAnimationRef.current) {
       return undefined;
@@ -108,6 +341,12 @@ const StudentHome = () => {
             background: #ffffff !important;
             box-shadow: 0 0 10px rgba(255,255,255,0.8);
           }
+          .progress-map-flow {
+            animation: progress-map-flow 1.4s linear infinite;
+          }
+          @keyframes progress-map-flow {
+            to { stroke-dashoffset: -18; }
+          }
         `}</style>
 
         {/* Swiper Banner */}
@@ -123,7 +362,7 @@ const StudentHome = () => {
             >
               {/* Slide 1: Welcome Slide */}
               <SwiperSlide>
-                <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
+                <div className={heroSlideClass}>
                   <div className={welcomeAnimationFrameClass}>
                     <div className="absolute inset-[18%] rounded-full bg-[radial-gradient(circle,_rgba(255,255,255,0.38)_0%,_rgba(255,255,255,0.14)_45%,_rgba(255,255,255,0)_75%)] blur-xl" />
                     <div className="absolute inset-[22%] rounded-full bg-cyan-200/25 blur-2xl" />
@@ -139,14 +378,21 @@ const StudentHome = () => {
                     <p className="text-blue-50 text-xl font-medium max-w-lg leading-relaxed mx-auto md:mx-0">
                       مستعد لمغامرة جديدة اليوم؟ دعنا نلعب ونتعلم معاً!
                     </p>
-                  </div>
+                    <button
+                      type="button"
+                      onClick={scrollToProgressSection}
+                      className="mt-5 inline-flex items-center justify-center rounded-full border border-white/40 bg-white px-5 py-2.5 text-sm font-extrabold text-[#168FC7] shadow-[0_10px_24px_rgba(7,59,92,0.18)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(7,59,92,0.22)] active:translate-y-0"
+                    >
+                      ابدأ الآن
+                    </button>
+                </div>
                 </div>
               </SwiperSlide>
 
               {/* Slide 2: Progress */}
               {progressPercentage >= 100 ? (
                 <SwiperSlide>
-                  <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
+                  <div className={heroSlideClass}>
                     <div className={progressAnimationFrameClass}>
                       <div className="absolute inset-[10%] rounded-full bg-white/20 blur-2xl" />
                       <div className="absolute inset-[18%] rounded-full bg-cyan-200/20 blur-3xl" />
@@ -160,7 +406,7 @@ const StudentHome = () => {
                 </SwiperSlide>
               ) : (
                 <SwiperSlide>
-                  <div className="bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[240px]">
+                  <div className={heroSlideClass}>
                     <div className={progressAnimationFrameClass}>
                       <div className="absolute inset-[10%] rounded-full bg-white/20 blur-2xl" />
                       <div className="absolute inset-[18%] rounded-full bg-cyan-200/20 blur-3xl" />
@@ -199,121 +445,50 @@ const StudentHome = () => {
           </div>
         )}
 
-        {/* Unplayed Games Section */}
-        {(unlockedGame || lockedGames.length > 0) && (
-          <div className="mb-14">
-            <h2 className="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-3">
-              <Gamepad2 className="text-blue-500" size={32} />
+        {/* Game Progress Section */}
+        {(unlockedGame || lockedGames.length > 0 || completedGames.length > 0) && (
+          <section className="mb-14" aria-label="مسار تقدم الألعاب">
+            <h2 className="mb-10 flex items-center gap-3 text-2xl font-extrabold text-slate-800">
+              <Gamepad2 className="text-[#168FC7]" size={32} />
               ألعاب بانتظارك!
             </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {/* Unlocked Game (Current) */}
-              {unlockedGame && (
-                <div 
-                  className="relative overflow-hidden rounded-[2rem] border-2 p-6 bg-gradient-to-br from-[#eff6ff] to-[#dbeafe] border-blue-400 shadow-lg shadow-blue-200/50 cursor-pointer group hover:-translate-y-1 transition-all duration-300"
-                  onClick={() => navigate(`/student/game/${unlockedGame.id}`)}
-                >
-                  <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse shadow-sm">اللعبة الحالية</div>
-                  
-                  <div className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-blue-100 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                    <Play className="text-blue-600 w-6 h-6 ml-1" fill="currentColor" />
-                  </div>
-                  
-                  <h3 className="font-black text-slate-900 text-xl mb-2">
-                    {unlockedGame.titleAr || unlockedGame.config?.nameAr || unlockedGame.title || unlockedGame.name || 'لعبة علاجية'}
-                  </h3>
-                  <p className="text-sm font-bold text-slate-600 mb-6 line-clamp-2 leading-relaxed">
-                    {unlockedGame.descriptionAr || unlockedGame.description || 'هذه هي مهمتك الجديدة! العبها وانجح فيها لفتح باقي الألعاب.'}
-                  </p>
-                  
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-blue-200/50">
-                    <span className="font-black text-xs text-blue-700 bg-blue-100/80 px-3 py-1.5 rounded-xl border border-blue-200">متاحة للعب</span>
-                    <div className="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md group-hover:-translate-x-1 transition-transform">
-                      <Play size={18} fill="currentColor" className="ml-0.5" />
-                    </div>
-                  </div>
-                </div>
-              )}
 
-              {/* Locked Games */}
-              {lockedGames.map((game, index) => (
-                <div key={`${game.id}-${index}-locked-grid`} className="relative overflow-hidden bg-slate-50 border-2 border-slate-200 border-dashed rounded-[2rem] p-6 flex flex-col opacity-70 grayscale-[30%]">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-200 flex items-center justify-center mb-5">
-                    <Lock className="text-slate-400 w-6 h-6" />
-                  </div>
-                  <h3 className="font-black text-slate-700 text-xl mb-2">
-                    {game.titleAr || game.config?.nameAr || game.title || game.name || 'لعبة مقفلة'}
-                  </h3>
-                  <p className="text-sm font-bold text-slate-500 mb-6 line-clamp-2 leading-relaxed">
-                    أنهِ المهام السابقة لكي تفتح هذه اللعبة.
-                  </p>
-                  <div className="mt-auto pt-4 border-t border-slate-200">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 font-black text-xs text-slate-500">
-                      <Lock size={12} /> مقفلة
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div ref={progressMapRef} className="relative mx-auto max-w-3xl px-4 py-8 sm:px-10">
+              <svg ref={progressPathSvgRef} className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible" aria-hidden="true">
+                {pathSegments.map((segment) => (
+                  <g key={segment.key}>
+                    <path d={segment.d} fill="none" stroke="rgba(34,199,232,0.09)" strokeWidth="10" strokeLinecap="round" />
+                    <path d={segment.d} fill="none" stroke="rgba(34,199,232,0.24)" strokeWidth="6" strokeLinecap="round" />
+                    <path className="progress-map-flow" d={segment.d} fill="none" stroke="#34c6df" strokeWidth="3.25" strokeLinecap="round" strokeDasharray="7 10" opacity="0.82" />
+                  </g>
+                ))}
+              </svg>
+              <div className="relative z-10 mx-auto flex max-w-[23rem] sm:max-w-[30rem] md:max-w-[34rem] flex-col items-start gap-0">
+                {progressMapItems.map((item, index) => (
+
+                  <ProgressStageNode
+                    key={`${item.game?.id || index}-${item.status}-${index}`}
+                    game={item.game}
+                    status={item.status}
+                    index={index}
+                    nodeRef={(node) => {
+                      stageNodeRefs.current[index] = node;
+                    }}
+                    levelRef={item.status === 'current' ? currentLevelRef : undefined}
+                    onPlay={() => navigate(`/student/game/${item.game.id}`)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          </section>
         )}
-
-        {/* Section Title */}
-        {completedGames.length > 0 && (
-          <>
-            <h2 className="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-3">
-              <Medal className="text-emerald-500" size={32} />
-              ألعاب ختمتها بنجاح!
-            </h2>
-              
-            {/* Completed Games Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-14">
-              {completedGames.map((game, index) => (
-                <div 
-                  key={`${game.id}-${index}-completed`} 
-                  className={`relative overflow-hidden rounded-[2rem] border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group cursor-pointer bg-gradient-to-br from-[#f8fffd] via-white to-[#e0f2fe] border-cyan-100 hover:shadow-cyan-200/50`}
-                  onClick={() => navigate(`/student/game/${game.id}`)}
-                >
-                  <div className="absolute -top-4 -right-4 p-4 opacity-10 transition-transform duration-500 group-hover:scale-150 group-hover:rotate-12">
-                    <Sparkles className="w-32 h-32" />
-                  </div>
-                  
-                  <div className="relative z-10 text-right">
-                    <div className="flex justify-between items-start mb-5">
-                      <div className="w-14 h-14 rounded-2xl bg-white/80 shadow-sm border border-white/50 flex items-center justify-center backdrop-blur-sm">
-                        <Gamepad2 className={`w-7 h-7 text-emerald-500`} />
-                      </div>
-                      <div className="bg-emerald-50 text-emerald-600 p-1.5 rounded-full shadow-sm">
-                        <Check size={20} strokeWidth={3} />
-                      </div>
-                    </div>
-                    
-                    <h3 className="font-black text-slate-800 text-xl mb-2">
-                      {game.titleAr || game.config?.nameAr || game.title || game.name || 'لعبة علاجية'}
-                    </h3>
-                    <p className="text-sm font-bold text-slate-500 mb-6 line-clamp-2 leading-relaxed">
-                      {game.descriptionAr || game.description || 'لعبة تفاعلية لتنمية المهارات بصورة ممتعة ومحفزة.'}
-                    </p>
-
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 font-black text-xs text-slate-600 backdrop-blur-sm border border-white/50">
-                        مكتملة بنجاح
-                      </span>
-                      <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white shadow-md transition-transform active:scale-95 group-hover:-translate-x-1 bg-emerald-700 shadow-emerald-200`}>
-                        <RotateCcw size={16} /> العب تاني
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
       </div>
     </div>
   );
 };
 
 export default StudentHome;
+
+
+
+

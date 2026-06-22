@@ -27,7 +27,7 @@ import CustomSelect from '../../components/CustomSelect';
 import ImageAssetField from '../../components/ImageAssetField';
 import { gameService } from '../../services/gameService';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
-import { SOUND_PRESET_OPTIONS, playAudioUrl } from '../../utils/soundEffects';
+import { SOUND_PRESET_OPTIONS, isPlayableMediaUrl, playAudioUrl } from '../../utils/soundEffects';
 import {
   buildActivityRuntimeGame,
   createEmptyBuilderConfig,
@@ -61,6 +61,12 @@ const GAME_TYPE_CARDS = [
     title: 'بازل الظل',
     description: 'ظل كبير وصور اختيارات، الطفل يختار الصورة المطابقة للظل. يمكن رفع ظل جاهز أو استخدام صورة الإجابة الصحيحة كظل تلقائي.',
     accent: 'from-sky-100 to-teal-100',
+  },
+  {
+    value: 'emotion.faces',
+    title: 'لعبة المشاعر',
+    description: 'تعرض وجوهًا مثل سعيد وحزين وغاضب ونعسان، ويختار الطفل الوجه المطلوب.',
+    accent: 'from-amber-100 to-pink-100',
   },
   {
     value: 'picture.reveal',
@@ -129,7 +135,6 @@ const GAME_TYPE_CARDS = [
     accent: 'from-pink-100 to-rose-100',
   },
 ];
-
 const EMPTY_MESSAGE = 'ارفع الملف أو اتركه فارغًا مؤقتًا';
 const getActivityAutoTitle = (index) => `نشاط ${index + 1}`;
 const getActivitySummary = (activity, index) =>
@@ -274,6 +279,43 @@ const FileUploadField = ({
     }
   };
 
+  const applyManualUrl = () => {
+    const nextUrl = String(value || '').trim();
+    if (!nextUrl) {
+      onUploaded('');
+      return;
+    }
+
+    if (!isPlayableMediaUrl(nextUrl)) {
+      setDialog({
+        title: 'رابط غير مدعوم',
+        message: 'الروابط المحلية مثل file:// أو مسارات ويندوز المحلية غير مدعومة. استخدم رابطًا مرفوعًا أو http(s).',
+        confirmText: 'حسنًا',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
+      return;
+    }
+
+    onUploaded(nextUrl);
+  };
+
+  const handleLibrarySelect = (url) => {
+    if (!isPlayableMediaUrl(url)) {
+      setDialog({
+        title: 'رابط غير مدعوم',
+        message: 'الملف المختار غير صالح للتشغيل داخل المتصفح.',
+        confirmText: 'حسنًا',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
+      return;
+    }
+
+    onUploaded(url);
+  };
+
+  const canPreview = isPlayableMediaUrl(value);
   const resolvedPreviewType =
     previewType === 'auto'
       ? value.match(/\.(mp3|wav|ogg|m4a)$/i)
@@ -307,6 +349,7 @@ const FileUploadField = ({
           dir="ltr"
           value={value}
           onChange={(event) => onUploaded(event.target.value)}
+          onBlur={applyManualUrl}
           placeholder={placeholder}
           className="flex-1 px-4 py-3 rounded-2xl border border-slate-300 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
         />
@@ -315,7 +358,7 @@ const FileUploadField = ({
       <MediaLibraryModal
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}
-        onSelect={(url) => onUploaded(url)}
+        onSelect={handleLibrarySelect}
         initialType={mediaType}
       />
 
@@ -340,7 +383,7 @@ const FileUploadField = ({
             value ? 'border-slate-200 bg-white' : 'border-[#dbe7f3] bg-[#f7fbff]'
           }`}
         >
-          {value ? (
+          {value && canPreview ? (
             <img src={value} alt={label} className="w-full h-full object-contain" />
           ) : (
             <div className="w-full h-full rounded-[1rem] border-2 border-dashed border-[#b8deec] bg-[linear-gradient(180deg,_#f7fbff,_#eef8fb)] flex items-center justify-center text-[#138fbc]">
@@ -351,8 +394,8 @@ const FileUploadField = ({
           )}
         </div>
       )}
-      {value && resolvedPreviewType === 'audio' && <audio controls src={value} className="w-full" />}
-      {value && resolvedPreviewType === 'video' && (
+      {value && canPreview && resolvedPreviewType === 'audio' && <audio controls src={value} className="w-full" />}
+      {value && canPreview && resolvedPreviewType === 'video' && (
         <div className="w-full max-w-[400px] rounded-2xl overflow-hidden border border-[#dbe7f3] mx-auto md:mx-0 shadow-sm">
           <video controls src={value} className="w-full h-auto rounded-2xl" />
         </div>
@@ -908,28 +951,48 @@ const GameForm = ({ mode = 'create' }) => {
   };
 
   const addOption = () => {
-    updateCurrentActivity((activity) => ({
-      ...activity,
-      options: [
-        ...(activity.options || []),
-        {
-          id: `option_${Date.now()}`,
-          image: '',
-          textAr: '',
-          isCorrect: false,
-        },
-      ],
-    }));
-  };
+    updateCurrentActivity((activity) => {
+      const isEmotionFaces = currentActivityType === 'emotion.faces';
+      const emotionPresets = [
+        { id: 'confused', textAr: 'محتار', questionLabelAr: 'المحتار', emoji: '😕' },
+        { id: 'laughing', textAr: 'يضحك', questionLabelAr: 'الذي يضحك', emoji: '😄' },
+        { id: 'crying', textAr: 'يبكي', questionLabelAr: 'الذي يبكي', emoji: '😭' },
+        { id: 'worried', textAr: 'قلقان', questionLabelAr: 'القلقان', emoji: '😟' },
+        { id: 'calm', textAr: 'هادئ', questionLabelAr: 'الهادئ', emoji: '😌' },
+      ];
+      const usedIds = new Set((activity.options || []).map((option) => option.id));
+      const preset = emotionPresets.find((option) => !usedIds.has(option.id)) || {
+        id: `emotion_${Date.now()}`,
+        textAr: 'شعور جديد',
+        questionLabelAr: 'الجديد',
+        emoji: '🙂',
+      };
 
+      return {
+        ...activity,
+        options: [
+          ...(activity.options || []),
+          isEmotionFaces
+            ? { ...preset, id: usedIds.has(preset.id) ? `emotion_${Date.now()}` : preset.id, isCorrect: false }
+            : {
+              id: `option_${Date.now()}`,
+              image: '',
+              textAr: '',
+              isCorrect: false,
+            },
+        ],
+      };
+    });
+  };
   // Auto-initialize options if empty
   useEffect(() => {
     if (
-      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal', 'image.complete_part'].includes(currentActivityType) && 
+      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal', 'image.complete_part', 'emotion.faces'].includes(currentActivityType) && 
       currentActivity
     ) {
       if (!currentActivity.options || currentActivity.options.length === 0) {
         const isImageCompletePart = currentActivityType === 'image.complete_part';
+        const isEmotionFaces = currentActivityType === 'emotion.faces';
         updateCurrentActivity((activity) => ({
           ...activity,
           options: isImageCompletePart
@@ -938,14 +1001,16 @@ const GameForm = ({ mode = 'create' }) => {
               { id: `opt_${Date.now()}_2`, textAr: '', image: '', isCorrect: false },
               { id: `opt_${Date.now()}_3`, textAr: '', image: '', isCorrect: false },
             ]
-            : [
-              { id: `opt_${Date.now()}_1`, textAr: '', image: '', isCorrect: true },
-              { id: `opt_${Date.now()}_2`, textAr: '', image: '', isCorrect: false },
-            ],
+            : isEmotionFaces
+              ? getDefaultActivityForType('emotion.faces', selectedActivity).options
+              : [
+                { id: `opt_${Date.now()}_1`, textAr: '', image: '', isCorrect: true },
+                { id: `opt_${Date.now()}_2`, textAr: '', image: '', isCorrect: false },
+              ],
         }));
       }
     }
-  }, [currentActivityType, currentActivity?.id]); // Only run when activity changes or type changes
+  }, [currentActivityType, currentActivity?.id, selectedActivity]); // Only run when activity changes or type changes
 
   const removeOption = (optionIndex) => {
     updateCurrentActivity((activity) => ({
@@ -2662,7 +2727,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {(currentActivityType === 'matching.find' || currentActivityType === 'matching.shadow' || currentActivityType === 'picture.reveal') && (
+                  {(currentActivityType === 'matching.find' || currentActivityType === 'matching.shadow' || currentActivityType === 'picture.reveal' || currentActivityType === 'emotion.faces') && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">
@@ -2671,21 +2736,15 @@ const GameForm = ({ mode = 'create' }) => {
                         </div>
                         <Button type="button" variant="outline" onClick={addOption} className="!py-2 !px-4 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-100">
                           <Plus size={18} />
-                          <span>إضافة صورة</span>
+                          <span>{currentActivityType === 'emotion.faces' ? 'إضافة شعور' : 'إضافة صورة'}</span>
                         </Button>
-                      </div>
-
-                      <div className="rounded-2xl bg-fuchsia-50/80 border border-fuchsia-100/80 px-4 py-3 text-sm font-bold text-fuchsia-700/90">
-                        {currentActivityType === 'matching.shadow'
-                          ? 'ارفع صور الاختيارات الملونة وحدد الصورة الصحيحة. اللعبة ستعرض ظل الصورة الصحيحة تلقائيًا أو تستخدم صورة الظل الجاهزة لو رفعتها.'
-                          : 'الطفل يسمع أو يقرأ التعليمات مثل: أوجد القطة، ثم يختار الصورة الصحيحة من بين 2 أو 3 أو 4 أو 6 صور.'}
                       </div>
 
                       <div className="grid gap-4">
                         {(currentActivity.options || []).map((option, optionIndex) => (
                           <div key={option.id} className="rounded-[1.8rem] border border-[#dbe7f3] bg-[#f8fbff] p-5 space-y-4">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-black text-slate-800">صورة {optionIndex + 1}</h4>
+                              <h4 className="font-black text-slate-800">{currentActivityType === 'emotion.faces' ? 'شعور' : 'صورة'} {optionIndex + 1}</h4>
                               <button
                                 type="button"
                                 onClick={() => removeOption(optionIndex)}
@@ -2706,31 +2765,55 @@ const GameForm = ({ mode = 'create' }) => {
                               value={option.textAr || ''}
                               onChange={(event) => updateOption(optionIndex, 'textAr', event.target.value)}
                               className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
-                              placeholder="اسم الصورة اختياري"
+                              placeholder={currentActivityType === 'emotion.faces' ? 'اسم الشعور' : 'اسم الصورة اختياري'}
                             />
-
-                            <ImageAssetField
-                              label="صورة الاختيار"
-                              value={option.image || ''}
-                              onSelect={(value) => updateOption(optionIndex, 'image', value)}
-                              token={adminSession?.token}
-                              initialQuery={option.textAr || 'cat isolated white background'}
-                            />
-
-                            <label className="flex items-center gap-2 font-bold text-emerald-800">
-                              <input
-                                type="radio"
-                                checked={Boolean(option.isCorrect)}
-                                onChange={() => selectCorrectOption(optionIndex)}
+                            {currentActivityType === 'emotion.faces' ? (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <input
+                                  type="text"
+                                  value={option.emoji || ''}
+                                  onChange={(event) => updateOption(optionIndex, 'emoji', event.target.value)}
+                                  className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none text-center text-3xl"
+                                  placeholder="😊"
+                                  maxLength={4}
+                                />
+                                <input
+                                  type="text"
+                                  value={option.questionLabelAr || ''}
+                                  onChange={(event) => updateOption(optionIndex, 'questionLabelAr', event.target.value)}
+                                  className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                                  placeholder="صيغة السؤال: السعيد / الخائف"
+                                />
+                              </div>
+                            ) : (
+                              <ImageAssetField
+                                label="صورة الاختيار"
+                                value={option.image || ''}
+                                onSelect={(value) => updateOption(optionIndex, 'image', value)}
+                                token={adminSession?.token}
+                                initialQuery={option.textAr || 'cat isolated white background'}
                               />
-                              <span>
-                                {currentActivityType === 'matching.shadow'
-                                  ? 'هذه هي الصورة المطابقة للظل'
-                                  : currentActivityType === 'picture.reveal'
-                                    ? 'هذه هي الإجابة الصحيحة'
-                                    : 'هذه هي الصورة المطلوبة'}
-                              </span>
-                            </label>
+                            )}
+                            {currentActivityType === 'emotion.faces' ? (
+                              <div className="rounded-2xl bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700">
+                                هذا الشعور يدخل تلقائيًا في الأسئلة العشوائية.
+                              </div>
+                            ) : (
+                              <label className="flex items-center gap-2 font-bold text-emerald-800">
+                                <input
+                                  type="radio"
+                                  checked={Boolean(option.isCorrect)}
+                                  onChange={() => selectCorrectOption(optionIndex)}
+                                />
+                                <span>
+                                  {currentActivityType === 'matching.shadow'
+                                    ? 'هذه هي الصورة المطابقة للظل'
+                                    : currentActivityType === 'picture.reveal'
+                                      ? 'هذه هي الإجابة الصحيحة'
+                                      : 'هذه هي الصورة المطلوبة'}
+                                </span>
+                              </label>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -2746,7 +2829,7 @@ const GameForm = ({ mode = 'create' }) => {
                         </div>
                         <Button type="button" variant="outline" onClick={addOption} className="!py-2 !px-4 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-100">
                           <Plus size={18} />
-                          <span>إضافة صورة</span>
+                          <span>{currentActivityType === 'emotion.faces' ? 'إضافة شعور' : 'إضافة صورة'}</span>
                         </Button>
                       </div>
 
@@ -2758,7 +2841,7 @@ const GameForm = ({ mode = 'create' }) => {
                         {(currentActivity.options || []).map((option, optionIndex) => (
                           <div key={option.id} className="rounded-[1.8rem] border border-[#dbe7f3] bg-[#f8fbff] p-5 space-y-4">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-black text-slate-800">صورة {optionIndex + 1}</h4>
+                              <h4 className="font-black text-slate-800">{currentActivityType === 'emotion.faces' ? 'شعور' : 'صورة'} {optionIndex + 1}</h4>
                               <button
                                 type="button"
                                 onClick={() => removeOption(optionIndex)}

@@ -1,4 +1,4 @@
-﻿const fallbackName = 'لعبة علاجية';
+const fallbackName = 'لعبة علاجية';
 const getDefaultActivityTitle = (index = 0) => `نشاط ${index + 1}`;
 const getDefaultInstructionForType = (type) => {
   if (type === 'matching.similar') return 'اختر الصورة المطابقة';
@@ -6,6 +6,7 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'matching.find') return 'أوجد الصورة المطلوبة';
   if (type === 'matching.shadow') return 'انظر إلى الظل واختر الصورة المناسبة';
   if (type === 'picture.reveal') return 'اكشف الصورة ثم اختر الإجابة الصحيحة';
+  if (type === 'emotion.faces') return 'أين الوجه السعيد؟';
   if (type === 'image.complete_part') return 'اسحب الجزء الصحيح إلى الخانة الناقصة لإكمال الصورة';
   if (type === 'memory.cards') return 'افتح كارتين وابحث عن الصور المتطابقة';
   if (type === 'memory.grid') return 'تذكر أماكن الصور ثم ابحث عن الصورة المطلوبة';
@@ -32,6 +33,15 @@ const createRevealPreviewOptions = () => [
   { id: 'ball', label: 'كرة', textAr: 'كرة', image: '', isCorrect: false },
   { id: 'cat', label: 'قطة', textAr: 'قطة', image: '', isCorrect: false },
   { id: 'car', label: 'سيارة', textAr: 'سيارة', image: '', isCorrect: false },
+];
+
+const createEmotionPreviewOptions = () => [
+  { id: 'happy', label: 'سعيد', textAr: 'سعيد', questionLabelAr: 'السعيد', emoji: '😊', isCorrect: true },
+  { id: 'sad', label: 'حزين', textAr: 'حزين', questionLabelAr: 'الحزين', emoji: '😢', isCorrect: false },
+  { id: 'angry', label: 'غاضب', textAr: 'غاضب', questionLabelAr: 'الغاضب', emoji: '😡', isCorrect: false },
+  { id: 'sleepy', label: 'نعسان', textAr: 'نعسان', questionLabelAr: 'النعسان', emoji: '😴', isCorrect: false },
+  { id: 'scared', label: 'خائف', textAr: 'خائف', questionLabelAr: 'الخائف', emoji: '😨', isCorrect: false },
+  { id: 'surprised', label: 'مندهش', textAr: 'مندهش', questionLabelAr: 'المندهش', emoji: '😮', isCorrect: false },
 ];
 
 const createDragItem = (id, startPosition = 'bottom', isCorrect = false) => ({
@@ -161,6 +171,18 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       image: '',
       gridSize: 4,
       revealMode: 'manual',      options: createRevealPreviewOptions(),
+    };
+  }
+
+  if (type === 'emotion.faces') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      options: createEmotionPreviewOptions(),
     };
   }
 
@@ -448,6 +470,27 @@ export const buildActivityRuntimeGame = ({
           image: activity?.image || '',
           gridSize: Number(activity?.gridSize ?? 4),
           revealMode: activity?.revealMode || 'manual',
+          options: Array.isArray(activity?.options) ? activity.options : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'emotion.faces') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
           options: Array.isArray(activity?.options) ? activity.options : [],
         },
         feedback: {

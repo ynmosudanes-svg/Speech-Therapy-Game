@@ -9,6 +9,7 @@ import AudioCardsGame from './AudioCardsGame';
 import PuzzleGame from './PuzzleGame';
 import MatchingConnectGame from './MatchingConnectGame';
 import PictureRevealGame from './PictureRevealGame';
+import EmotionFacesGame from './EmotionFacesGame';
 import ImageCompletePartGame from './ImageCompletePartGame';
 import MemoryCardsGame from './MemoryCardsGame';
 import MemoryGridGame from './MemoryGridGame';
@@ -81,6 +82,10 @@ const renderGameActivity = ({
 
   if (game?.type === 'picture.reveal') {
     return <PictureRevealGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'emotion.faces') {
+    return <EmotionFacesGame {...sharedProps} />;
   }
 
   if (game?.type === 'puzzle.jigsaw' || game?.type === 'image.complete_part') {

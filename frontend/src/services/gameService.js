@@ -1,4 +1,4 @@
-import api, { buildAuthConfig } from './api';
+﻿import api, { buildAuthConfig } from './api';
 
 export const gameService = {
   async getGames(token) {
@@ -38,8 +38,11 @@ export const gameService = {
     return response.data;
   },
 
-  async getUploadedFiles(token, type = '', query = '') {
-    const response = await api.get(`/uploads?type=${type}&query=${encodeURIComponent(query)}`, buildAuthConfig(token));
+  async getUploadedFiles(token, type = '', query = '', category = '') {
+    const response = await api.get('/uploads', {
+      ...buildAuthConfig(token),
+      params: { type, query, category },
+    });
     return response.data;
   },
 };

@@ -1,4 +1,4 @@
-const storageService = require('../services/storage.service');
+﻿const storageService = require('../services/storage.service');
 
 async function uploadFile(req, res) {
   if (!req.file) {
@@ -9,7 +9,9 @@ async function uploadFile(req, res) {
   }
 
   try {
-    const uploadedFile = await storageService.uploadUploadedFile(req, req.file);
+    const uploadedFile = await storageService.uploadUploadedFile(req, req.file, {
+      category: req.body?.category,
+    });
 
     return res.status(201).json({
       success: true,
@@ -31,6 +33,7 @@ async function listUploadedFiles(req, res) {
     const files = await storageService.listUploadedFiles(req, {
       query: req.query.query,
       type: req.query.type,
+      category: req.query.category,
     });
 
     return res.json({
@@ -52,3 +55,4 @@ module.exports = {
   uploadFile,
   listUploadedFiles,
 };
+

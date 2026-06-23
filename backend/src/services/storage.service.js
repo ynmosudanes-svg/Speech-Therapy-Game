@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+﻿const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { S3Client, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
@@ -14,9 +14,36 @@ function trimTrailingSlash(value) {
   return String(value || '').replace(/\/+$/g, '');
 }
 
+function sanitizeCategory(category) {
+  const cleaned = String(category || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\\+/g, '/')
+    .split('/')
+    .map((part) => part.trim().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, ''))
+    .filter(Boolean)
+    .join('/');
+
+  return cleaned;
+}
+
+function getCategoryPrefix(category) {
+  const safeCategory = sanitizeCategory(category);
+  return safeCategory ? `${safeCategory}/` : '';
+}
+
+function getCategoryFromKey(key) {
+  const withoutPrefix = String(key || '').startsWith(UPLOAD_PREFIX)
+    ? String(key).slice(UPLOAD_PREFIX.length)
+    : String(key || '');
+  const parts = withoutPrefix.split('/').filter(Boolean);
+
+  return parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+}
+
 function getLocalPublicUrl(req, filename) {
   const baseUrl = env.publicApiUrl || `${req.protocol}://${req.get('host')}`;
-  return `${baseUrl}/uploads/${filename}`;
+  return `${baseUrl}/uploads/${trimSlashes(filename)}`;
 }
 
 function getR2PublicUrl(key) {
@@ -75,36 +102,43 @@ function getMediaType(name, mimeType = '') {
   const lowerMime = String(mimeType || '').toLowerCase();
 
   if (lowerMime.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(lowerName)) return 'image';
-  if (lowerMime.startsWith('audio/') || /\\.(mp3|wav|ogg|m4a|aac)$/i.test(lowerName)) return 'audio';
+  if (lowerMime.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(lowerName)) return 'audio';
   if (lowerMime.startsWith('video/') || /\.(mp4|webm|mov|avi|mkv)$/i.test(lowerName)) return 'video';
 
   return 'unknown';
 }
 
-function matchesMediaFilter(file, query, type) {
+function matchesMediaFilter(file, query, type, category) {
   if (type && file.type !== type) return false;
+  if (category && file.category !== category) return false;
   if (query && !String(file.filename || '').toLowerCase().includes(query)) return false;
   return ['image', 'audio', 'video'].includes(file.type);
 }
 
-async function uploadToLocal(req, file) {
-  if (!fs.existsSync(env.uploadsDir)) {
-    await fs.promises.mkdir(env.uploadsDir, { recursive: true });
+async function uploadToLocal(req, file, category) {
+  const categoryPrefix = getCategoryPrefix(category);
+  const uploadDir = path.join(env.uploadsDir, ...categoryPrefix.split('/').filter(Boolean));
+
+  if (!fs.existsSync(uploadDir)) {
+    await fs.promises.mkdir(uploadDir, { recursive: true });
   }
 
   const filename = createStoredFileName(file.originalname);
-  const filePath = path.join(env.uploadsDir, filename);
+  const relativeName = `${categoryPrefix}${filename}`;
+  const filePath = path.join(uploadDir, filename);
   await fs.promises.writeFile(filePath, file.buffer);
 
   return {
-    url: getLocalPublicUrl(req, filename),
-    filename,
+    url: getLocalPublicUrl(req, relativeName),
+    filename: relativeName,
+    category: sanitizeCategory(category),
   };
 }
 
-async function uploadToR2(file) {
+async function uploadToR2(file, category) {
   const filename = createStoredFileName(file.originalname);
-  const key = `${UPLOAD_PREFIX}${filename}`;
+  const safeCategory = sanitizeCategory(category);
+  const key = `${UPLOAD_PREFIX}${getCategoryPrefix(safeCategory)}${filename}`;
 
   await getR2Client().send(new PutObjectCommand({
     Bucket: env.r2BucketName,
@@ -117,52 +151,75 @@ async function uploadToR2(file) {
   return {
     url: getR2PublicUrl(key),
     filename: key,
+    category: safeCategory,
   };
 }
 
-async function uploadUploadedFile(req, file) {
+async function uploadUploadedFile(req, file, options = {}) {
+  const category = options.category || req.body?.category || '';
+
   if (shouldUseR2()) {
-    return uploadToR2(file);
+    return uploadToR2(file, category);
   }
 
-  return uploadToLocal(req, file);
+  return uploadToLocal(req, file, category);
 }
 
-async function listLocalUploadedFiles(req, query, type) {
-  if (!fs.existsSync(env.uploadsDir)) {
+async function collectLocalFiles(dir, baseDir) {
+  if (!fs.existsSync(dir)) {
     return [];
   }
 
-  const fileNames = await fs.promises.readdir(env.uploadsDir);
-  const filesWithStats = await Promise.all(fileNames.map(async (name) => {
-    if (name.startsWith('.')) return null;
+  const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+  const nestedFiles = await Promise.all(entries.map(async (entry) => {
+    const entryPath = path.join(dir, entry.name);
 
-    const filePath = path.join(env.uploadsDir, name);
-    const stats = await fs.promises.stat(filePath);
-    if (stats.isDirectory()) return null;
+    if (entry.name.startsWith('.')) return [];
+    if (entry.isDirectory()) return collectLocalFiles(entryPath, baseDir);
+    if (!entry.isFile()) return [];
 
-    const publicUrl = getLocalPublicUrl(req, name);
-    return {
-      id: name,
-      filename: name,
-      url: publicUrl,
-      thumbnail: publicUrl,
-      source: 'upload',
-      type: getMediaType(name),
-      createdAt: stats.birthtimeMs || stats.mtimeMs || 0,
-    };
+    const stats = await fs.promises.stat(entryPath);
+    return [{
+      name: path.relative(baseDir, entryPath).split(path.sep).join('/'),
+      stats,
+    }];
   }));
 
-  return filesWithStats
-    .filter(Boolean)
-    .filter((file) => matchesMediaFilter(file, query, type))
+  return nestedFiles.flat();
+}
+
+async function listLocalUploadedFiles(req, query, type, category) {
+  const safeCategory = sanitizeCategory(category);
+  const baseDir = safeCategory
+    ? path.join(env.uploadsDir, ...safeCategory.split('/'))
+    : env.uploadsDir;
+
+  const fileEntries = await collectLocalFiles(baseDir, env.uploadsDir);
+
+  return fileEntries
+    .map((entry) => {
+      const publicUrl = getLocalPublicUrl(req, entry.name);
+      return {
+        id: entry.name,
+        filename: path.posix.basename(entry.name),
+        key: entry.name,
+        url: publicUrl,
+        thumbnail: publicUrl,
+        source: 'upload',
+        type: getMediaType(entry.name),
+        category: getCategoryFromKey(`${UPLOAD_PREFIX}${entry.name}`),
+        createdAt: entry.stats.birthtimeMs || entry.stats.mtimeMs || 0,
+      };
+    })
+    .filter((file) => matchesMediaFilter(file, query, type, safeCategory))
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-async function listR2UploadedFiles(query, type) {
+async function listR2UploadedFiles(query, type, category) {
+  const safeCategory = sanitizeCategory(category);
   const response = await getR2Client().send(new ListObjectsV2Command({
     Bucket: env.r2BucketName,
-    Prefix: UPLOAD_PREFIX,
+    Prefix: `${UPLOAD_PREFIX}${getCategoryPrefix(safeCategory)}`,
   }));
 
   return (response.Contents || [])
@@ -174,30 +231,33 @@ async function listR2UploadedFiles(query, type) {
       return {
         id: object.Key,
         filename,
+        key: object.Key,
         url: publicUrl,
         thumbnail: publicUrl,
         source: 'r2',
         type: getMediaType(filename),
+        category: getCategoryFromKey(object.Key),
         createdAt: object.LastModified ? object.LastModified.getTime() : 0,
       };
     })
-    .filter((file) => matchesMediaFilter(file, query, type))
+    .filter((file) => matchesMediaFilter(file, query, type, safeCategory))
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
 async function listUploadedFiles(req, filters = {}) {
   const query = String(filters.query || '').trim().toLowerCase();
   const type = String(filters.type || '').trim().toLowerCase();
+  const category = sanitizeCategory(filters.category || '');
 
   if (shouldUseR2()) {
-    return listR2UploadedFiles(query, type);
+    return listR2UploadedFiles(query, type, category);
   }
 
-  return listLocalUploadedFiles(req, query, type);
+  return listLocalUploadedFiles(req, query, type, category);
 }
 
 module.exports = {
   uploadUploadedFile,
   listUploadedFiles,
+  sanitizeCategory,
 };
-

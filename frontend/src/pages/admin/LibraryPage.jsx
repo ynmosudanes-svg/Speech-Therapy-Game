@@ -32,7 +32,7 @@ const GAME_TYPE_ORDER = [
   'sequence.order',
   'action.drag_to_target',
   'navigation.move_to_target',
-  'navigation.maze',
+  'navigation.maze',
   'cards.audio_flashcards',
   'memory.cards',
   'memory.grid',
@@ -49,7 +49,7 @@ const GAME_TYPE_LABELS = {
   'sequence.order': 'ترتيب الصور',
   'action.drag_to_target': 'السحب والإفلات',
   'navigation.move_to_target': 'التحريك للأهداف',
-  'navigation.maze': 'لعبة المتاهة',
+  'navigation.maze': 'لعبة المتاهة',
   'cards.audio_flashcards': 'الكروت الصوتية',
   'memory.cards': 'لعبة الذاكرة',
   'memory.grid': 'شبكة الذاكرة',
@@ -66,7 +66,7 @@ const GAME_TYPE_LABELS_AR = {
   'sequence.order': 'ترتيب الصور',
   'action.drag_to_target': 'السحب والإفلات',
   'navigation.move_to_target': 'التحريك للأهداف',
-  'navigation.maze': 'لعبة المتاهة',
+  'navigation.maze': 'لعبة المتاهة',
   'cards.audio_flashcards': 'الكروت الصوتية',
   'memory.cards': 'لعبة الذاكرة',
   'memory.grid': 'شبكة الذاكرة',
@@ -166,108 +166,56 @@ const getLibraryErrorMessage = (error, fallback) => {
   return message || fallback;
 };
 
-function TherapyBookCard({ libraryItem, isActive, onClick, index = 0 }) {
-  const bookColor = libraryItem.color || BOOK_COLORS[0];
+function TherapyBookCard({ libraryItem, onClick, index = 0 }) {
+  const bookColor = libraryItem.color || BOOK_COLORS[index % BOOK_COLORS.length];
   const gamesCount = libraryItem.gamesCount || 0;
-  const spineLabel = getPlanSpineLabel(libraryItem.name, index);
 
   return (
     <motion.button
       type="button"
       onClick={onClick}
       layout
-      whileHover={{ y: -6 }}
+      whileHover={{
+        y: -6,
+        borderColor: bookColor,
+        boxShadow: `0 24px 52px -32px ${bookColor}`,
+      }}
       whileTap={{ scale: 0.99 }}
       transition={{ type: 'spring', stiffness: 240, damping: 20 }}
-      className="group relative h-[208px] w-full text-right"
+      className="group relative min-h-[17.5rem] w-full overflow-hidden rounded-[1.65rem] border bg-white p-7 text-right outline-none transition-all duration-300 focus-visible:ring-4"
+      style={{
+        borderColor: '#dbe7f3',
+        boxShadow: '0 18px 40px -30px rgba(15,23,42,0.4)',
+        '--tw-ring-color': `${bookColor}33`,
+      }}
     >
-      <motion.div
-        className={`relative h-full overflow-hidden rounded-[1.6rem] border p-5 transition duration-300 ${
-          isActive ? 'ring-2 ring-sky-100 border-sky-200' : 'border-slate-200'
-        }`}
-        style={{
-          background: `linear-gradient(160deg, color-mix(in srgb, ${bookColor} 13%, white 87%) 0%, white 56%, color-mix(in srgb, ${bookColor} 8%, white 92%) 100%)`,
-          boxShadow: isActive
-            ? `0 26px 45px -28px ${bookColor}70`
-            : `0 22px 40px -30px rgba(15,23,42,0.28)`,
-        }}
-      >
-        <div className="pointer-events-none absolute inset-[7px] rounded-[1.25rem] border border-white/70 opacity-90" />
-        <div
-          className="absolute inset-y-3 right-0 w-[20px] rounded-l-[1rem]"
-          style={{
-            background: `linear-gradient(180deg, color-mix(in srgb, ${bookColor} 92%, white 8%), color-mix(in srgb, ${bookColor} 76%, #0f172a 24%))`,
-            boxShadow: `inset 1px 0 0 rgba(255,255,255,0.35), inset 8px 0 18px rgba(255,255,255,0.08)`,
-          }}
-        >
-          <div className="flex h-full flex-col items-center justify-between py-3">
-            <div className="flex flex-col items-center gap-1">
-              <Library size={11} className="text-white/90" />
-              <span className="text-[8px] font-black tracking-[0.08em] text-white/95">
-                {spineLabel}
-              </span>
-            </div>
-            <div className="flex w-full flex-col items-center gap-2 px-1.5">
-              <span className="h-[1px] w-full rounded-full bg-white/35" />
-              <span className="h-[1px] w-full rounded-full bg-white/25" />
-              <span className="h-[1px] w-full rounded-full bg-white/18" />
-            </div>
-          </div>
+      <div className="absolute inset-x-4 top-0 h-2.5 rounded-b-full" style={{ backgroundColor: bookColor }} />
+      <div className="pointer-events-none absolute -left-14 -top-14 h-36 w-36 rounded-full opacity-10" style={{ backgroundColor: bookColor }} />
+      <span className="absolute left-8 top-8 rounded-full bg-slate-50 px-3.5 py-1.5 text-xs font-black text-slate-600 ring-1 ring-slate-100">
+        {gamesCount} لعبة
+      </span>
+      <span className="absolute right-8 top-8 grid h-[5.25rem] w-[5.25rem] place-items-center rounded-[1.65rem] bg-white shadow-[0_14px_30px_-24px_rgba(15,23,42,0.55)] ring-1 ring-slate-100" style={{ color: bookColor }}>
+        <BookOpen size={36} />
+      </span>
+
+      <div className="relative z-10 flex min-h-[14rem] flex-col pt-28">
+        <h3 className="line-clamp-2 text-2xl font-black leading-9 text-slate-900">
+          {libraryItem.name || 'خطة علاجية جديدة'}
+        </h3>
+        <p className="mt-3 line-clamp-3 max-w-[24rem] text-sm font-bold leading-7 text-slate-500">
+          {libraryItem.description || 'خطة علاجية منظمة لألعاب التخاطب والأنشطة المناسبة للجلسات.'}
+        </p>
+
+        <div className="mt-auto flex items-center justify-start pt-8">
+          <span
+            className="inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-black text-white shadow-[0_14px_24px_-18px_rgba(15,23,42,0.5)] transition-transform group-hover:-translate-x-1"
+            style={{ backgroundColor: bookColor }}
+          >
+            عرض الألعاب
+            <ArrowRight size={17} />
+          </span>
         </div>
-        <div
-          className="absolute inset-y-6 right-[22px] w-[3px] rounded-full"
-          style={{ backgroundColor: `color-mix(in srgb, ${bookColor} 80%, white 20%)` }}
-        />
-
-        <div className="flex h-full flex-col pl-2 pr-10">
-          <div className="flex-1">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] text-white shadow-sm"
-                style={{
-                  background: `linear-gradient(135deg, ${bookColor}, color-mix(in srgb, ${bookColor} 72%, #0f172a 28%))`,
-                  boxShadow: `0 10px 24px -16px ${bookColor}`,
-                }}
-              >
-                <BookOpen size={18} />
-              </div>
-              <div className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600">
-                الخطة {index + 1}
-              </div>
-            </div>
-
-            <h3 className="line-clamp-2 text-[1.05rem] font-black leading-7 text-slate-900">
-              {libraryItem.name || 'خطة علاجية جديدة'}
-            </h3>
-            <p className="mt-2 line-clamp-2 text-[11px] leading-6 text-slate-500">
-              {libraryItem.description || 'خطة علاجية منظمة لألعاب التخاطب والأنشطة المناسبة للجلسات.'}
-            </p>
-
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: bookColor }} />
-                <span className="h-[6px] w-20 rounded-full bg-slate-200/90" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-slate-300" />
-                <span className="h-[6px] w-14 rounded-full bg-slate-200/70" />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-2 pt-2">
-            <div className="flex items-center justify-between rounded-[1rem] border border-white/70 bg-white/80 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-              <span className="text-xs font-bold text-slate-500">الألعاب المختارة</span>
-              <span className="text-base font-black text-slate-900">{gamesCount}</span>
-            </div>
-
-            <div className="flex items-center justify-between text-xs font-black text-slate-500">
-              <span>خطة علاجية</span>
-              <span className="text-sky-700">فتح الخطة</span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      </div>
     </motion.button>
   );
 }
@@ -524,6 +472,19 @@ export default function LibraryPage() {
     });
   };
 
+  const returnToShelfAfterSave = (savedLibrary) => {
+    setSelectedLibraryId(savedLibrary.id);
+    setLibraryForm({
+      id: savedLibrary.id,
+      name: savedLibrary.name || '',
+      description: savedLibrary.description || '',
+      color: savedLibrary.color || BOOK_COLORS[0],
+      gameIds: Array.isArray(savedLibrary.gameIds) ? savedLibrary.gameIds.map(String) : [],
+    });
+    setColorHue(getHueFromColor(savedLibrary.color || BOOK_COLORS[0]));
+    setColorPickerOpen(false);
+    setViewMode('shelf');
+  };
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!adminSession?.token) return;
@@ -544,11 +505,11 @@ export default function LibraryPage() {
         setLibraries((current) =>
           current.map((libraryItem) => (String(libraryItem.id) === String(updated.id) ? updated : libraryItem))
         );
-        handleEditLibrary(updated);
+        returnToShelfAfterSave(updated);
       } else {
         const created = await gameLibraryService.createLibrary(adminSession.token, payload);
         setLibraries((current) => [...current, created]);
-        handleEditLibrary(created);
+        returnToShelfAfterSave(created);
       }
     } catch (saveError) {
       setError(getLibraryErrorMessage(saveError, 'تعذر حفظ الخطة العلاجية.'));
@@ -582,14 +543,14 @@ export default function LibraryPage() {
 
   return (
     <div className="space-y-6 [font-family:var(--font-arabic)]" dir="rtl">
-      <section className="rounded-[2.2rem] border border-slate-200 bg-white/95 p-5 shadow-[0_18px_45px_-35px_rgba(15,23,42,0.24)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.6rem] bg-sky-50 text-sky-700">
+      <section className="rounded-[1.75rem] border border-slate-200 bg-white/95 px-5 py-4 shadow-[0_18px_45px_-35px_rgba(15,23,42,0.24)] sm:px-6">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.25rem] bg-sky-50 text-sky-700">
               {viewMode === 'shelf' ? <Library size={28} /> : viewMode === 'folder' ? <BookOpen size={28} /> : <ClipboardList size={28} />}
             </div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 lg:text-3xl">
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-black text-slate-900 lg:text-3xl">
                 {viewMode === 'shelf'
                   ? 'المكتبة العلاجية'
                   : viewMode === 'folder'
@@ -608,7 +569,7 @@ export default function LibraryPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-3 xl:justify-end">
             {viewMode === 'shelf' ? (
               <>
                 <div className="rounded-[1.3rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700">
@@ -674,7 +635,7 @@ export default function LibraryPage() {
       )}
 
       {viewMode === 'shelf' && (
-        <section className="rounded-[2.3rem] border border-slate-200 bg-white/90 p-5 shadow-[0_22px_55px_-38px_rgba(15,23,42,0.28)] backdrop-blur">
+        <section className="rounded-[1.85rem] border border-slate-200 bg-white/90 p-5 shadow-[0_22px_55px_-38px_rgba(15,23,42,0.28)] backdrop-blur">
           <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="text-2xl font-black text-slate-900">رف الخطط العلاجية</h2>
@@ -696,20 +657,19 @@ export default function LibraryPage() {
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-[#d9eaf3] bg-[linear-gradient(180deg,_#eff9ff_0%,_#f8fcff_42%,_#eef6fb_100%)] px-4 py-6 lg:px-6">
+          <div className="relative overflow-hidden rounded-[1.5rem] border border-[#d9eaf3] bg-[linear-gradient(180deg,_#eff9ff_0%,_#f8fcff_42%,_#eef6fb_100%)] px-4 py-6 lg:px-6">
 
             {loading ? (
               <div className="rounded-[1.8rem] border border-dashed border-slate-200 bg-white/80 px-4 py-16 text-center text-sm font-bold text-slate-500">
                 جاري تحميل الخطط العلاجية...
               </div>
             ) : filteredLibraries.length ? (
-              <motion.div layout className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <motion.div layout className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {filteredLibraries.map((libraryItem, index) => (
                   <TherapyBookCard
                     key={libraryItem.id}
                     libraryItem={libraryItem}
                     index={index}
-                    isActive={String(libraryItem.id) === String(selectedLibraryId)}
                     onClick={() => handleOpenLibrary(libraryItem)}
                   />
                 ))}
@@ -726,7 +686,7 @@ export default function LibraryPage() {
       )}
 
       {viewMode === 'folder' && selectedLibrary && (
-        <section className="rounded-[2.3rem] border border-slate-200 bg-white/90 p-5 shadow-[0_22px_55px_-38px_rgba(15,23,42,0.28)] backdrop-blur">
+        <section className="rounded-[1.85rem] border border-slate-200 bg-white/90 p-5 shadow-[0_22px_55px_-38px_rgba(15,23,42,0.28)] backdrop-blur">
           <div className="mb-5 rounded-[1.8rem] border border-slate-200 bg-[linear-gradient(180deg,_#fbfdff,_#f4faff)] p-5">
             <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -1046,7 +1006,7 @@ export default function LibraryPage() {
                             : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div className="flex flex-wrap items-center gap-3 xl:justify-end">
                           <div
                             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
                               isSelected ? 'bg-sky-600 text-white' : 'bg-slate-100 text-sky-700'

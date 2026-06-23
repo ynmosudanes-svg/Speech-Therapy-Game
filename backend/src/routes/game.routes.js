@@ -7,7 +7,7 @@ const {
   updateGame,
   deleteGame,
 } = require('../controllers/game.controller');
-const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { authenticate, optionalAuthenticate, authorize } = require('../middleware/auth.middleware');
 const { validateRequest } = require('../middleware/validate.middleware');
 
 const router = express.Router();
@@ -29,8 +29,8 @@ const supportedTypes = [
   'matching.connect',
 ];
 
-router.get('/api/games', getGames);
-router.get('/api/games/:id', [param('id').notEmpty().withMessage('Game id is required.'), validateRequest], getGame);
+router.get('/api/games', optionalAuthenticate, getGames);
+router.get('/api/games/:id', [optionalAuthenticate, param('id').notEmpty().withMessage('Game id is required.'), validateRequest], getGame);
 
 router.post(
   '/api/games',

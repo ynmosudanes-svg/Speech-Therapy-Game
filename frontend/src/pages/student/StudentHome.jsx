@@ -18,17 +18,19 @@ const StudentHome = () => {
   const readingAnimationRef = useRef(null);
   const numberOneAnimationRef = useRef(null);
   const progressMapRef = useRef(null);
+  const progressSectionRef = useRef(null);
   const progressPathSvgRef = useRef(null);
   const currentLevelRef = useRef(null);
   const stageNodeRefs = useRef([]);
+  const revealedStageNodesRef = useRef(new Set());
   const [pathSegments, setPathSegments] = useState([]);
 
   const assignedGames = Array.isArray(currentStudent?.assignedGames) ? currentStudent.assignedGames : [];
-  
+
   const studentSessions = Array.isArray(sessions)
     ? sessions.filter((session) => String(session.studentId) === String(currentStudent?.id) && session.sessionType !== 'FREE_PLAY')
     : [];
-    
+
   const completedGameIds = useMemo(() => {
     return new Set(studentSessions.map(s => String(s.gameId)));
   }, [studentSessions]);
@@ -53,14 +55,15 @@ const StudentHome = () => {
 
   const progressPercentage = assignedGames.length > 0 ? (completedGames.length / assignedGames.length) * 100 : 0;
   const scrollToProgressSection = () => {
-    progressMapRef.current?.scrollIntoView({
+    const target = currentLevelRef.current || progressMapRef.current || progressSectionRef.current;
+    target?.scrollIntoView({
       behavior: 'smooth',
-      block: 'start',
+      block: 'center',
     });
   };
   const welcomeAnimationFrameClass = 'relative shrink-0 flex items-center justify-center w-[8.2rem] h-[8.2rem] md:w-40 md:h-40 lg:w-44 lg:h-44 translate-y-1 md:translate-y-3';
   const progressAnimationFrameClass = 'relative shrink-0 flex items-center justify-center w-[8rem] h-[8rem] md:w-40 md:h-40 lg:w-44 lg:h-44 translate-y-1 md:translate-y-2';
-  const heroSlideClass = 'bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 pb-12 md:pb-12 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex flex-col md:flex-row items-center gap-8 min-h-[22rem] md:min-h-[240px]';
+  const heroSlideClass = 'bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex h-[22rem] flex-col items-center justify-center gap-8 md:h-auto md:min-h-[240px] md:flex-row';
   const getGameTitle = (game) => game.titleAr || game.config?.nameAr || game.title || game.name || 'لعبة علاجية';
   const progressMapItems = [
     ...completedGames.map((game) => ({ game, status: 'done' })),
@@ -68,16 +71,6 @@ const StudentHome = () => {
     ...lockedGames.map((game) => ({ game, status: 'locked' })),
   ];
 
-  useEffect(() => {
-    const scrollTimer = window.setTimeout(() => {
-      currentLevelRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-    }, 180);
-
-    return () => window.clearTimeout(scrollTimer);
-  }, [unlockedGame?.id]);
   useEffect(() => {
     const container = progressMapRef.current;
     const svg = progressPathSvgRef.current;
@@ -138,7 +131,7 @@ const StudentHome = () => {
         const endY = toNodeGeometry.y - Math.sin(angle) * endRadius;
         const midX = (startX + endX) / 2;
         const midY = (startY + endY) / 2;
-        const curveOffset = Math.min(Math.max(Math.abs(dx) * 0.5, 72), 120);
+        const curveOffset = Math.min(Math.max(Math.abs(dx) * 0.4, 110), 220);
         const controlX = midX + (index % 2 === 0 ? curveOffset : -curveOffset);
         const controlY = midY;
         const segment = `${index === 0 ? `M ${startX.toFixed(1)} ${startY.toFixed(1)}` : ''} Q ${controlX.toFixed(1)} ${controlY.toFixed(1)} ${endX.toFixed(1)} ${endY.toFixed(1)}`;
@@ -201,7 +194,7 @@ const StudentHome = () => {
         initial={{ scale: 1 }}
         animate={{ y: [0, -6, 0] }}
         transition={{ duration: 2.6, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
-        className="pointer-events-none absolute -right-14 top-1/2 z-20 h-16 w-16 -translate-y-1/2 sm:-right-[4.5rem] sm:h-20 sm:w-20 md:-right-24 md:h-24 md:w-24 lg:-right-28 lg:h-28 lg:w-28"
+        className="pointer-events-none absolute -right-16 top-1/2 z-20 h-14 w-14 -translate-y-1/2 sm:-right-[4.75rem] sm:h-[4.5rem] sm:w-[4.5rem] md:-right-20 md:h-20 md:w-20"
         aria-hidden="true"
       >
         <div className="absolute -bottom-1 left-1/2 h-3 w-10 -translate-x-1/2 rounded-full bg-[#b9d6df]/55 blur-md md:h-4 md:w-14" />
@@ -213,17 +206,27 @@ const StudentHome = () => {
     const isCurrent = status === 'current';
     const isDone = status === 'done';
     const isLocked = status === 'locked';
-    const offsetClass = ['mr-[40%]', 'mr-[22%]', 'mr-[48%]', 'mr-[18%]'][index % 4];
+    const offsetClass = [
+      'justify-start pr-2 sm:pr-[8%] md:pr-[10%]',
+      'justify-end pl-2 sm:pl-[10%] md:pl-[14%]',
+      'justify-center md:pr-[12%]',
+      'justify-end pl-4 sm:pl-[18%] md:pl-[22%]',
+    ][index % 4];
     const title = getGameTitle(game);
+    const revealKey = `${game?.id || index}-${status}`;
+    const hasRevealed = revealedStageNodesRef.current.has(revealKey);
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 18 }}
+        initial={hasRevealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
+        onViewportEnter={() => {
+          revealedStageNodesRef.current.add(revealKey);
+        }}
         transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.2) }}
         ref={levelRef}
-        className={`relative flex min-h-[5.35rem] w-full max-w-[19rem] sm:max-w-[26rem] md:max-w-[30rem] ${offsetClass}`}
+        className={`relative flex min-h-[6.2rem] w-full ${offsetClass}`}
       >
 
         <motion.button
@@ -239,7 +242,7 @@ const StudentHome = () => {
             ref={nodeRef}
             className={`relative grid rounded-full transition-all duration-300 ${
               isCurrent
-                ? 'h-[5.25rem] w-[5.25rem] place-items-center bg-[#def7ff] shadow-[0_0_0_6px_rgba(22,143,199,0.08),0_5px_0_#b9e2ef,0_14px_22px_-20px_rgba(15,111,166,0.45)]'
+                ? 'h-[5.65rem] w-[5.65rem] animate-pulse place-items-center bg-[#def7ff] shadow-[0_0_0_9px_rgba(22,143,199,0.1),0_0_28px_rgba(34,199,232,0.28),0_6px_0_#b9e2ef,0_18px_26px_-20px_rgba(15,111,166,0.52)]'
                 : 'h-[4.35rem] w-[4.35rem] place-items-center bg-[#eef4f7] shadow-[0_4px_0_#d2e0e6,0_10px_18px_-18px_rgba(15,111,166,0.26)]'
             } ${isDone ? '!bg-[#e8fff6] !shadow-[0_0_0_6px_rgba(20,184,129,0.07),0_4px_0_#b8ead7,0_10px_18px_-18px_rgba(20,184,129,0.28)]' : ''}`}
           >
@@ -250,10 +253,11 @@ const StudentHome = () => {
             )}
             {isCurrent && (
               <>
-                <Sparkles size={12} className="pointer-events-none absolute -left-2 top-1 text-amber-400" fill="currentColor" />
-                <Sparkles size={9} className="pointer-events-none absolute -right-3 top-4 text-cyan-400" fill="currentColor" />
-                <Sparkles size={10} className="pointer-events-none absolute bottom-0 left-1 text-cyan-400" fill="currentColor" />
-                <Sparkles size={8} className="pointer-events-none absolute bottom-3 -right-2 text-amber-400" fill="currentColor" />
+                <Sparkles size={16} className="pointer-events-none absolute -left-4 top-0 text-amber-400" fill="currentColor" />
+                <Sparkles size={11} className="pointer-events-none absolute -right-4 top-4 text-cyan-400" fill="currentColor" />
+                <Sparkles size={13} className="pointer-events-none absolute -bottom-1 left-1 text-cyan-400" fill="currentColor" />
+                <Sparkles size={10} className="pointer-events-none absolute bottom-4 -right-3 text-amber-400" fill="currentColor" />
+                <Sparkles size={9} className="pointer-events-none absolute -top-5 left-8 text-amber-300" fill="currentColor" />
               </>
             )}
 
@@ -261,7 +265,7 @@ const StudentHome = () => {
             <span
               className={`grid rounded-full border-[4px] transition-all duration-300 ${
                 isCurrent
-                  ? 'h-[4rem] w-[4rem] place-items-center border-[#a7e9fb] bg-[linear-gradient(180deg,#22c7e8,#168FC7)] text-white shadow-[inset_0_-5px_0_rgba(15,111,166,0.38),0_0_10px_rgba(34,199,232,0.18)]'
+                  ? 'h-[4.35rem] w-[4.35rem] place-items-center border-[#a7e9fb] bg-[linear-gradient(180deg,#22c7e8,#168FC7)] text-white shadow-[inset_0_-5px_0_rgba(15,111,166,0.38),0_0_18px_rgba(34,199,232,0.34)]'
                   : isDone
                     ? 'h-[3.35rem] w-[3.35rem] place-items-center border-[#b9f3dc] bg-[linear-gradient(180deg,#20d39a,#14b881)] text-white shadow-[inset_0_-4px_0_rgba(9,120,83,0.3),0_0_8px_rgba(20,184,129,0.15)]'
                     : 'h-[3.35rem] w-[3.35rem] place-items-center border-[#d6e3e9] bg-[linear-gradient(180deg,#c8d7de,#9fb2bc)] text-[#eef6f9] shadow-[inset_0_-4px_0_rgba(80,105,116,0.22)]'
@@ -271,14 +275,14 @@ const StudentHome = () => {
             </span>
           </span>
 
-          {!isCurrent && (<span className={`pointer-events-none absolute right-[calc(100%+0.75rem)] top-1/2 hidden -translate-y-1/2 scale-95 rounded-xl border bg-white/95 px-4 py-2 opacity-0 shadow-[0_14px_24px_-20px_rgba(15,111,166,0.34)] transition-all duration-200 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100 sm:block border-[#dbe7f3]`}>
+          {!isCurrent && (<span className={`pointer-events-none absolute bottom-[calc(100%+0.65rem)] right-1/2 hidden translate-x-1/2 scale-95 rounded-xl border border-[#dbe7f3] bg-white/95 px-4 py-2 opacity-0 shadow-[0_14px_24px_-20px_rgba(15,111,166,0.34)] transition-all duration-200 after:absolute after:-bottom-1.5 after:right-1/2 after:h-2.5 after:w-2.5 after:translate-x-1/2 after:rotate-45 after:border-b after:border-r after:border-[#dbe7f3] after:bg-white/95 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100 sm:block`}>
             <span className="block text-xs font-black text-[#168FC7]">
               {isDone ? 'اكتملت' : 'مقفلة'}
             </span>
           </span>)}
+          {isCurrent && <BirdMascot />}
         </motion.button>
 
-        {isCurrent && <BirdMascot />}
       </motion.div>
     );
   };
@@ -327,7 +331,7 @@ const StudentHome = () => {
   return (
     <div dir="rtl" className="w-full pb-10 text-slate-800 flex justify-center">
       <div className="w-full max-w-5xl">
-        
+
         {/* Custom Swiper Styles */}
         <style>{`
           .student-home-swiper .swiper-pagination {
@@ -341,17 +345,11 @@ const StudentHome = () => {
             background: #ffffff !important;
             box-shadow: 0 0 10px rgba(255,255,255,0.8);
           }
-          .progress-map-flow {
-            animation: progress-map-flow 1.4s linear infinite;
-          }
-          @keyframes progress-map-flow {
-            to { stroke-dashoffset: -18; }
-          }
         `}</style>
 
         {/* Swiper Banner */}
         {assignedGames.length > 0 ? (
-          <div className="mb-14">
+          <div className="mb-8 md:mb-14">
             <Swiper
               modules={[Pagination, Autoplay]}
               spaceBetween={30}
@@ -381,7 +379,7 @@ const StudentHome = () => {
                     <button
                       type="button"
                       onClick={scrollToProgressSection}
-                      className="mt-5 inline-flex items-center justify-center rounded-full border border-white/40 bg-white px-5 py-2.5 text-sm font-extrabold text-[#168FC7] shadow-[0_10px_24px_rgba(7,59,92,0.18)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(7,59,92,0.22)] active:translate-y-0"
+                      className="mt-3 inline-flex md:mt-5 items-center justify-center rounded-full border border-white/40 bg-white px-5 py-2.5 text-sm font-extrabold text-[#168FC7] shadow-[0_10px_24px_rgba(7,59,92,0.18)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(7,59,92,0.22)] active:translate-y-0"
                     >
                       ابدأ الآن
                     </button>
@@ -432,7 +430,7 @@ const StudentHome = () => {
             {/* Decorative background blobs */}
             <div className="absolute top-0 right-0 -mt-12 -mr-12 w-48 h-48 bg-white/50 rounded-full blur-2xl"></div>
             <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-48 h-48 bg-blue-300/20 rounded-full blur-2xl"></div>
-            
+
             <div className="relative z-10">
               <div className="inline-flex items-center justify-center w-28 h-28 mb-6 rounded-[2rem] bg-white shadow-sm border border-blue-50 rotate-3 hover:rotate-6 transition-transform duration-300">
                 <Gamepad2 size={58} className="text-sky-500 drop-shadow-sm" strokeWidth={2} />
@@ -447,23 +445,26 @@ const StudentHome = () => {
 
         {/* Game Progress Section */}
         {(unlockedGame || lockedGames.length > 0 || completedGames.length > 0) && (
-          <section className="mb-14" aria-label="مسار تقدم الألعاب">
-            <h2 className="mb-10 flex items-center gap-3 text-2xl font-extrabold text-slate-800">
+          <section ref={progressSectionRef} className="mb-14 scroll-mt-28" aria-label="مسار تقدم الألعاب">
+            <h2 className="mb-5 flex items-center gap-3 text-2xl font-extrabold text-slate-800 md:mb-10">
               <Gamepad2 className="text-[#168FC7]" size={32} />
               ألعاب بانتظارك!
             </h2>
 
-            <div ref={progressMapRef} className="relative mx-auto max-w-3xl px-4 py-8 sm:px-10">
+            <div ref={progressMapRef} className="relative mx-auto max-w-5xl px-4 py-10 sm:px-8 md:px-12">
+              <Sparkles className="pointer-events-none absolute left-[13%] top-20 z-0 text-amber-300/80" size={28} fill="currentColor" aria-hidden="true" />
+              <Sparkles className="pointer-events-none absolute right-[18%] bottom-16 z-0 text-cyan-300/70" size={22} fill="currentColor" aria-hidden="true" />
+              <div className="pointer-events-none absolute left-[8%] bottom-8 h-10 w-20 rounded-full bg-white/70 shadow-[24px_-8px_0_-6px_rgba(255,255,255,0.76),-20px_-4px_0_-8px_rgba(255,255,255,0.78)]" aria-hidden="true" />
               <svg ref={progressPathSvgRef} className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible" aria-hidden="true">
                 {pathSegments.map((segment) => (
                   <g key={segment.key}>
-                    <path d={segment.d} fill="none" stroke="rgba(34,199,232,0.09)" strokeWidth="10" strokeLinecap="round" />
-                    <path d={segment.d} fill="none" stroke="rgba(34,199,232,0.24)" strokeWidth="6" strokeLinecap="round" />
-                    <path className="progress-map-flow" d={segment.d} fill="none" stroke="#34c6df" strokeWidth="3.25" strokeLinecap="round" strokeDasharray="7 10" opacity="0.82" />
+                    <path d={segment.d} fill="none" stroke="rgba(34,199,232,0.06)" strokeWidth="18" strokeLinecap="round" />
+                    <path d={segment.d} fill="none" stroke="rgba(34,199,232,0.16)" strokeWidth="10" strokeLinecap="round" />
+                    <path d={segment.d} fill="none" stroke="#34c6df" strokeWidth="6" strokeLinecap="round" strokeDasharray="9 12" opacity="0.34" />
                   </g>
                 ))}
               </svg>
-              <div className="relative z-10 mx-auto flex max-w-[23rem] sm:max-w-[30rem] md:max-w-[34rem] flex-col items-start gap-0">
+              <div className="relative z-10 mx-auto flex w-full max-w-[58rem] flex-col items-stretch gap-1 md:gap-2">
                 {progressMapItems.map((item, index) => (
 
                   <ProgressStageNode
@@ -482,13 +483,10 @@ const StudentHome = () => {
             </div>
           </section>
         )}
+
       </div>
     </div>
   );
 };
 
 export default StudentHome;
-
-
-
-

@@ -12,20 +12,11 @@ const { validateRequest } = require('../middleware/validate.middleware');
 
 const router = express.Router();
 
-router.get(
-  '/api/game-libraries',
-  [authenticate, authorize('SUPER_ADMIN', 'THERAPIST'), validateRequest],
-  getLibraries
-);
+router.get('/api/game-libraries', getLibraries);
 
 router.get(
   '/api/game-libraries/:id',
-  [
-    authenticate,
-    authorize('SUPER_ADMIN', 'THERAPIST'),
-    param('id').notEmpty().withMessage('Library id is required.'),
-    validateRequest,
-  ],
+  [param('id').notEmpty().withMessage('Library id is required.'), validateRequest],
   getLibrary
 );
 

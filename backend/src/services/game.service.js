@@ -2,7 +2,20 @@ const prisma = require('../config/prisma');
 const ApiError = require('../utils/apiError');
 const { buildConfigFromPayload, normalizeGameRecord } = require('../utils/gameConfig');
 
-async function listGames() {
+async function listGames(currentUser = null) {
+  if (currentUser?.role === 'STUDENT') {
+    const assignedGames = await prisma.studentGame.findMany({
+      where: { studentId: currentUser.studentId },
+      orderBy: { order: 'asc' },
+      include: { game: true },
+    });
+
+    return assignedGames.map((assignment) => ({
+      ...normalizeGameRecord(assignment.game),
+      order: assignment.order,
+    }));
+  }
+
   const games = await prisma.game.findMany({
     orderBy: [{ level: 'asc' }, { createdAt: 'asc' }],
   });
@@ -10,7 +23,28 @@ async function listGames() {
   return games.map(normalizeGameRecord);
 }
 
-async function getGameById(gameId) {
+async function getGameById(gameId, currentUser = null) {
+  if (currentUser?.role === 'STUDENT') {
+    const assignedGame = await prisma.studentGame.findUnique({
+      where: {
+        studentId_gameId: {
+          studentId: currentUser.studentId,
+          gameId,
+        },
+      },
+      include: { game: true },
+    });
+
+    if (!assignedGame) {
+      throw new ApiError(403, 'This game is not assigned to the student.');
+    }
+
+    return {
+      ...normalizeGameRecord(assignedGame.game),
+      order: assignedGame.order,
+    };
+  }
+
   const game = await prisma.game.findUnique({
     where: { id: gameId },
   });

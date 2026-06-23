@@ -25,6 +25,21 @@ async function ensureGameExists(gameId) {
   return game;
 }
 
+async function ensureAssignedGameForStudent(studentId, gameId) {
+  const assignment = await prisma.studentGame.findUnique({
+    where: {
+      studentId_gameId: {
+        studentId,
+        gameId,
+      },
+    },
+    select: { studentId: true },
+  });
+
+  if (!assignment) {
+    throw new ApiError(403, 'This game is not assigned to the student.');
+  }
+}
 async function ensureStudentForTherapist(currentUser, studentId) {
   const student = await prisma.student.findUnique({
     where: { id: studentId },
@@ -46,6 +61,10 @@ async function createSession(currentUser, payload) {
 
   const student = await ensureStudentForTherapist(currentUser, studentId);
   await ensureGameExists(payload.gameId);
+
+  if (currentUser.role === 'STUDENT' && payload.sessionType !== 'FREE_PLAY') {
+    await ensureAssignedGameForStudent(studentId, payload.gameId);
+  }
 
   const therapistId =
     currentUser.role === 'STUDENT' ? student.therapistId : currentUser.userId;

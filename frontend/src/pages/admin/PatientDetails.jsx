@@ -1,18 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, Gamepad2, AlertTriangle, X, CheckCircle, Sparkles } from 'lucide-react';
+import { ArrowRight, BookOpen, Gamepad2, AlertTriangle, X, CheckCircle } from 'lucide-react';
 import Button from '../../components/Button';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
+import gameLibraryService from '../../services/gameLibraryService';
 
 const PatientDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { students, startTherapistSession, regenerateStudentAccessCode } = useTherapyStore();
+  const { adminSession, students, regenerateStudentAccessCode } = useTherapyStore();
 
   const [accessCode, setAccessCode] = useState('');
   const [busyCodeAction, setBusyCodeAction] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [alertMessage, setAlertMessage] = useState({ show: false, text: '', type: 'success' });
+  const [libraries, setLibraries] = useState([]);
+  const [selectedLibraryId, setSelectedLibraryId] = useState('');
 
   const storeStudent = useMemo(() => {
     if (!Array.isArray(students)) {
@@ -43,7 +46,72 @@ const PatientDetails = () => {
   const patient = workspace?.patient;
   const assignedGames = Array.isArray(storeStudent?.assignedGames) ? storeStudent.assignedGames : [];
   const currentAccessCode = accessCode || patient?.accessCode || '';
+  useEffect(() => {
+    if (!adminSession?.token) {
+      setLibraries([]);
+      return;
+    }
 
+    let isMounted = true;
+
+    const fetchLibraries = async () => {
+      try {
+        const response = await gameLibraryService.getLibraries(adminSession.token);
+        if (isMounted) {
+          setLibraries(Array.isArray(response) ? response : response?.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to load game libraries', error);
+        if (isMounted) {
+          setLibraries([]);
+        }
+      }
+    };
+
+    fetchLibraries();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [adminSession?.token]);
+
+
+  const assignedLibraryFolders = useMemo(() => {
+    const assignedIds = new Set(assignedGames.map((game) => String(game.id)));
+    const folders = (Array.isArray(libraries) ? libraries : [])
+      .map((library, index) => {
+        const games = Array.isArray(library.games)
+          ? library.games.filter((game) => assignedIds.has(String(game.id)))
+          : [];
+
+        return {
+          ...library,
+          color: library.color || ['#1584C3', '#14A383', '#A855F7', '#E11D48'][index % 4],
+          games,
+        };
+      })
+      .filter((library) => library.games.length > 0);
+
+    const groupedGameIds = new Set(folders.flatMap((library) => library.games.map((game) => String(game.id))));
+    const ungroupedGames = assignedGames.filter((game) => !groupedGameIds.has(String(game.id)));
+
+    if (ungroupedGames.length > 0) {
+      folders.push({
+        id: '__ungrouped__',
+        name: 'ألعاب خارج المكتبات',
+        description: 'ألعاب مخصصة للطفل لكنها غير موجودة داخل مكتبة علاجية محددة.',
+        color: '#1584C3',
+        games: ungroupedGames,
+      });
+    }
+
+    return folders;
+  }, [assignedGames, libraries]);
+
+  const selectedLibrary = useMemo(
+    () => assignedLibraryFolders.find((library) => String(library.id) === String(selectedLibraryId)) || null,
+    [assignedLibraryFolders, selectedLibraryId]
+  );
   const handleCopyCode = async () => {
     if (!currentAccessCode) return;
 
@@ -176,49 +244,95 @@ const PatientDetails = () => {
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-slate-900">
-            <Gamepad2 size={18} className="text-blue-600" />
-            <h2 className="text-xl font-black">الألعاب المخصصة</h2>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-slate-900">
+              <Gamepad2 size={18} className="text-blue-600" />
+              <h2 className="text-xl font-black">الألعاب المخصصة</h2>
+            </div>
+
+            {selectedLibrary && (
+              <button
+                type="button"
+                onClick={() => setSelectedLibraryId('')}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-4 py-2 text-sm font-black text-blue-600 shadow-sm transition hover:bg-blue-50"
+              >
+                <ArrowRight size={16} />
+                رجوع للمكتبات
+              </button>
+            )}
           </div>
 
           {!storeStudent || assignedGames.length === 0 ? (
             <EmptyBlock text="لا توجد ألعاب مخصصة لهذا المستفيد حاليًا." />
-          ) : (
+          ) : selectedLibrary ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mt-4">
-              {assignedGames.map((game, index) => (
-                <div 
-                  key={game.id} 
-                  className={`relative overflow-hidden rounded-[2rem] border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group cursor-pointer
-                    ${index % 3 === 0 ? 'bg-gradient-to-br from-[#eff6ff] to-[#dbeafe] border-blue-100 hover:shadow-blue-200/50' : 
-                      index % 3 === 1 ? 'bg-gradient-to-br from-[#f0fdf4] to-[#dcfce7] border-emerald-100 hover:shadow-emerald-200/50' : 
-                      'bg-gradient-to-br from-[#fdf4ff] to-[#fae8ff] border-fuchsia-100 hover:shadow-fuchsia-200/50'}`}
+              {selectedLibrary.games.map((game, index) => (
+                <div
+                  key={game.id}
+                  className="group relative overflow-hidden rounded-[2rem] border border-[#dbe7f3] bg-white p-6 text-right shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                   onClick={() => navigate(`/admin/games/edit/${game.id}`)}
                 >
-                  <div className="absolute -top-4 -right-4 p-4 opacity-10 transition-transform duration-500 group-hover:scale-150 group-hover:rotate-12">
-                    <Sparkles className="w-32 h-32" />
-                  </div>
-                  
+                  <div className="absolute inset-x-5 top-0 h-2 rounded-b-full" style={{ backgroundColor: selectedLibrary.color }} />
+
                   <div className="relative z-10">
-                    <div className="w-14 h-14 rounded-2xl bg-white/80 shadow-sm border border-white/50 flex items-center justify-center mb-5 backdrop-blur-sm">
-                      <Gamepad2 className={`w-7 h-7 ${index % 3 === 0 ? 'text-blue-500' : index % 3 === 1 ? 'text-emerald-500' : 'text-fuchsia-500'}`} />
+                    <div className="mb-5 flex items-center justify-between gap-3">
+                      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#EAF7FD] shadow-sm ring-1 ring-[#cfe3f3]" style={{ color: selectedLibrary.color }}>
+                        <Gamepad2 size={28} />
+                      </div>
+                      <span className="rounded-full bg-[#EAF7FD] px-3 py-1 text-xs font-black ring-1 ring-[#cfe3f3]" style={{ color: selectedLibrary.color }}>
+                        #{index + 1}
+                      </span>
                     </div>
-                    
+
                     <h3 className="font-black text-slate-800 text-xl mb-2">{game.titleAr || game.title || game.name}</h3>
                     <p className="text-sm font-bold text-slate-500 mb-6 line-clamp-2 leading-relaxed">
                       {game.descriptionAr || game.description || 'لعبة تفاعلية مخصصة لتنمية المهارات الإدراكية والتخاطب بصورة ممتعة ومحفزة.'}
                     </p>
 
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 font-black text-xs text-slate-600 backdrop-blur-sm border border-white/50">
-                        {game.type === 'ABA' ? 'برنامج ABA' : 'تطبيق علاجي'}
+                    <div className="flex items-center justify-end mt-auto">
+                      <span className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black text-white shadow-sm transition-transform group-hover:-translate-x-1" style={{ backgroundColor: selectedLibrary.color }}>
+                        تعديل اللعبة
+                        <ArrowRight size={17} />
                       </span>
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm transition-transform group-hover:translate-x-[-4px]
-                        ${index % 3 === 0 ? 'text-blue-500' : index % 3 === 1 ? 'text-emerald-500' : 'text-fuchsia-500'}`}>
-                        <ArrowRight size={18} />
-                      </div>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          ) : assignedLibraryFolders.length === 0 ? (
+            <EmptyBlock text="لا توجد مكتبات علاجية تحتوي ألعاب هذا المستفيد حاليًا." />
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mt-4">
+              {assignedLibraryFolders.map((library) => (
+                <button
+                  type="button"
+                  key={library.id}
+                  onClick={() => setSelectedLibraryId(String(library.id))}
+                  className="group relative min-h-[18.5rem] overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 text-right shadow-[0_18px_40px_-30px_rgba(15,23,42,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-32px_rgba(15,23,42,0.45)]"
+                >
+                  <div className="absolute inset-x-4 top-0 h-2.5 rounded-b-full" style={{ backgroundColor: library.color }} />
+                  <div className="pointer-events-none absolute -left-14 -top-14 h-36 w-36 rounded-full opacity-10" style={{ backgroundColor: library.color }} />
+                  <span className="absolute left-8 top-8 rounded-full bg-slate-50 px-3.5 py-1.5 text-xs font-black text-slate-600 ring-1 ring-slate-100">
+                    {library.games.length} لعبة
+                  </span>
+                  <span className="absolute right-8 top-8 grid h-[5.25rem] w-[5.25rem] place-items-center rounded-[1.65rem] bg-white shadow-[0_14px_30px_-24px_rgba(15,23,42,0.55)] ring-1 ring-slate-100" style={{ color: library.color }}>
+                    <BookOpen size={36} />
+                  </span>
+
+                  <div className="relative z-10 flex min-h-[14rem] flex-col pt-28">
+                    <h3 className="line-clamp-2 text-2xl font-black leading-9 text-slate-900">{library.name}</h3>
+                    <p className="mt-3 line-clamp-3 max-w-[24rem] text-sm font-bold leading-7 text-slate-500">
+                      {library.description || 'مجموعة ألعاب علاجية مخصصة لهذا المستفيد.'}
+                    </p>
+
+                    <div className="mt-auto flex items-center justify-start pt-8">
+                      <span className="inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-black text-white shadow-[0_14px_24px_-18px_rgba(15,23,42,0.5)] transition-transform group-hover:-translate-x-1" style={{ backgroundColor: library.color }}>
+                        عرض الألعاب
+                        <ArrowRight size={17} />
+                      </span>
+                    </div>
+                  </div>
+                </button>
               ))}
             </div>
           )}

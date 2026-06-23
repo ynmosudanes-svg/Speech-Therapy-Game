@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Edit2, Plus, Search, Trash2, Tag, ChevronDown, Check, Gamepad2 } from 'lucide-react';
+import { Copy, Edit2, Plus, Search, Trash2, Tag, ChevronDown, Check, Gamepad2, FolderOpen } from 'lucide-react';
 import Button from '../../components/Button';
 import gameService from '../../services/gameService';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
@@ -15,6 +15,8 @@ const getActivitiesCount = (game) =>
     : 0;
 
 const getDisplayName = (game) => game?.config?.nameAr || game?.titleAr || game?.title || game?.name;
+const getGameTags = (game) => (Array.isArray(game?.config?.tags) ? game.config.tags : []);
+const getGameBand = (game) => String(game?.gameCode || '').trim().toUpperCase();
 
 const normalizeSearchValue = (value) => String(value || '').trim().toLowerCase();
 
@@ -25,7 +27,9 @@ const GamesManager = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTags, setActiveTags] = useState([]);
+  const [activeBand, setActiveBand] = useState('');
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [bandMenuOpen, setBandMenuOpen] = useState(false);
   const [deleteGameId, setDeleteGameId] = useState(null);
   const [copiedGameId, setCopiedGameId] = useState('');
   const [dialog, setDialog] = useState(null);
@@ -33,9 +37,7 @@ const GamesManager = () => {
   const allAvailableTags = useMemo(() => {
     const tags = new Set();
     games.forEach(g => {
-      if (Array.isArray(g.config?.tags)) {
-        g.config.tags.forEach(t => tags.add(t));
-      }
+      getGameTags(g).forEach(t => tags.add(t));
     });
     try {
       const local = JSON.parse(localStorage.getItem('allGameTags')) || [];
@@ -44,6 +46,28 @@ const GamesManager = () => {
     return Array.from(tags).sort();
   }, [games]);
 
+
+  const availableBands = useMemo(() => {
+    const bands = new Set();
+
+    games.forEach((game) => {
+      const gameTags = getGameTags(game);
+      const matchesSelectedTags = activeTags.length === 0 || activeTags.every((tag) => gameTags.includes(tag));
+      const band = getGameBand(game);
+
+      if (matchesSelectedTags && band) {
+        bands.add(band);
+      }
+    });
+
+    return Array.from(bands).sort((first, second) => first.localeCompare(second, undefined, { numeric: true, sensitivity: 'base' }));
+  }, [activeTags, games]);
+
+  useEffect(() => {
+    if (activeBand && !availableBands.includes(activeBand)) {
+      setActiveBand('');
+    }
+  }, [activeBand, availableBands]);
   useEffect(() => {
     const fetchGames = async () => {
       try {
@@ -71,12 +95,13 @@ const GamesManager = () => {
         game?.name,
       ].some((value) => normalizeSearchValue(value).includes(query));
 
-      const gameTags = game.config?.tags || [];
+      const gameTags = getGameTags(game);
       const matchesTags = activeTags.length === 0 || activeTags.every(tag => gameTags.includes(tag));
+      const matchesBand = !activeBand || getGameBand(game) === activeBand;
 
-      return matchesSearch && matchesTags;
+      return matchesSearch && matchesTags && matchesBand;
     });
-  }, [games, searchTerm, activeTags]);
+  }, [activeBand, games, searchTerm, activeTags]);
 
   const handleDelete = (gameId) => {
     setDeleteGameId(gameId);
@@ -136,8 +161,8 @@ const GamesManager = () => {
         </div>
 
         <div className="flex flex-col md:flex-row gap-3 xl:min-w-[40rem] items-center">
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <div className="relative flex-[2]">
+          <div className="grid w-full gap-3 sm:grid-cols-[minmax(14rem,1.6fr)_minmax(11rem,0.9fr)_minmax(11rem,0.9fr)]">
+            <div className="relative">
               <Search
                 size={18}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
@@ -154,7 +179,10 @@ const GamesManager = () => {
             <div className="relative flex-1">
               <button
                 type="button"
-                onClick={() => setFilterMenuOpen(!filterMenuOpen)}
+                onClick={() => {
+                  setFilterMenuOpen(!filterMenuOpen);
+                  setBandMenuOpen(false);
+                }}
                 className="w-full flex items-center justify-between px-4 py-3 bg-white border border-[#dbe7f3] rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-700"
               >
                 <div className="flex items-center gap-2">
@@ -172,7 +200,7 @@ const GamesManager = () => {
                     <span className="font-bold text-slate-700">تصفية بالتصنيف</span>
                     {activeTags.length > 0 && (
                       <button
-                        onClick={() => { setActiveTags([]); setFilterMenuOpen(false); }}
+                        onClick={() => { setActiveTags([]); setActiveBand(''); setFilterMenuOpen(false); }}
                         className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 bg-red-50 rounded-lg"
                       >
                         مسح الكل
@@ -198,6 +226,65 @@ const GamesManager = () => {
                 </div>
               )}
             </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setBandMenuOpen(!bandMenuOpen);
+                  setFilterMenuOpen(false);
+                }}
+                disabled={!availableBands.length}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white border border-[#dbe7f3] rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <FolderOpen size={18} className="shrink-0 text-slate-400" />
+                  <span className="truncate font-bold whitespace-nowrap">
+                    {activeBand || 'البند'}
+                  </span>
+                </div>
+                <ChevronDown size={18} className={`text-slate-400 transition-transform ${bandMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {bandMenuOpen && (
+                <div className="absolute z-50 left-0 top-full mt-2 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
+                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 p-3">
+                    <span className="font-bold text-slate-700">تصفية بالبند</span>
+                    {activeBand && (
+                      <button
+                        type="button"
+                        onClick={() => { setActiveBand(''); setBandMenuOpen(false); }}
+                        className="rounded-lg bg-red-50 px-2 py-1 text-xs font-bold text-red-500 hover:text-red-700"
+                      >
+                        مسح
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-2" dir="ltr">
+                    <button
+                      type="button"
+                      onClick={() => { setActiveBand(''); setBandMenuOpen(false); }}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-right transition-colors ${!activeBand ? 'bg-blue-50 font-bold text-blue-700' : 'font-semibold text-slate-600 hover:bg-slate-50'}`}
+                      dir="rtl"
+                    >
+                      <span>كل البنود</span>
+                      {!activeBand && <Check size={16} className="text-blue-600" />}
+                    </button>
+                    {availableBands.map((band) => (
+                      <button
+                        key={band}
+                        type="button"
+                        onClick={() => { setActiveBand(band); setBandMenuOpen(false); }}
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-colors ${activeBand === band ? 'bg-blue-50 font-bold text-blue-700' : 'font-semibold text-slate-700 hover:bg-slate-50'}`}
+                      >
+                        <span>{band}</span>
+                        {activeBand === band && <Check size={16} className="text-blue-600" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <Button
@@ -216,6 +303,15 @@ const GamesManager = () => {
           {filteredGames.length}
         </span>
         <span>لعبة ظاهرة في النتائج الحالية</span>
+        {(activeTags.length > 0 || activeBand) && (
+          <button
+            type="button"
+            onClick={() => { setActiveTags([]); setActiveBand(''); }}
+            className="mr-2 rounded-lg bg-white px-2.5 py-1 text-xs font-black text-blue-700 shadow-sm ring-1 ring-blue-100 hover:bg-blue-50"
+          >
+            مسح الفلاتر
+          </button>
+        )}
       </div>
 
       <div className="bg-white border border-[#dbe7f3] rounded-2xl shadow-sm overflow-hidden mt-6">

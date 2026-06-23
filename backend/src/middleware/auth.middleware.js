@@ -19,6 +19,26 @@ function authenticate(req, _res, next) {
   }
 }
 
+function optionalAuthenticate(req, _res, next) {
+  const authHeader = req.headers.authorization || '';
+  const [scheme, token] = authHeader.split(' ');
+
+  if (!authHeader || !token) {
+    return next();
+  }
+
+  if (scheme !== 'Bearer') {
+    return next(new ApiError(401, 'Invalid authentication scheme.'));
+  }
+
+  try {
+    req.user = verifyToken(token);
+    req.user.role = normalizeRole(req.user.role);
+    return next();
+  } catch (error) {
+    return next(new ApiError(401, 'Invalid or expired authentication token.'));
+  }
+}
 function authorize(...roles) {
   return (req, _res, next) => {
     if (!req.user) {
@@ -37,5 +57,6 @@ function authorize(...roles) {
 
 module.exports = {
   authenticate,
+  optionalAuthenticate,
   authorize,
 };

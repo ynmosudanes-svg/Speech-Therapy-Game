@@ -366,14 +366,18 @@ const FileUploadField = ({
         <ConfirmModal
           isOpen
           onClose={() => setDialog(null)}
-          onConfirm={() => setDialog(null)}
+          onConfirm={() => {
+            const confirmAction = dialog.onConfirm;
+            setDialog(null);
+            confirmAction?.();
+          }}
           title={dialog.title}
           message={dialog.message}
           confirmText={dialog.confirmText}
           cancelText={dialog.cancelText}
           hideCancelButton={dialog.hideCancelButton}
           isDestructive={dialog.isDestructive}
-          position="top"
+          position={dialog.position || 'top'}
         />
       )}
 
@@ -1596,6 +1600,23 @@ const GameForm = ({ mode = 'create' }) => {
     await saveGame({ stayOnPage: false });
   };
 
+  const handleBackToGames = () => {
+    if (!hasUnsavedChanges) {
+      navigate('/admin/games');
+      return;
+    }
+
+    setDialog({
+      title: 'تغييرات غير محفوظة',
+      message: 'لديك تعديلات لم يتم حفظها بعد. هل تريد الرجوع بدون حفظ؟',
+      confirmText: 'الرجوع بدون حفظ',
+      cancelText: 'البقاء هنا',
+      isDestructive: true,
+      position: 'center',
+      onConfirm: () => navigate('/admin/games'),
+    });
+  };
+
   if (loading) {
     return <div className="p-8 text-center text-xl font-bold">جارٍ تحميل بيانات اللعبة...</div>;
   }
@@ -1603,7 +1624,7 @@ const GameForm = ({ mode = 'create' }) => {
   return (
     <div className="max-w-7xl mx-auto" dir="rtl">
       <div className="flex justify-between items-center mb-8">
-        <Button variant="outline" onClick={() => navigate('/admin/games')} className="!py-2 !text-sm">
+        <Button variant="outline" onClick={handleBackToGames} className="!py-2 !text-sm">
           <ArrowRight size={20} />
           <span>رجوع</span>
         </Button>
@@ -3484,14 +3505,18 @@ const GameForm = ({ mode = 'create' }) => {
         <ConfirmModal
           isOpen
           onClose={() => setDialog(null)}
-          onConfirm={() => setDialog(null)}
+          onConfirm={() => {
+            const confirmAction = dialog.onConfirm;
+            setDialog(null);
+            confirmAction?.();
+          }}
           title={dialog.title}
           message={dialog.message}
           confirmText={dialog.confirmText}
           cancelText={dialog.cancelText}
           hideCancelButton={dialog.hideCancelButton}
           isDestructive={dialog.isDestructive}
-          position="top"
+          position={dialog.position || 'top'}
         />
       )}
     </div>

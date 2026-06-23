@@ -18,9 +18,11 @@ const GamePlay = () => {
   const location = useLocation();
   const { gameId } = useParams();
   const isPublicPlay = location.pathname.startsWith('/play/');
-  const isFreePlay = isPublicPlay || location.state?.isFreePlay || false;
+  const isFreeMode = new URLSearchParams(location.search).get('mode') === 'free';
+  const isFreePlay = isPublicPlay || isFreeMode || location.state?.isFreePlay || false;
   const {
     currentStudent,
+    studentSession,
     mapFrontendPromptToApi,
     saveSession,
   } = useTherapyStore();
@@ -48,7 +50,14 @@ const GamePlay = () => {
       try {
         setLoading(true);
         setError('');
-        const response = await gameService.getGame(null, gameId);
+        if (!isFreePlay && !isPublicPlay && currentStudent && !assignedGame) {
+          setGame(null);
+          setError('هذه اللعبة غير مخصصة في الخطة العلاجية الحالية.');
+          return;
+        }
+
+        const token = isFreePlay || isPublicPlay ? null : studentSession?.token;
+        const response = await gameService.getGame(token, gameId);
         setGame(normalizeGameForEngine(response));
       } catch {
         // Fallback to cached assignedGame if offline or fetch fails
@@ -65,7 +74,7 @@ const GamePlay = () => {
     };
 
     fetchGame();
-  }, [assignedGame, gameId]);
+  }, [assignedGame, currentStudent, gameId, isFreePlay, isPublicPlay, studentSession?.token]);
 
   const introVideo = game?.config?.media?.introVideo || '';
   const introVideoVisible = showIntroVideo ?? Boolean(introVideo);

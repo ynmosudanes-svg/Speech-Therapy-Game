@@ -148,81 +148,99 @@ const StudentWorkspaceSection = ({ section }) => {
   }
 
   if (section === 'sessions') {
-    return (
-      <div dir="rtl" className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 bg-gradient-to-r from-[#eff6ff] to-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 border border-blue-100 shadow-sm">
-          <div>
-            <h1 className="text-2xl md:text-4xl font-black text-slate-800 flex items-center gap-2 md:gap-3">
-              <Trophy className="text-blue-500" size={28} /> إنجازاتي!
-            </h1>
-            <p className="mt-1 md:mt-2 text-sm md:text-base text-slate-500 font-bold">كل الألعاب اللي لعبتها والنجوم اللي جمعتها هتلاقيها هنا 🌟</p>
-          </div>
-          <div className="bg-white px-4 py-2 md:px-6 md:py-3 rounded-xl md:rounded-2xl shadow-sm border border-blue-100 flex items-center justify-center gap-2.5">
-            <Star className="text-amber-400" fill="currentColor" size={24} />
-            <div className="font-black text-xl md:text-2xl text-slate-800">
-              {studentSessions.reduce((total, session) => total + (Number(session.score || 0) >= 70 ? 3 : Number(session.score || 0) >= 30 ? 2 : 1), 0)} <span className="text-xs md:text-sm text-slate-500 font-bold">نجمة إجمالية</span>
-            </div>
-          </div>
-        </div>
+    const sessionCards = studentSessions.map((session) => {
+      const score = Number(session.score || 0);
+      const starsCount = score >= 70 ? 3 : score >= 30 ? 2 : 1;
 
-        <div className="relative">
-          {studentSessions.length ? (
-            <div className="space-y-4 relative before:absolute before:inset-y-4 before:right-8 before:w-1.5 before:bg-[#dbe7f3] before:rounded-full">
-              {studentSessions.map((session, index) => {
-                const score = Number(session.score || 0);
-                const starsCount = score >= 70 ? 3 : score >= 30 ? 2 : 1;
-                
-                return (
-                  <article key={session.id || `${session.gameId}-${index}`} className="relative pl-4 pr-20 py-2">
-                    {/* Timeline Node */}
-                    <div className="absolute right-[1.125rem] top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border-[3px] border-blue-300 shadow-sm z-10 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    </div>
-                    
-                    {/* Card */}
-                    <div className="bg-white rounded-[1.2rem] border border-[#dbe7f3] p-3.5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 group">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 group-hover:scale-110 transition-transform shrink-0">
-                          <Gamepad2 className="text-blue-500" size={24} />
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-800 text-base md:text-lg leading-tight">{getGameTitle(session)}</div>
-                          <div className="text-slate-400 text-xs font-bold mt-1 text-right" dir="rtl">
-                            {new Date(session.createdAt || Date.now()).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-center sm:justify-start gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shrink-0">
-                        {[1, 2, 3].map((star) => (
-                          <Star 
-                            key={star} 
-                            size={20} 
-                            className={star <= starsCount ? "text-amber-400 drop-shadow-sm" : "text-slate-200"} 
-                            fill={star <= starsCount ? "currentColor" : "none"} 
-                            strokeWidth={star <= starsCount ? 0 : 2}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-[2.5rem] border-2 border-dashed border-blue-200 bg-blue-50/50 p-10 text-center">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-sm border border-blue-100 text-blue-500">
-                <Sparkles size={40} />
+      return {
+        session,
+        starsCount,
+        date: new Date(session.createdAt || Date.now()).toLocaleDateString('ar-EG', {
+          month: 'short',
+          day: 'numeric',
+        }),
+      };
+    });
+
+    const totalStars = sessionCards.reduce((total, item) => total + item.starsCount, 0);
+
+    return (
+      <div dir="rtl" className="space-y-5">
+        <header className="flex flex-col gap-4 border-b border-[#dbe7f3] pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 text-right">
+            <h1 className="text-2xl font-black leading-10 text-slate-900 md:text-4xl">إنجازاتي</h1>
+            <p className="mt-1 max-w-3xl text-sm font-bold leading-7 text-slate-600 md:text-base">
+              كل لعبة تخلصها تظهر هنا مع النجوم التي جمعتها.
+            </p>
+          </div>
+
+          <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:min-w-[20rem]">
+            <div className="rounded-2xl border border-[#dbe7f3] bg-white px-4 py-3 text-center shadow-sm">
+              <div className="flex items-center justify-center gap-2 text-2xl font-black text-slate-900">
+                <Star className="text-amber-400" fill="currentColor" size={22} />
+                {totalStars}
               </div>
-              <h3 className="text-2xl font-black text-slate-800 mb-2">لم تبدأ جمع النجوم بعد!</h3>
-              <p className="mx-auto max-w-xl text-slate-600 font-bold">ابدأ بلعب أول نشاط لك لتحصل على النجوم المضيئة وتراها هنا.</p>
+              <div className="mt-1 text-xs font-black text-slate-500">نجمة إجمالية</div>
             </div>
-          )}
-        </div>
+            <div className="rounded-2xl border border-[#dbe7f3] bg-white px-4 py-3 text-center shadow-sm">
+              <div className="text-2xl font-black text-slate-900">{sessionCards.length}</div>
+              <div className="mt-1 text-xs font-black text-slate-500">لعبة مكتملة</div>
+            </div>
+          </div>
+        </header>
+
+        {sessionCards.length ? (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {sessionCards.map(({ session, starsCount, date }) => (
+              <article
+                key={session.id || `${session.gameId}-${date}`}
+                className="group rounded-[1.35rem] border border-[#dbe7f3] bg-white p-4 text-right shadow-sm transition-all duration-200 hover:border-[#b9d3e8] hover:shadow-[0_16px_34px_-30px_rgba(15,23,42,0.45)]"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#f7fbfe] text-[#1584C3] ring-1 ring-[#dbe7f3]">
+                      <Gamepad2 size={25} />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="line-clamp-2 text-base font-black leading-7 text-slate-900 md:text-lg">
+                        {getGameTitle(session)}
+                      </h2>
+                      <div className="mt-1 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500 ring-1 ring-slate-100">
+                        <CalendarClock size={14} />
+                        {date}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center justify-start gap-1 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100 sm:justify-center">
+                    {[1, 2, 3].map((star) => (
+                      <Star
+                        key={star}
+                        size={20}
+                        className={star <= starsCount ? 'text-amber-400' : 'text-slate-200'}
+                        fill={star <= starsCount ? 'currentColor' : 'none'}
+                        strokeWidth={star <= starsCount ? 0 : 2}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[1.5rem] border border-dashed border-[#c6d9ea] bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-xl bg-[#f7fbfe] text-[#1584C3] ring-1 ring-[#dbe7f3]">
+              <Sparkles size={30} />
+            </div>
+            <h3 className="text-2xl font-black text-slate-800">لم تبدأ جمع النجوم بعد</h3>
+            <p className="mx-auto mt-2 max-w-xl text-sm font-bold leading-7 text-slate-500 md:text-base">
+              ابدأ بلعب أول نشاط لك، وستظهر إنجازاتك هنا بشكل مرتب.
+            </p>
+          </div>
+        )}
       </div>
     );
   }
-
   if (section === 'reports') {
     return (
       <div dir="rtl" className="space-y-5">

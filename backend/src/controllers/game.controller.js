@@ -1,13 +1,13 @@
 const asyncHandler = require('../utils/asyncHandler');
 const gameService = require('../services/game.service');
 
-const getGames = asyncHandler(async (_req, res) => {
-  const games = await gameService.listGames();
+const getGames = asyncHandler(async (req, res) => {
+  const games = await gameService.listGames(req.user);
   res.json(games);
 });
 
 const getGame = asyncHandler(async (req, res) => {
-  const game = await gameService.getGameById(req.params.id);
+  const game = await gameService.getGameById(req.params.id, req.user);
   res.json(game);
 });
 

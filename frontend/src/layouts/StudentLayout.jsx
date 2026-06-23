@@ -147,8 +147,8 @@ const StudentLayout = () => {
         <div className="flex h-full flex-col overflow-hidden rounded-l-[2rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,252,255,0.96))]">
           <div className="border-b border-[#edf3f8] px-4 pb-3 pt-2">
             <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-[#dbeaf4]" />
-            <div className="flex items-center gap-3 rounded-[1.2rem] border border-[#e7f0f7] bg-white px-3 py-2.5 shadow-[0_10px_22px_-20px_rgba(15,23,42,0.16)]">
-              <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-[0.95rem] bg-[#eef8fd] text-[#1584C3]">
+            <div className="flex items-center gap-3 rounded-[1.35rem] border border-[#cfe9f7] bg-[linear-gradient(135deg,#ffffff,#eef9ff)] px-3 py-2.5 shadow-[0_14px_28px_-24px_rgba(21,132,195,0.46)]">
+              <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-[1rem] bg-[#e5f7ff] text-[#1584C3] ring-4 ring-white">
                 {currentStudent?.avatarUrl ? (
                   <img src={currentStudent.avatarUrl} alt="صورة المستفيد" className="h-full w-full object-cover" />
                 ) : (
@@ -156,8 +156,8 @@ const StudentLayout = () => {
                 )}
               </div>
               <div className="min-w-0 text-right">
-                <p className="text-[11px] font-black text-[#1584C3]">{activeMode === 'therapist' ? 'جلسة علاجية' : 'مساحة الطالب'}</p>
-                <p className="truncate text-sm font-black text-slate-800">{currentStudent?.name || 'المستفيد'}</p>
+                <p className="text-[11px] font-black text-[#1584C3]">{activeMode === 'therapist' ? 'جلسة علاجية' : 'رحلة البطل'}</p>
+                <p className="truncate text-sm font-black text-slate-800">{currentStudent?.name || 'البطل'}</p>
               </div>
             </div>
           </div>

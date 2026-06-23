@@ -1,25 +1,15 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Search, Image as ImageIcon, Music, Video, LoaderCircle, UploadCloud, FolderOpen } from 'lucide-react';
+import { X, Search, Image as ImageIcon, Music, Video, LoaderCircle, UploadCloud, FolderOpen, ChevronDown, Check, Plus } from 'lucide-react';
 import ConfirmModal from '../ConfirmModal';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: 'كل البنود' },
-  { value: 'general', label: 'عام' },
-  { value: 'az', label: 'A-Z' },
-  { value: 'c1', label: 'C1' },
-  { value: 'c2', label: 'C2' },
-  { value: 'c3', label: 'C3' },
-  { value: 'c4', label: 'C4' },
-  { value: 'numbers', label: 'أرقام' },
 ];
 
-const UPLOAD_CATEGORY_OPTIONS = [
-  ...CATEGORY_OPTIONS.filter((option) => option.value),
-  { value: 'custom', label: 'بند مخصص' },
-];
+const HIDDEN_LEGACY_CATEGORIES = new Set(['general', 'az', 'c1', 'c2', 'c3', 'c4', 'numbers']);
 
 const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((labels, option) => {
   if (option.value) labels[option.value] = option.label;
@@ -27,6 +17,79 @@ const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((labels, option) => {
 }, {});
 
 const getCategoryLabel = (category) => CATEGORY_LABELS[category] || category || 'بدون بند';
+const normalizeCategoryValue = (category) => String(category || '').trim().toLowerCase();
+
+const buildCategoryOptions = (categories, { includeAll = true } = {}) => {
+  const options = includeAll ? [...CATEGORY_OPTIONS] : CATEGORY_OPTIONS.filter((option) => option.value);
+  const seen = new Set(options.map((option) => option.value));
+
+  categories
+    .map(normalizeCategoryValue)
+    .filter((category) => category && !HIDDEN_LEGACY_CATEGORIES.has(category))
+    .forEach((category) => {
+      if (!seen.has(category)) {
+        seen.add(category);
+        options.push({ value: category, label: getCategoryLabel(category) });
+      }
+    });
+
+  return options;
+};
+
+const readStoredCategories = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('mediaLibraryCategories'));
+    return Array.isArray(stored) ? stored.map(normalizeCategoryValue).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+};
+
+const CategoryPicker = ({ value, onChange, options, open, setOpen, title }) => {
+  const activeOption = options.find((option) => option.value === value);
+
+  return (
+    <div className="relative min-w-[10rem]">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex h-12 w-full items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-white px-4 text-sm font-black text-slate-700 shadow-sm outline-none transition-all hover:border-blue-200 focus:ring-4 focus:ring-blue-100"
+      >
+        <span className="truncate">{activeOption?.label || title}</span>
+        <ChevronDown size={18} className={`shrink-0 text-blue-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
+          <div className="border-b border-slate-100 bg-slate-50 px-3 py-2 text-sm font-black text-slate-700">
+            {title}
+          </div>
+          <div className="max-h-64 overflow-y-auto p-2" dir="ltr">
+            {options.map((option) => {
+              const isActive = option.value === value;
+              return (
+                <button
+                  key={option.value || 'all'}
+                  type="button"
+                  onClick={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-colors ${
+                    isActive ? 'bg-blue-50 font-black text-blue-700' : 'font-bold text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  {isActive && <Check size={16} className="text-blue-600" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [files, setFiles] = useState([]);
@@ -34,8 +97,12 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState(initialType);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [uploadCategory, setUploadCategory] = useState('general');
+  const [uploadCategory, setUploadCategory] = useState('');
   const [customUploadCategory, setCustomUploadCategory] = useState('');
+  const [savedCustomCategories, setSavedCustomCategories] = useState(() => readStoredCategories());
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [dialog, setDialog] = useState(null);
@@ -43,8 +110,23 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const { adminSession } = useTherapyStore();
 
   const resolvedUploadCategory = useMemo(() => {
-    return uploadCategory === 'custom' ? customUploadCategory.trim() : uploadCategory;
-  }, [customUploadCategory, uploadCategory]);
+    return normalizeCategoryValue(uploadCategory);
+  }, [uploadCategory]);
+
+  const categoryFilterOptions = useMemo(() => {
+    return buildCategoryOptions([
+      selectedCategory,
+      uploadCategory,
+      ...savedCustomCategories,
+      ...files.map((file) => file.category),
+    ]);
+  }, [files, savedCustomCategories, selectedCategory, uploadCategory]);
+
+  const uploadCategoryOptions = useMemo(() => {
+    return buildCategoryOptions([...savedCustomCategories, ...files.map((file) => file.category)], {
+      includeAll: false,
+    });
+  }, [files, savedCustomCategories]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -77,6 +159,31 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     onClose();
   };
 
+  const handleAddCustomCategory = () => {
+    const nextCategory = normalizeCategoryValue(customUploadCategory);
+
+    if (!nextCategory) {
+      setDialog({
+        title: 'اكتب اسم البند',
+        message: 'اكتب اسم البند قبل إضافته.',
+        confirmText: 'حسنًا',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
+      return;
+    }
+
+    setSavedCustomCategories((current) => {
+      const updated = Array.from(new Set([...current, nextCategory]));
+      localStorage.setItem('mediaLibraryCategories', JSON.stringify(updated));
+      return updated;
+    });
+    setUploadCategory(nextCategory);
+    setSelectedCategory(nextCategory);
+    setCustomUploadCategory('');
+    setIsAddingCategory(false);
+  };
+
   const handleFileUpload = async (event) => {
     const selectedFiles = Array.from(event.target.files || []);
     if (!selectedFiles.length) return;
@@ -84,7 +191,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     if (!resolvedUploadCategory) {
       setDialog({
         title: 'اختار البند',
-        message: 'اختار بند للرفع أو اكتب اسم بند مخصص قبل رفع الملفات.',
+        message: 'اختار بند للرفع أو أضف بند جديد قبل رفع الملفات.',
         confirmText: 'حسنًا',
         hideCancelButton: true,
         isDestructive: false,
@@ -171,41 +278,66 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
               })}
             </div>
 
-            <label className="flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">
+            <div className="flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm font-black text-slate-600 shadow-sm">
               <FolderOpen size={18} className="text-blue-500" />
-              <select
+              <span className="whitespace-nowrap">فلتر البند</span>
+              <CategoryPicker
                 value={selectedCategory}
-                onChange={(event) => setSelectedCategory(event.target.value)}
-                className="min-w-[8rem] bg-transparent text-slate-700 outline-none"
-              >
-                {CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value || 'all'} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
+                onChange={setSelectedCategory}
+                options={categoryFilterOptions}
+                open={filterMenuOpen}
+                setOpen={setFilterMenuOpen}
+                title="فلتر البند"
+              />
+            </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3 rounded-3xl border border-blue-100 bg-blue-50/60 p-3 md:flex-row md:items-center md:justify-between">
+          <div className="mt-4 flex flex-col gap-3 rounded-[1.75rem] border border-blue-100 bg-gradient-to-l from-blue-50 to-white p-3 shadow-sm md:flex-row md:items-center md:justify-between">
             <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <span className="text-sm font-black text-slate-700">ارفع داخل:</span>
-              <select
+              <span className="inline-flex items-center gap-2 text-sm font-black text-slate-700">
+                <FolderOpen size={18} className="text-blue-500" />
+                ارفع داخل:
+              </span>
+              <CategoryPicker
                 value={uploadCategory}
-                onChange={(event) => setUploadCategory(event.target.value)}
-                className="rounded-2xl border border-blue-100 bg-white px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100"
+                onChange={setUploadCategory}
+                options={uploadCategoryOptions}
+                open={uploadMenuOpen}
+                setOpen={setUploadMenuOpen}
+                title="ارفع داخل"
+              />
+              <button
+                type="button"
+                onClick={() => setIsAddingCategory((current) => !current)}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white px-4 text-sm font-black text-blue-700 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
               >
-                {UPLOAD_CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-              {uploadCategory === 'custom' && (
-                <input
-                  type="text"
-                  value={customUploadCategory}
-                  onChange={(event) => setCustomUploadCategory(event.target.value)}
-                  placeholder="مثال: c5 أو animals"
-                  dir="ltr"
-                  className="rounded-2xl border border-blue-100 bg-white px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100"
-                />
+                <Plus size={17} />
+                إضافة بند
+              </button>
+              {isAddingCategory && (
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                  <input
+                    type="text"
+                    value={customUploadCategory}
+                    onChange={(event) => setCustomUploadCategory(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleAddCustomCategory();
+                      }
+                    }}
+                    placeholder="اسم البند"
+                    dir="ltr"
+                    className="h-12 rounded-2xl border border-blue-100 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm outline-none transition-all focus:ring-4 focus:ring-blue-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomCategory}
+                    className="h-12 rounded-2xl bg-blue-600 px-4 text-sm font-black text-white shadow-sm transition-all hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100"
+                  >
+                    حفظ البند
+                  </button>
+                </div>
               )}
             </div>
 

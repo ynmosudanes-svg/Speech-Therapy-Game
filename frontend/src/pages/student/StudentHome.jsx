@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Lock, Gamepad2, Check, Sparkles } from 'lucide-react';
+import { Gamepad2 } from 'lucide-react';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
+import gameLibraryService from '../../services/gameLibraryService';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Autoplay } from 'swiper/modules';
 import lottie from 'lottie-web';
@@ -10,20 +10,20 @@ import 'swiper/css';
 import 'swiper/css/pagination';
 import welcomeAnimation from '../../assets/Animation/3 Ani.json';
 import fourAniAnimation from '../../assets/Animation/4 Ani.json';
-import chickAnimation from '../../assets/Animation/Reading (1).json';
+import GroupSection from '../../components/levelmap/GroupSection';
+import CelebrationOverlay from '../../components/levelmap/CelebrationOverlay';
 
 const StudentHome = () => {
   const navigate = useNavigate();
-  const { currentStudent, sessions } = useTherapyStore();
+  const { currentStudent, sessions, studentSession } = useTherapyStore();
   const readingAnimationRef = useRef(null);
   const numberOneAnimationRef = useRef(null);
-  const progressMapRef = useRef(null);
   const progressSectionRef = useRef(null);
-  const progressPathSvgRef = useRef(null);
-  const currentLevelRef = useRef(null);
-  const stageNodeRefs = useRef([]);
-  const revealedStageNodesRef = useRef(new Set());
-  const [pathSegments, setPathSegments] = useState([]);
+  
+  const [libraries, setLibraries] = useState([]);
+  const [loadingLibraries, setLoadingLibraries] = useState(true);
+  const [celebratingGroupId, setCelebratingGroupId] = useState(null);
+  const [celebratedGroups, setCelebratedGroups] = useState(new Set());
 
   const assignedGames = Array.isArray(currentStudent?.assignedGames) ? currentStudent.assignedGames : [];
 
@@ -35,261 +35,175 @@ const StudentHome = () => {
     return new Set(studentSessions.map(s => String(s.gameId)));
   }, [studentSessions]);
 
-  const { unlockedGame, completedGames, lockedGames } = useMemo(() => {
-    const completed = [];
-    const locked = [];
-    let unlocked = null;
+  useEffect(() => {
+    const fetchLibraries = async () => {
+      try {
+        setLoadingLibraries(true);
+        const token = studentSession?.token;
+        if (token) {
+           const response = await gameLibraryService.getLibraries(token);
+           setLibraries(Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []));
+        }
+      } catch (error) {
+        console.error('Failed to fetch libraries', error);
+      } finally {
+        setLoadingLibraries(false);
+      }
+    };
+    fetchLibraries();
+  }, [studentSession?.token]);
 
-    assignedGames.forEach((game) => {
-      if (completedGameIds.has(String(game.id))) {
-        completed.push(game);
-      } else if (!unlocked) {
-        unlocked = game;
+  const { groups, progressPercentage, completedCount } = useMemo(() => {
+    if (!assignedGames.length) {
+      return { groups: [], progressPercentage: 0, completedCount: 0 };
+    }
+
+    const unassigned = [];
+    const libraryMap = new Map();
+
+    // Initialize map with available libraries
+    libraries.forEach(lib => {
+      libraryMap.set(String(lib.id), { ...lib, games: [] });
+    });
+
+    // Group assigned games into libraries.
+    // Since we iterate over assignedGames (which is ordered by the admin's custom assignment order),
+    // pushing them sequentially preserves this exact custom order within each library!
+    assignedGames.forEach(game => {
+      let matchedLibraryId = null;
+      for (const lib of libraries) {
+        if (lib.gameIds && lib.gameIds.some(id => String(id) === String(game.id))) {
+          matchedLibraryId = String(lib.id);
+          break;
+        }
+      }
+
+      const isCompleted = completedGameIds.has(String(game.id));
+      const gameNode = { ...game, isCompleted };
+
+      if (matchedLibraryId && libraryMap.has(matchedLibraryId)) {
+        libraryMap.get(matchedLibraryId).games.push(gameNode);
       } else {
-        locked.push(game);
+        unassigned.push(gameNode);
       }
     });
 
-    return { unlockedGame: unlocked, completedGames: completed, lockedGames: locked };
-  }, [assignedGames, completedGameIds]);
+    // Maintain the order of first appearance in assignedGames
+    const customOrderedLibraryIds = [];
+    assignedGames.forEach(game => {
+      for (const lib of libraries) {
+        if (lib.gameIds && lib.gameIds.some(id => String(id) === String(game.id))) {
+          if (!customOrderedLibraryIds.includes(String(lib.id))) {
+            customOrderedLibraryIds.push(String(lib.id));
+          }
+          break;
+        }
+      }
+    });
 
-  const progressPercentage = assignedGames.length > 0 ? (completedGames.length / assignedGames.length) * 100 : 0;
-  const scrollToProgressSection = () => {
-    const target = currentLevelRef.current || progressMapRef.current || progressSectionRef.current;
+    const sortedLibraries = customOrderedLibraryIds
+      .map(id => libraryMap.get(id))
+      .filter(lib => lib && lib.games.length > 0);
+
+    let firstUnlockedFound = false;
+    let count = 0;
+    const finalGroups = [];
+
+    // Build grouped structure
+    sortedLibraries.forEach(lib => {
+      const groupGames = [];
+
+      for (const game of lib.games) {
+        let status = game.isCompleted ? 'done' : 'locked';
+        if (game.isCompleted) count++;
+
+        if (status === 'locked' && !firstUnlockedFound) {
+          status = 'current';
+          firstUnlockedFound = true;
+        }
+
+        groupGames.push({
+          id: game.id,
+          data: game,
+          status,
+        });
+      }
+
+      const isCompleted = groupGames.length > 0 && groupGames.every(g => g.status === 'done');
+
+      finalGroups.push({
+        id: `lib-${lib.id}`,
+        title: lib.name,
+        color: lib.color,
+        games: groupGames,
+        isCompleted,
+      });
+    });
+
+    // Add unassigned games at the end if any
+    if (unassigned.length > 0) {
+      const unassignedGames = [];
+      for (const game of unassigned) {
+        let status = game.isCompleted ? 'done' : 'locked';
+        if (game.isCompleted) count++;
+
+        if (status === 'locked' && !firstUnlockedFound) {
+          status = 'current';
+          firstUnlockedFound = true;
+        }
+
+        unassignedGames.push({
+          id: game.id,
+          data: game,
+          status,
+        });
+      }
+
+      const isCompleted = unassignedGames.length > 0 && unassignedGames.every(g => g.status === 'done');
+
+      finalGroups.push({
+        id: 'lib-unassigned',
+        title: 'ألعاب إضافية',
+        color: '#168FC7',
+        games: unassignedGames,
+        isCompleted,
+      });
+    }
+
+    const percentage = assignedGames.length > 0 ? (count / assignedGames.length) * 100 : 0;
+    return { groups: finalGroups, progressPercentage: percentage, completedCount: count };
+  }, [assignedGames, completedGameIds, libraries]);
+
+  const scrollToProgressSection = useCallback(() => {
+    const currentLevelElement = document.getElementById('current-level-node');
+    const target = currentLevelElement || progressSectionRef.current;
     target?.scrollIntoView({
       behavior: 'smooth',
       block: 'center',
     });
-  };
+  }, []);
+
+  const handleCelebrate = useCallback((groupId) => {
+    if (!celebratedGroups.has(groupId)) {
+      setCelebratingGroupId(groupId);
+      setCelebratedGroups(prev => new Set(prev).add(groupId));
+    }
+  }, [celebratedGroups]);
+
+  const handleCloseCelebration = useCallback(() => {
+    setCelebratingGroupId(null);
+  }, []);
   const welcomeAnimationFrameClass = 'relative shrink-0 flex items-center justify-center w-[8.2rem] h-[8.2rem] md:w-40 md:h-40 lg:w-44 lg:h-44 translate-y-1 md:translate-y-3';
   const progressAnimationFrameClass = 'relative shrink-0 flex items-center justify-center w-[8rem] h-[8rem] md:w-40 md:h-40 lg:w-44 lg:h-44 translate-y-1 md:translate-y-2';
   const heroSlideClass = 'bg-[linear-gradient(135deg,_#0f7ea6_0%,_#1693c1_50%,_#6ec0dc_100%)] border border-[#a8d7e7] rounded-[2.5rem] p-6 md:p-8 text-white shadow-[0_18px_45px_rgba(9,86,114,0.22)] flex h-[22rem] flex-col items-center justify-center gap-8 md:h-auto md:min-h-[240px] md:flex-row';
+  
   const getGameTitle = (game) => game.titleAr || game.config?.nameAr || game.title || game.name || 'لعبة علاجية';
-  const progressMapItems = [
-    ...completedGames.map((game) => ({ game, status: 'done' })),
-    ...(unlockedGame ? [{ game: unlockedGame, status: 'current' }] : []),
-    ...lockedGames.map((game) => ({ game, status: 'locked' })),
-  ];
+
+  // Find the group title for the celebration overlay
+  const celebratingGroup = groups.find(g => g.id === celebratingGroupId);
 
   useEffect(() => {
-    const container = progressMapRef.current;
-    const svg = progressPathSvgRef.current;
-    if (!container || !svg || progressMapItems.length < 2) {
-      setPathSegments([]);
-      return undefined;
-    }
-
-    let frameId = 0;
-
-    const calculatePaths = () => {
-      const svgRect = svg.getBoundingClientRect();
-      const nextSegments = [];
-
-      const getNodeGeometry = (node) => {
-        const rect = node.getBoundingClientRect();
-
-        return {
-          x: rect.left - svgRect.left + rect.width / 2,
-          y: rect.top - svgRect.top + rect.height / 2,
-          radius: Math.min(rect.width, rect.height) / 2,
-        };
-      };
-
-      const activeItems = [];
-      for (const item of progressMapItems) {
-        if (item?.status === 'locked') break;
-        activeItems.push(item);
-        if (item?.status === 'current') break;
-      }
-
-      if (activeItems.length < 2) {
-        setPathSegments([]);
-        return;
-      }
-
-      let pathData = '';
-
-      for (let index = 0; index < activeItems.length - 1; index += 1) {
-        const fromItem = activeItems[index];
-        const toItem = activeItems[index + 1];
-
-        const fromNode = stageNodeRefs.current[progressMapItems.indexOf(fromItem)];
-        const toNode = stageNodeRefs.current[progressMapItems.indexOf(toItem)];
-        if (!fromNode || !toNode) continue;
-
-        const fromNodeGeometry = getNodeGeometry(fromNode);
-        const toNodeGeometry = getNodeGeometry(toNode);
-        const dx = toNodeGeometry.x - fromNodeGeometry.x;
-        const dy = toNodeGeometry.y - fromNodeGeometry.y;
-        const angle = Math.atan2(dy, dx);
-        const connectionInset = index === 0 ? 12 : 5;
-        const startRadius = Math.max(fromNodeGeometry.radius - connectionInset, 0);
-        const endRadius = Math.max(toNodeGeometry.radius - connectionInset, 0);
-        const startX = fromNodeGeometry.x + Math.cos(angle) * startRadius;
-        const startY = fromNodeGeometry.y + Math.sin(angle) * startRadius;
-        const endX = toNodeGeometry.x - Math.cos(angle) * endRadius;
-        const endY = toNodeGeometry.y - Math.sin(angle) * endRadius;
-        const midX = (startX + endX) / 2;
-        const midY = (startY + endY) / 2;
-        const curveOffset = Math.min(Math.max(Math.abs(dx) * 0.4, 110), 220);
-        const controlX = midX + (index % 2 === 0 ? curveOffset : -curveOffset);
-        const controlY = midY;
-        const segment = `${index === 0 ? `M ${startX.toFixed(1)} ${startY.toFixed(1)}` : ''} Q ${controlX.toFixed(1)} ${controlY.toFixed(1)} ${endX.toFixed(1)} ${endY.toFixed(1)}`;
-        pathData += segment;
-      }
-
-      setPathSegments(pathData ? [{ key: 'progress-path', d: pathData.trim() }] : []);
-
-    };
-
-    const scheduleCalculation = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        frameId = window.requestAnimationFrame(calculatePaths);
-      });
-    };
-
-    scheduleCalculation();
-    const observer = new ResizeObserver(scheduleCalculation);
-    observer.observe(container);
-    observer.observe(svg);
-    stageNodeRefs.current.forEach((node) => {
-      if (node) observer.observe(node);
-    });
-    window.addEventListener('resize', scheduleCalculation);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      observer.disconnect();
-      window.removeEventListener('resize', scheduleCalculation);
-    };
-  }, [completedGames.length, lockedGames.length, progressMapItems.length, unlockedGame?.id]);
-
-  const BirdMascot = () => {
-    const mascotRef = useRef(null);
-
-    useEffect(() => {
-      if (!mascotRef.current) {
-        return undefined;
-      }
-
-      const instance = lottie.loadAnimation({
-        container: mascotRef.current,
-        renderer: 'svg',
-        loop: true,
-        autoplay: true,
-        animationData: chickAnimation,
-        rendererSettings: {
-          preserveAspectRatio: 'xMidYMid meet',
-        },
-      });
-
-      return () => {
-        instance.destroy();
-      };
-    }, []);
-
-    return (
-      <motion.div
-        initial={{ scale: 1 }}
-        animate={{ y: [0, -6, 0] }}
-        transition={{ duration: 2.6, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
-        className="pointer-events-none absolute -right-16 top-1/2 z-20 h-14 w-14 -translate-y-1/2 sm:-right-[4.75rem] sm:h-[4.5rem] sm:w-[4.5rem] md:-right-20 md:h-20 md:w-20"
-        aria-hidden="true"
-      >
-        <div className="absolute -bottom-1 left-1/2 h-3 w-10 -translate-x-1/2 rounded-full bg-[#b9d6df]/55 blur-md md:h-4 md:w-14" />
-        <div ref={mascotRef} className="relative z-10 h-full w-full drop-shadow-[0_12px_16px_rgba(15,111,166,0.18)]" />
-      </motion.div>
-    );
-  };
-  const ProgressStageNode = ({ game, status, index, nodeRef, levelRef, onPlay }) => {
-    const isCurrent = status === 'current';
-    const isDone = status === 'done';
-    const isLocked = status === 'locked';
-    const offsetClass = [
-      'justify-start pr-2 sm:pr-[8%] md:pr-[10%]',
-      'justify-end pl-2 sm:pl-[10%] md:pl-[14%]',
-      'justify-center md:pr-[12%]',
-      'justify-end pl-4 sm:pl-[18%] md:pl-[22%]',
-    ][index % 4];
-    const title = getGameTitle(game);
-    const revealKey = `${game?.id || index}-${status}`;
-    const hasRevealed = revealedStageNodesRef.current.has(revealKey);
-
-    return (
-      <motion.div
-        initial={hasRevealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-80px' }}
-        onViewportEnter={() => {
-          revealedStageNodesRef.current.add(revealKey);
-        }}
-        transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.2) }}
-        ref={levelRef}
-        className={`relative flex min-h-[6.2rem] w-full ${offsetClass}`}
-      >
-
-        <motion.button
-          type="button"
-          disabled={isLocked}
-          onClick={isLocked ? undefined : onPlay}
-          whileHover={isLocked ? undefined : { scale: isCurrent ? 1.04 : 1.025, y: -2 }}
-          whileTap={isLocked ? undefined : { scale: 0.97 }}
-          className="group relative z-10 flex items-center gap-3 text-right outline-none disabled:cursor-not-allowed"
-          aria-label={isLocked ? `${title} مقفلة` : `ابدأ ${title}`}
-        >
-          <span
-            ref={nodeRef}
-            className={`relative grid rounded-full transition-all duration-300 ${
-              isCurrent
-                ? 'h-[5.65rem] w-[5.65rem] animate-pulse place-items-center bg-[#def7ff] shadow-[0_0_0_9px_rgba(22,143,199,0.1),0_0_28px_rgba(34,199,232,0.28),0_6px_0_#b9e2ef,0_18px_26px_-20px_rgba(15,111,166,0.52)]'
-                : 'h-[4.35rem] w-[4.35rem] place-items-center bg-[#eef4f7] shadow-[0_4px_0_#d2e0e6,0_10px_18px_-18px_rgba(15,111,166,0.26)]'
-            } ${isDone ? '!bg-[#e8fff6] !shadow-[0_0_0_6px_rgba(20,184,129,0.07),0_4px_0_#b8ead7,0_10px_18px_-18px_rgba(20,184,129,0.28)]' : ''}`}
-          >
-            {isCurrent && (
-              <span className="absolute -top-9 right-1/2 z-20 translate-x-1/2 animate-pulse rounded-xl border border-[#b8deec] bg-white px-4 py-1 text-xs font-black text-[#168FC7] shadow-[0_10px_18px_-16px_rgba(15,111,166,0.42)] after:absolute after:-bottom-1.5 after:right-1/2 after:h-2.5 after:w-2.5 after:translate-x-1/2 after:rotate-45 after:border-b after:border-r after:border-[#b8deec] after:bg-white">
-                ابدأ
-              </span>
-            )}
-            {isCurrent && (
-              <>
-                <Sparkles size={16} className="pointer-events-none absolute -left-4 top-0 text-amber-400" fill="currentColor" />
-                <Sparkles size={11} className="pointer-events-none absolute -right-4 top-4 text-cyan-400" fill="currentColor" />
-                <Sparkles size={13} className="pointer-events-none absolute -bottom-1 left-1 text-cyan-400" fill="currentColor" />
-                <Sparkles size={10} className="pointer-events-none absolute bottom-4 -right-3 text-amber-400" fill="currentColor" />
-                <Sparkles size={9} className="pointer-events-none absolute -top-5 left-8 text-amber-300" fill="currentColor" />
-              </>
-            )}
-
-
-            <span
-              className={`grid rounded-full border-[4px] transition-all duration-300 ${
-                isCurrent
-                  ? 'h-[4.35rem] w-[4.35rem] place-items-center border-[#a7e9fb] bg-[linear-gradient(180deg,#22c7e8,#168FC7)] text-white shadow-[inset_0_-5px_0_rgba(15,111,166,0.38),0_0_18px_rgba(34,199,232,0.34)]'
-                  : isDone
-                    ? 'h-[3.35rem] w-[3.35rem] place-items-center border-[#b9f3dc] bg-[linear-gradient(180deg,#20d39a,#14b881)] text-white shadow-[inset_0_-4px_0_rgba(9,120,83,0.3),0_0_8px_rgba(20,184,129,0.15)]'
-                    : 'h-[3.35rem] w-[3.35rem] place-items-center border-[#d6e3e9] bg-[linear-gradient(180deg,#c8d7de,#9fb2bc)] text-[#eef6f9] shadow-[inset_0_-4px_0_rgba(80,105,116,0.22)]'
-              }`}
-            >
-              {isCurrent ? <Play size={26} fill="currentColor" /> : isDone ? <Check size={25} strokeWidth={4} /> : <Lock size={20} />}
-            </span>
-          </span>
-
-          {!isCurrent && (<span className={`pointer-events-none absolute bottom-[calc(100%+0.65rem)] right-1/2 hidden translate-x-1/2 scale-95 rounded-xl border border-[#dbe7f3] bg-white/95 px-4 py-2 opacity-0 shadow-[0_14px_24px_-20px_rgba(15,111,166,0.34)] transition-all duration-200 after:absolute after:-bottom-1.5 after:right-1/2 after:h-2.5 after:w-2.5 after:translate-x-1/2 after:rotate-45 after:border-b after:border-r after:border-[#dbe7f3] after:bg-white/95 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100 sm:block`}>
-            <span className="block text-xs font-black text-[#168FC7]">
-              {isDone ? 'اكتملت' : 'مقفلة'}
-            </span>
-          </span>)}
-          {isCurrent && <BirdMascot />}
-        </motion.button>
-
-      </motion.div>
-    );
-  };
-  useEffect(() => {
-    if (!readingAnimationRef.current) {
-      return undefined;
-    }
+    if (!readingAnimationRef.current) return undefined;
 
     const instance = lottie.loadAnimation({
       container: readingAnimationRef.current,
@@ -297,20 +211,14 @@ const StudentHome = () => {
       loop: true,
       autoplay: true,
       animationData: welcomeAnimation,
-      rendererSettings: {
-        preserveAspectRatio: 'xMidYMid meet',
-      },
+      rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
     });
 
-    return () => {
-      instance.destroy();
-    };
+    return () => instance.destroy();
   }, []);
 
   useEffect(() => {
-    if (!numberOneAnimationRef.current) {
-      return undefined;
-    }
+    if (!numberOneAnimationRef.current) return undefined;
 
     const instance = lottie.loadAnimation({
       container: numberOneAnimationRef.current,
@@ -318,15 +226,13 @@ const StudentHome = () => {
       loop: true,
       autoplay: true,
       animationData: fourAniAnimation,
-      rendererSettings: {
-        preserveAspectRatio: 'xMidYMid meet',
-      },
+      rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
     });
 
-    return () => {
-      instance.destroy();
-    };
+    return () => instance.destroy();
   }, []);
+
+  const showProgressSection = assignedGames.length > 0;
 
   return (
     <div dir="rtl" className="w-full pb-10 text-slate-800 flex justify-center">
@@ -413,7 +319,7 @@ const StudentHome = () => {
                     <div className="flex-1 text-center md:text-right">
                       <h3 className="text-3xl font-extrabold mb-3 text-white drop-shadow-sm">تقدمك مذهل!</h3>
                       <p className="text-blue-50 text-lg mb-6 font-medium max-w-lg leading-relaxed mx-auto md:mx-0">
-                        لقد ختمت {completedGames.length} ألعاب من أصل {assignedGames.length}. استمر!
+                        لقد ختمت {completedCount} ألعاب من أصل {assignedGames.length}. استمر!
                       </p>
                       <div className="w-full max-w-md mx-auto md:mx-0 bg-black/10 h-5 rounded-full overflow-hidden border border-white/20">
                         <div className="bg-white h-full rounded-full transition-all duration-1000 shadow-sm" style={{ width: `${progressPercentage}%` }}></div>
@@ -443,46 +349,42 @@ const StudentHome = () => {
           </div>
         )}
 
-        {/* Game Progress Section */}
-        {(unlockedGame || lockedGames.length > 0 || completedGames.length > 0) && (
+        {/* Level Map Section */}
+        {showProgressSection && (
           <section ref={progressSectionRef} className="mb-14 scroll-mt-28" aria-label="مسار تقدم الألعاب">
-            <h2 className="mb-5 flex items-center gap-3 text-2xl font-extrabold text-slate-800 md:mb-10">
-              <Gamepad2 className="text-[#168FC7]" size={32} />
-              ألعاب بانتظارك!
-            </h2>
-
-            <div ref={progressMapRef} className="relative mx-auto max-w-5xl px-4 py-10 sm:px-8 md:px-12">
-              <Sparkles className="pointer-events-none absolute left-[13%] top-20 z-0 text-amber-300/80" size={28} fill="currentColor" aria-hidden="true" />
-              <Sparkles className="pointer-events-none absolute right-[18%] bottom-16 z-0 text-cyan-300/70" size={22} fill="currentColor" aria-hidden="true" />
-              <div className="pointer-events-none absolute left-[8%] bottom-8 h-10 w-20 rounded-full bg-white/70 shadow-[24px_-8px_0_-6px_rgba(255,255,255,0.76),-20px_-4px_0_-8px_rgba(255,255,255,0.78)]" aria-hidden="true" />
-              <svg ref={progressPathSvgRef} className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible" aria-hidden="true">
-                {pathSegments.map((segment) => (
-                  <g key={segment.key}>
-                    <path d={segment.d} fill="none" stroke="rgba(34,199,232,0.06)" strokeWidth="18" strokeLinecap="round" />
-                    <path d={segment.d} fill="none" stroke="rgba(34,199,232,0.16)" strokeWidth="10" strokeLinecap="round" />
-                    <path d={segment.d} fill="none" stroke="#34c6df" strokeWidth="6" strokeLinecap="round" strokeDasharray="9 12" opacity="0.34" />
-                  </g>
-                ))}
-              </svg>
-              <div className="relative z-10 mx-auto flex w-full max-w-[58rem] flex-col items-stretch gap-1 md:gap-2">
-                {progressMapItems.map((item, index) => (
-
-                  <ProgressStageNode
-                    key={`${item.game?.id || index}-${item.status}-${index}`}
-                    game={item.game}
-                    status={item.status}
-                    index={index}
-                    nodeRef={(node) => {
-                      stageNodeRefs.current[index] = node;
-                    }}
-                    levelRef={item.status === 'current' ? currentLevelRef : undefined}
-                    onPlay={() => navigate(`/student/game/${item.game.id}`)}
-                  />
-                ))}
+            {loadingLibraries ? (
+              <div className="flex justify-center p-10"><span className="animate-pulse text-slate-400 font-bold">جاري التحميل...</span></div>
+            ) : (
+              <div className="mx-auto max-w-2xl px-2 sm:px-4">
+                <div className="mb-8 flex justify-start">
+                  <h2 className="inline-flex items-center gap-2 text-2xl font-black text-[#0f6f9a]">
+                    <Gamepad2 size={28} className="text-[#168FC7]" />
+                    رحلة الألعاب
+                  </h2>
+                </div>
+                <div className="flex flex-col gap-8 md:gap-10">
+                  {groups.map((group, groupIndex) => (
+                    <GroupSection
+                      key={group.id}
+                      group={group}
+                      groupIndex={groupIndex}
+                      onLevelClick={(gameId) => navigate(`/student/game/${gameId}`)}
+                      onCelebrate={handleCelebrate}
+                      getGameTitle={getGameTitle}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </section>
         )}
+
+        {/* Celebration Overlay */}
+        <CelebrationOverlay
+          isOpen={!!celebratingGroupId}
+          groupTitle={celebratingGroup?.title || ''}
+          onClose={handleCloseCelebration}
+        />
 
       </div>
     </div>

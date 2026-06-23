@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRight, Save, UserRoundPlus, Layers, User, Search, CheckCircle2, ChevronUp, ChevronDown, GripVertical, Check } from 'lucide-react';
 import Button from '../../components/Button';
-import Card from '../../components/Card';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 import gameLibraryService from '../../services/gameLibraryService';
@@ -35,11 +34,21 @@ const StudentForm = ({ mode = 'create' }) => {
   const [loadingGames, setLoadingGames] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successNotice, setSuccessNotice] = useState('');
   const [gamesFilter, setGamesFilter] = useState('');
   const [selectedLibraryId, setSelectedLibraryId] = useState('all');
+  const [assignedLibraryIds, setAssignedLibraryIds] = useState([]);
   const [selectedTag, setSelectedTag] = useState('');
   const [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState({});
+
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupId]: prev[groupId] === false ? true : false
+    }));
+  };
 
   const allAvailableTags = useMemo(() => {
     const tags = new Set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']);
@@ -60,6 +69,63 @@ const StudentForm = ({ mode = 'create' }) => {
     () => libraries.find((library) => String(library.id) === String(selectedLibraryId)) || null,
     [libraries, selectedLibraryId]
   );
+  const assignedLibraryLabel = assignedLibraryIds.length > 1
+    ? `${assignedLibraryIds.length} مكتبات`
+    : selectedLibrary
+      ? selectedLibrary.name
+      : 'كل المكتبات';
+
+  const getLibraryGameIds = (library) =>
+    Array.isArray(library?.gameIds) ? library.gameIds.map((id) => String(id)) : [];
+
+  const uniqueAssignedGameIds = useMemo(
+    () => Array.from(new Set(formData.assignedGameIds.map((id) => String(id)))),
+    [formData.assignedGameIds]
+  );
+
+
+
+  const getAssignedLibraryOrder = (library) => {
+    const index = assignedLibraryIds.indexOf(String(library?.id));
+    return index === -1 ? null : index + 1;
+  };
+
+  const toggleAssignedLibrary = (library) => {
+    const libraryId = String(library?.id);
+    const libraryGameIds = getLibraryGameIds(library);
+
+    if (!libraryId || !libraryGameIds.length) {
+      return;
+    }
+
+    const libraryIsSelected = assignedLibraryIds.includes(libraryId);
+    const nextAssignedLibraryIds = libraryIsSelected
+      ? assignedLibraryIds.filter((currentLibraryId) => currentLibraryId !== libraryId)
+      : [...assignedLibraryIds, libraryId];
+    const remainingLibraryGameIds = new Set(
+      libraries
+        .filter((currentLibrary) => nextAssignedLibraryIds.includes(String(currentLibrary.id)))
+        .flatMap((currentLibrary) => getLibraryGameIds(currentLibrary))
+    );
+
+    setAssignedLibraryIds(nextAssignedLibraryIds);
+    setFormData((current) => {
+      const assignedSet = new Set(current.assignedGameIds.map((id) => String(id)));
+      const nextAssignedGameIds = libraryIsSelected
+        ? current.assignedGameIds.filter(
+            (gameId) => !libraryGameIds.includes(String(gameId)) || remainingLibraryGameIds.has(String(gameId))
+          )
+        : [
+            ...current.assignedGameIds,
+            ...libraryGameIds.filter((gameId) => !assignedSet.has(gameId)),
+          ];
+
+      return {
+        ...current,
+        assignedGameIds: nextAssignedGameIds,
+      };
+    });
+  };
 
   const filteredGames = useMemo(() => {
     let result = availableGames;
@@ -84,14 +150,6 @@ const StudentForm = ({ mode = 'create' }) => {
     return result;
   }, [availableGames, gamesFilter, selectedLibrary, selectedTag]);
 
-  const orderedAssignedGameIds = useMemo(() => {
-    if (!selectedLibrary || !Array.isArray(selectedLibrary.gameIds)) {
-      return formData.assignedGameIds;
-    }
-
-    const allowedIds = new Set(selectedLibrary.gameIds.map((id) => String(id)));
-    return formData.assignedGameIds.filter((gameId) => allowedIds.has(String(gameId)));
-  }, [formData.assignedGameIds, selectedLibrary]);
 
   useEffect(() => {
     const fetchFormDependencies = async () => {
@@ -109,7 +167,7 @@ const StudentForm = ({ mode = 'create' }) => {
               ? gamesResponse.data
               : []
         );
-      } catch (_gamesError) {
+      } catch {
         setAvailableGames([]);
         nextError = 'تعذر تحميل الألعاب.';
       }
@@ -123,14 +181,14 @@ const StudentForm = ({ mode = 'create' }) => {
               ? librariesResponse.data
               : []
         );
-      } catch (_librariesError) {
+      } catch {
         setLibraries([]);
       }
 
       try {
         const parentsResponse = await parentService.getParents(adminSession?.token);
         setParents(Array.isArray(parentsResponse?.data) ? parentsResponse.data : []);
-      } catch (_parentsError) {
+      } catch {
         setParents([]);
       }
 
@@ -159,7 +217,7 @@ const StudentForm = ({ mode = 'create' }) => {
               therapistId: current.therapistId || adminSession.user.id || mergedTherapists[0]?.id || '',
             }));
           }
-        } catch (_therapistsError) {
+        } catch {
           setTherapists(adminOption);
           if (!isEdit) {
             setFormData((current) => ({
@@ -184,6 +242,7 @@ const StudentForm = ({ mode = 'create' }) => {
 
   useEffect(() => {
     if (isEdit && student) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         name: student.name || '',
         age: student.age || 4,
@@ -216,43 +275,110 @@ const StudentForm = ({ mode = 'create' }) => {
     }));
   };
 
-  const moveAssignedGame = (gameId, direction) => {
-    setFormData((current) => {
-      const ids = [...current.assignedGameIds];
-      const allowedIds = selectedLibrary && Array.isArray(selectedLibrary.gameIds)
-        ? new Set(selectedLibrary.gameIds.map((libraryGameId) => String(libraryGameId)))
-        : null;
-      const visibleIds = allowedIds
-        ? ids.filter((id) => allowedIds.has(String(id)))
-        : ids;
-      const visibleIndex = visibleIds.indexOf(gameId);
-      const targetVisibleIndex = visibleIndex + direction;
+  // Group games by library to allow ordering libraries and games within them
+  const groupedAssignedGames = useMemo(() => {
+    const groups = [];
+    const processedLibs = new Set();
+    const unassigned = { id: 'unassigned', name: 'ألعاب إضافية', gameIds: [] };
 
-      if (visibleIndex === -1 || targetVisibleIndex < 0 || targetVisibleIndex >= visibleIds.length) {
-        return current;
+    formData.assignedGameIds.forEach(gameId => {
+      let matchedLib = null;
+      for (const lib of libraries) {
+         if (lib.gameIds && lib.gameIds.some(id => String(id) === String(gameId))) {
+            matchedLib = lib; break;
+         }
       }
-
-      const targetGameId = visibleIds[targetVisibleIndex];
-      const index = ids.indexOf(gameId);
-      const targetIndex = ids.indexOf(targetGameId);
-
-      if (index === -1 || targetIndex === -1) {
-        return current;
+      
+      if (matchedLib) {
+         if (!processedLibs.has(String(matchedLib.id))) {
+            processedLibs.add(String(matchedLib.id));
+            groups.push({ id: String(matchedLib.id), name: matchedLib.name, gameIds: [] });
+         }
+         groups.find(g => g.id === String(matchedLib.id)).gameIds.push(gameId);
+      } else {
+         unassigned.gameIds.push(gameId);
       }
-
-      [ids[index], ids[targetIndex]] = [ids[targetIndex], ids[index]];
-      return { ...current, assignedGameIds: ids };
     });
+
+    if (unassigned.gameIds.length > 0) {
+      groups.push(unassigned);
+    }
+    return groups;
+  }, [formData.assignedGameIds, libraries]);
+
+  const visibleGroups = useMemo(() => {
+    if (assignedLibraryIds.length > 0) {
+      const assignedOrder = new Map(assignedLibraryIds.map((libraryId, index) => [String(libraryId), index]));
+      return groupedAssignedGames
+        .filter((group) => assignedOrder.has(String(group.id)))
+        .sort((firstGroup, secondGroup) => assignedOrder.get(String(firstGroup.id)) - assignedOrder.get(String(secondGroup.id)));
+    }
+
+    if (!selectedLibrary || selectedLibraryId === 'all') return groupedAssignedGames;
+    return groupedAssignedGames.filter(g => String(g.id) === String(selectedLibraryId));
+  }, [assignedLibraryIds, groupedAssignedGames, selectedLibraryId, selectedLibrary]);
+
+  const isLibraryOrderingFiltered = selectedLibraryId !== 'all' && assignedLibraryIds.length <= 1;
+
+  const moveLibrary = (groupIndex, direction) => {
+    const targetVisibleIndex = groupIndex + direction;
+    if (targetVisibleIndex < 0 || targetVisibleIndex >= visibleGroups.length) return;
+
+    if (assignedLibraryIds.length > 1) {
+      const nextVisibleGroups = [...visibleGroups];
+      [nextVisibleGroups[groupIndex], nextVisibleGroups[targetVisibleIndex]] = [nextVisibleGroups[targetVisibleIndex], nextVisibleGroups[groupIndex]];
+
+      const nextAssignedLibraryIds = nextVisibleGroups
+        .map((group) => String(group.id))
+        .filter((groupId) => assignedLibraryIds.includes(groupId));
+      const visibleGroupIds = new Set(nextVisibleGroups.map((group) => String(group.id)));
+      const hiddenGroups = groupedAssignedGames.filter((group) => !visibleGroupIds.has(String(group.id)));
+      const nextFlatIds = [...nextVisibleGroups, ...hiddenGroups].flatMap((group) => group.gameIds);
+
+      setAssignedLibraryIds(nextAssignedLibraryIds);
+      setFormData((current) => ({ ...current, assignedGameIds: nextFlatIds }));
+      return;
+    }
+
+    const visibleGroup = visibleGroups[groupIndex];
+    const actualIndex = groupedAssignedGames.findIndex(g => g.id === visibleGroup.id);
+    if (actualIndex === -1) return;
+    
+    if (direction === -1 && actualIndex === 0) return;
+    if (direction === 1 && actualIndex === groupedAssignedGames.length - 1) return;
+
+    const newGroups = [...groupedAssignedGames];
+    const targetIndex = actualIndex + direction;
+    [newGroups[actualIndex], newGroups[targetIndex]] = [newGroups[targetIndex], newGroups[actualIndex]];
+    
+    const newFlatIds = newGroups.flatMap(g => g.gameIds);
+    setFormData(prev => ({ ...prev, assignedGameIds: newFlatIds }));
   };
 
-  const moveGameUp = (gameId) => moveAssignedGame(gameId, -1);
+  const moveGameWithinLibrary = (groupId, gameIndex, direction) => {
+    const actualGroupIndex = groupedAssignedGames.findIndex(g => g.id === groupId);
+    if (actualGroupIndex === -1) return;
 
-  const moveGameDown = (gameId) => moveAssignedGame(gameId, 1);
+    const group = groupedAssignedGames[actualGroupIndex];
+    if (direction === -1 && gameIndex === 0) return;
+    if (direction === 1 && gameIndex === group.gameIds.length - 1) return;
+
+    const newGameIds = [...group.gameIds];
+    const targetIndex = gameIndex + direction;
+    [newGameIds[gameIndex], newGameIds[targetIndex]] = [newGameIds[targetIndex], newGameIds[gameIndex]];
+    
+    const newGroups = [...groupedAssignedGames];
+    newGroups[actualGroupIndex] = { ...group, gameIds: newGameIds };
+    
+    const newFlatIds = newGroups.flatMap(g => g.gameIds);
+    setFormData(prev => ({ ...prev, assignedGameIds: newFlatIds }));
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitting(true);
     setError('');
+    setSuccessNotice('');
 
     if (!adminSession?.token) {
       setError('جلسة الإدارة غير متاحة. سجلي الدخول مرة أخرى.');
@@ -268,7 +394,7 @@ const StudentForm = ({ mode = 'create' }) => {
       currentLevel: Number(formData.currentLevel),
       therapistId: formData.therapistId || undefined,
       parentId: formData.parentId || undefined,
-      assignedGames: formData.assignedGameIds.map((id, index) => ({
+      assignedGames: uniqueAssignedGameIds.map((id, index) => ({
         gameId: id,
         order: index,
       })),
@@ -282,8 +408,12 @@ const StudentForm = ({ mode = 'create' }) => {
       }
 
       await fetchStudents(adminSession.token);
+      setSuccessNotice('تم الحفظ بنجاح');
+      setSubmitting(false);
+      await new Promise((resolve) => setTimeout(resolve, 900));
       navigate('/admin/patients');
     } catch (submitError) {
+      setSuccessNotice('');
       setError(submitError?.response?.data?.message || submitError?.message || 'تعذر حفظ بيانات المستفيد.');
       setSubmitting(false);
     }
@@ -326,6 +456,13 @@ const StudentForm = ({ mode = 'create' }) => {
       {error && (
         <div className="rounded-2xl bg-red-50 border border-red-100 px-5 py-4 text-red-600 font-bold">
           {error}
+        </div>
+      )}
+
+      {successNotice && (
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 font-bold text-emerald-700">
+          <CheckCircle2 size={20} />
+          {successNotice}
         </div>
       )}
 
@@ -478,7 +615,7 @@ const StudentForm = ({ mode = 'create' }) => {
                   className="bg-white border border-gray-200 text-gray-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all w-36 sm:w-44 flex items-center justify-between gap-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span className="truncate font-medium">
-                    {selectedLibrary ? selectedLibrary.name : 'كل المكتبات'}
+                    {assignedLibraryLabel}
                   </span>
                   <ChevronDown size={16} className={`shrink-0 text-gray-400 transition-transform ${libraryMenuOpen ? 'rotate-180 text-[#178bb6]' : ''}`} />
                 </button>
@@ -499,6 +636,7 @@ const StudentForm = ({ mode = 'create' }) => {
                     <div className="max-h-64 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                       {libraries.map((library) => {
                         const isActive = String(selectedLibraryId) === String(library.id);
+                        const assignedLibraryOrder = getAssignedLibraryOrder(library);
 
                         return (
                           <button
@@ -506,12 +644,16 @@ const StudentForm = ({ mode = 'create' }) => {
                             type="button"
                             onClick={() => {
                               setSelectedLibraryId(String(library.id));
-                              setLibraryMenuOpen(false);
+                              toggleAssignedLibrary(library);
                             }}
-                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-right"
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-50 text-right ${isActive ? 'bg-cyan-50/70 text-[#126d8f]' : ''}`}
                           >
                             <span className="truncate">{library.name}</span>
-                            {isActive && <Check size={16} className="text-[#178bb6]" />}
+                            {assignedLibraryOrder && (
+                              <span className="grid h-5 w-5 place-items-center rounded-full bg-[#178bb6] text-[11px] font-black text-white">
+                                {assignedLibraryOrder}
+                              </span>
+                            )}
                           </button>
                         );
                       })}
@@ -630,72 +772,135 @@ const StudentForm = ({ mode = 'create' }) => {
               <p className="text-sm text-gray-500">يمكنك تغيير الترتيب باستخدام الأسهم</p>
             </div>
 
-            {orderedAssignedGameIds.length === 0 ? (
+            {formData.assignedGameIds.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-gray-400">
                 <Layers size={48} className="mb-4 opacity-20" />
                 <p>لم يتم تحديد أي ألعاب بعد</p>
               </div>
+            ) : visibleGroups.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                <Layers size={48} className="mb-4 opacity-20" />
+                <p>لا توجد ألعاب مخصصة في هذه المكتبة</p>
+              </div>
             ) : (
-              <div className="space-y-3 max-h-[800px] overflow-y-auto custom-scrollbar pr-2">
-                {orderedAssignedGameIds.map((gameId, index) => {
-                  const game = availableGames.find(g => String(g.id) === gameId);
-                  if (!game) return null;
-                  const gameTitle = game.titleAr || game.title || game.name;
+              <div className="space-y-6 max-h-[800px] overflow-y-auto custom-scrollbar pr-2">
+                {visibleGroups.map((group, groupIndex) => {
+                  const isExpanded = expandedGroups[group.id] !== false; // Default to true
 
                   return (
+                  <div key={group.id} className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm transition-all duration-300">
+                    {/* رأس المكتبة (Group Header) */}
                     <div 
-                      key={gameId} 
-                      className="group flex items-center bg-white border border-gray-100 p-3 rounded-xl hover:border-[#178bb6]/30 hover:shadow-sm transition-all"
+                      className="flex items-center justify-between bg-slate-100 px-4 py-3 border-b border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors"
+                      onClick={() => toggleGroup(group.id)}
                     >
-                      {/* أزرار الترتيب */}
-                      <div className="flex flex-col items-center ml-4 gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className={`text-slate-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                          <ChevronDown size={20} />
+                        </div>
+                        <div className="bg-[#178bb6] text-white p-1.5 rounded-lg shadow-sm">
+                          <Layers size={18} />
+                        </div>
+                        <h3 className="font-bold text-slate-800 text-base">{group.name}</h3>
+                        <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                          {group.gameIds.length} لعبة
+                        </span>
+                      </div>
+                      
+                      {/* أزرار ترتيب المكتبة بالكامل */}
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <span className="text-xs text-slate-500 ml-2 hidden sm:inline-block">ترتيب المكتبة:</span>
                         <button 
                           type="button"
-                          onClick={() => moveGameUp(gameId)}
-                          disabled={index === 0}
+                          onClick={() => moveLibrary(groupIndex, -1)}
+                          disabled={isLibraryOrderingFiltered || groupIndex === 0}
                           className={`p-1 rounded-md transition-colors ${
-                            index === 0 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-[#178bb6] hover:bg-[#178bb6]/10'
+                            (isLibraryOrderingFiltered || groupIndex === 0) ? 'text-gray-300 cursor-not-allowed' : 'text-slate-500 hover:text-[#178bb6] hover:bg-slate-300'
                           }`}
+                          title="نقل المكتبة للأعلى"
                         >
                           <ChevronUp size={20} />
                         </button>
                         <button 
                           type="button"
-                          onClick={() => moveGameDown(gameId)}
-                          disabled={index === orderedAssignedGameIds.length - 1}
+                          onClick={() => moveLibrary(groupIndex, 1)}
+                          disabled={isLibraryOrderingFiltered || groupIndex === visibleGroups.length - 1}
                           className={`p-1 rounded-md transition-colors ${
-                            index === orderedAssignedGameIds.length - 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-[#178bb6] hover:bg-[#178bb6]/10'
+                            (isLibraryOrderingFiltered || groupIndex === visibleGroups.length - 1) ? 'text-gray-300 cursor-not-allowed' : 'text-slate-500 hover:text-[#178bb6] hover:bg-slate-300'
                           }`}
+                          title="نقل المكتبة للأسفل"
                         >
                           <ChevronDown size={20} />
                         </button>
                       </div>
-
-                      {/* رقم الترتيب */}
-                      <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-sm font-bold text-gray-600 ml-4 group-hover:bg-[#178bb6]/10 group-hover:text-[#178bb6] group-hover:border-[#178bb6]/20 transition-colors">
-                        {index + 1}
-                      </div>
-
-                      {/* اسم اللعبة */}
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-800 text-base">{gameTitle}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
-                          {!!game.gameCode && (
-                            <span className="bg-cyan-50 text-[#178bb6] px-1.5 py-0.5 rounded text-[10px] font-bold border border-cyan-100">
-                              {game.gameCode}
-                            </span>
-                          )}
-                          <span>المستوى {game.level}</span>
-                        </p>
-                      </div>
-
-                      {/* أيقونة السحب */}
-                      <div className="text-gray-300 mr-2">
-                        <GripVertical size={20} />
-                      </div>
                     </div>
-                  );
-                })}
+
+                    {/* قائمة الألعاب داخل المكتبة */}
+                    {isExpanded && (
+                      <div className="p-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                        {group.gameIds.map((gameId, gameIndex) => {
+                          const game = availableGames.find(g => String(g.id) === gameId);
+                          if (!game) return null;
+                          const gameTitle = game.titleAr || game.title || game.name;
+
+                        return (
+                          <div 
+                            key={gameId} 
+                            className="group flex items-center bg-white border border-slate-200 p-2.5 rounded-xl hover:border-[#178bb6]/40 hover:shadow-sm transition-all"
+                          >
+                            {/* أزرار ترتيب اللعبة داخل المكتبة */}
+                            <div className="flex flex-col items-center ml-3 gap-0.5">
+                              <button 
+                                type="button"
+                                onClick={() => moveGameWithinLibrary(group.id, gameIndex, -1)}
+                                disabled={gameIndex === 0}
+                                className={`p-0.5 rounded-md transition-colors ${
+                                  gameIndex === 0 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-[#178bb6] hover:bg-[#178bb6]/10'
+                                }`}
+                              >
+                                <ChevronUp size={18} />
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={() => moveGameWithinLibrary(group.id, gameIndex, 1)}
+                                disabled={gameIndex === group.gameIds.length - 1}
+                                className={`p-0.5 rounded-md transition-colors ${
+                                  gameIndex === group.gameIds.length - 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-[#178bb6] hover:bg-[#178bb6]/10'
+                                }`}
+                              >
+                                <ChevronDown size={18} />
+                              </button>
+                            </div>
+
+                            {/* رقم الترتيب الكلي في الخطة */}
+                            <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 ml-3 group-hover:bg-[#178bb6]/10 group-hover:text-[#178bb6] group-hover:border-[#178bb6]/20 transition-colors">
+                              {formData.assignedGameIds.indexOf(gameId) + 1}
+                            </div>
+
+                            {/* اسم اللعبة */}
+                            <div className="flex-1">
+                              <h4 className="font-medium text-slate-800 text-sm">{gameTitle}</h4>
+                              <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                                {!!game.gameCode && (
+                                  <span className="bg-cyan-50 text-[#178bb6] px-1.5 py-0.5 rounded font-bold border border-cyan-100">
+                                    {game.gameCode}
+                                  </span>
+                                )}
+                                <span>المستوى {game.level}</span>
+                              </p>
+                            </div>
+
+                            {/* أيقونة السحب */}
+                            <div className="text-slate-300 mr-2">
+                              <GripVertical size={18} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      </div>
+                    )}
+                  </div>
+                )})}
               </div>
             )}
           </div>

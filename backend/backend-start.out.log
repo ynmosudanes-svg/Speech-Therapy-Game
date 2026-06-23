@@ -1,0 +1,23 @@
+
+> speech-therapy-games-backend@1.0.0 start
+> npx prisma db push --accept-data-loss && node src/server.js
+
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "railway", schema "public" at "acela.proxy.rlwy.net:53077"
+
+The database is already in sync with the Prisma schema.
+
+Running generate... (Use --skip-generate to skip the generators)
+[2K[1A[2K[GRunning generate... - Prisma Client
+[2K[1A[2K[GEPERM: operation not permitted, rename 'C:\React Course - (Udmey)\Speech-Therapy
+-Games\backend\node_modules\.prisma\client\query-engine-windows.exe.tmp37196' ->
+ 'C:\React Course - (Udmey)\Speech-Therapy-Games\backend\node_modules\.prisma\cl
+ient\query-engine-windows.exe'
+
+◇ injected env (12) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Server initialized. DB connecting in background...
+Backend server running on port/pipe 5000
+Swagger docs at /api/docs
+Database connected successfully.
+prisma:query SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."User"."id" FROM "public"."User" WHERE 1=1 OFFSET $1) AS "sub"
+Database ready.

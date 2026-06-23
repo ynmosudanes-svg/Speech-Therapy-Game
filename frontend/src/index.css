@@ -184,6 +184,20 @@
     color: var(--heading-main) !important;
   }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.levelmap-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
 @keyframes slideDown {
   from {
     transform: translateY(-100%);

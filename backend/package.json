@@ -13,6 +13,7 @@
     "prisma:migrate": "prisma db push"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1075.0",
     "@prisma/client": "^6.18.0",
     "@supabase/supabase-js": "^2.108.1",
     "bcryptjs": "^3.0.3",

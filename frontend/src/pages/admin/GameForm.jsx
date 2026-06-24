@@ -134,6 +134,18 @@ const GAME_TYPE_CARDS = [
     description: 'رسم خطوط بين عناصر متطابقة أو مرتبطة (مثل الحيوان وطعامه، أو الكلمة والصورة).',
     accent: 'from-pink-100 to-rose-100',
   },
+  {
+    value: 'true_false',
+    title: 'لعبة الصح والخطأ',
+    description: 'يتم عرض صورة واحدة (أو صورتين) مع تشغيل سؤال صوتي، ويقوم الطفل بتحديد ما إذا كانت الإجابة صحيحة أم خاطئة.',
+    accent: 'from-teal-100 to-emerald-100',
+  },
+  {
+    value: 'eye_tracking.bird',
+    title: 'التتبع بالعين - تتبع العصفور',
+    description: 'يظهر عصفور يتحرك من اليمين لليسار فقط عندما ينظر إليه الطفل، لتدريب التركيز المستمر.',
+    accent: 'from-yellow-100 to-amber-100',
+  },
 ];
 const EMPTY_MESSAGE = 'ارفع الملف أو اتركه فارغًا مؤقتًا';
 const getActivityAutoTitle = (index) => `نشاط ${index + 1}`;
@@ -803,7 +815,7 @@ const GameForm = ({ mode = 'create' }) => {
         name: autoName,
         nameAr: autoNameAr,
         config: {
-          ...normalizeActivityTypesForConfig(current.config, current.type || type),
+          ...normalizeActivityTypesForConfig(current.config, type),
           templateType: type,
           name: autoName,
           nameAr: autoNameAr,
@@ -932,6 +944,21 @@ const GameForm = ({ mode = 'create' }) => {
         difficulty: activity.difficulty || defaults.difficulty,
       };
     });
+    
+    // Auto-sync the main game type if the user changes the activity type directly
+    setBuilderState((current) => {
+      if (current.type !== newType) {
+        return {
+          ...current,
+          type: newType,
+          config: {
+            ...current.config,
+            templateType: newType,
+          }
+        };
+      }
+      return current;
+    });
   };
 
   const updateOption = (optionIndex, field, value) => {
@@ -991,7 +1018,7 @@ const GameForm = ({ mode = 'create' }) => {
   // Auto-initialize options if empty
   useEffect(() => {
     if (
-      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal', 'image.complete_part', 'emotion.faces'].includes(currentActivityType) && 
+      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal', 'image.complete_part', 'emotion.faces', 'true_false', 'eye_tracking.bird'].includes(currentActivityType) && 
       currentActivity
     ) {
       if (!currentActivity.options || currentActivity.options.length === 0) {
@@ -1317,6 +1344,15 @@ const GameForm = ({ mode = 'create' }) => {
           }
           if ((activity.options || []).some((option) => !option.image?.trim())) {
             return `كل اختيارات بازل الظل تحتاج صورة في المستوى ${level.levelNumber}.`;
+          }
+        }
+
+        if (activityType === 'emotion.faces') {
+          if ((activity.options || []).length < 2) {
+            return `لعبة المشاعر تحتاج شعورين على الأقل في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.options || []).some((option) => !option.image?.trim() && !option.emoji?.trim() && !option.textAr?.trim())) {
+            return `كل اختيارات المشاعر تحتاج شعور (إيموجي) أو صورة في المستوى ${level.levelNumber}.`;
           }
         }
 
@@ -2259,6 +2295,84 @@ const GameForm = ({ mode = 'create' }) => {
                   </div>
 
                   {/* 3. الإجابات والاختيارات */}
+                  {currentActivityType === 'true_false' && (
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 text-emerald-700">
+                          <CheckCircle2 size={24} />
+                          <h3 className="text-xl font-black">إعدادات الصح والخطأ</h3>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={addOption}
+                          disabled={(currentActivity.options || []).length >= 2}
+                          className="!py-2 !px-4 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-100"
+                        >
+                          <Plus size={18} />
+                          <span>إضافة صورة أخرى</span>
+                        </Button>
+                      </div>
+
+                      <div className="rounded-2xl bg-amber-50/80 border border-amber-100/80 px-4 py-3 text-sm font-bold text-amber-700/90">
+                        قم برفع صورة أو صورتين، ثم حدد ما إذا كانت الإجابة الصحيحة للسؤال هي "صح" أم "خطأ".
+                      </div>
+
+                      <div className="grid gap-4">
+                        <div className="rounded-[1.8rem] border border-[#dbe7f3] bg-white p-5 space-y-4">
+                          <h4 className="font-black text-slate-800">الإجابة الصحيحة للسؤال</h4>
+                          <div className="flex gap-4">
+                            <label className="flex flex-1 items-center gap-3 rounded-xl border p-4 cursor-pointer hover:bg-slate-50 transition-colors">
+                              <input
+                                type="radio"
+                                checked={currentActivity.correctAnswer === true}
+                                onChange={() => setActivityField('correctAnswer', true)}
+                                className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
+                              />
+                              <span className="font-bold text-emerald-700 text-lg">صح ✅</span>
+                            </label>
+                            <label className="flex flex-1 items-center gap-3 rounded-xl border p-4 cursor-pointer hover:bg-slate-50 transition-colors">
+                              <input
+                                type="radio"
+                                checked={currentActivity.correctAnswer === false}
+                                onChange={() => setActivityField('correctAnswer', false)}
+                                className="w-5 h-5 text-red-600 focus:ring-red-500"
+                              />
+                              <span className="font-bold text-red-700 text-lg">خطأ ❌</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {(currentActivity.options || []).map((option, optionIndex) => (
+                          <div key={option.id} className="rounded-[1.8rem] border border-[#dbe7f3] bg-[#f8fbff] p-5 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-black text-slate-800">صورة {optionIndex + 1}</h4>
+                              <button
+                                type="button"
+                                onClick={() => removeOption(optionIndex)}
+                                disabled={(currentActivity.options || []).length <= 1}
+                                className={`inline-flex items-center justify-center rounded-xl border p-2 transition-colors ${
+                                  (currentActivity.options || []).length <= 1
+                                    ? 'text-slate-400 border-slate-200 bg-slate-100 cursor-not-allowed'
+                                    : 'text-red-500 border-red-200 bg-red-50 hover:text-red-600 hover:bg-red-100'
+                                }`}
+                                title="حذف الصورة"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                            <ImageAssetField
+                              label="الصورة المرفقة"
+                              value={option.image || ''}
+                              onSelect={(value) => updateOption(optionIndex, 'image', value)}
+                              token={adminSession?.token}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {currentActivityType === 'matching.similar' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
@@ -2789,22 +2903,33 @@ const GameForm = ({ mode = 'create' }) => {
                               placeholder={currentActivityType === 'emotion.faces' ? 'اسم الشعور' : 'اسم الصورة اختياري'}
                             />
                             {currentActivityType === 'emotion.faces' ? (
-                              <div className="grid gap-3 md:grid-cols-2">
-                                <input
-                                  type="text"
-                                  value={option.emoji || ''}
-                                  onChange={(event) => updateOption(optionIndex, 'emoji', event.target.value)}
-                                  className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none text-center text-3xl"
-                                  placeholder="😊"
-                                  maxLength={4}
-                                />
-                                <input
-                                  type="text"
-                                  value={option.questionLabelAr || ''}
-                                  onChange={(event) => updateOption(optionIndex, 'questionLabelAr', event.target.value)}
-                                  className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
-                                  placeholder="صيغة السؤال: السعيد / الخائف"
-                                />
+                              <div className="flex flex-col gap-4 mt-3">
+                                <div className="grid gap-3 md:grid-cols-2">
+                                  <input
+                                    type="text"
+                                    value={option.emoji || ''}
+                                    onChange={(event) => updateOption(optionIndex, 'emoji', event.target.value)}
+                                    className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none text-center text-3xl"
+                                    placeholder="😊 إيموجي (اختياري)"
+                                    maxLength={4}
+                                  />
+                                  <input
+                                    type="text"
+                                    value={option.questionLabelAr || ''}
+                                    onChange={(event) => updateOption(optionIndex, 'questionLabelAr', event.target.value)}
+                                    className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                                    placeholder="صيغة السؤال: السعيد / الخائف"
+                                  />
+                                </div>
+                                <div className="border-t pt-3">
+                                  <ImageAssetField
+                                    label="أو صورة اختيارية بدل الإيموجي"
+                                    value={option.image || ''}
+                                    onSelect={(value) => updateOption(optionIndex, 'image', value)}
+                                    token={adminSession?.token}
+                                    initialQuery={option.textAr || 'emotion face isolated'}
+                                  />
+                                </div>
                               </div>
                             ) : (
                               <ImageAssetField
@@ -3455,7 +3580,7 @@ const GameForm = ({ mode = 'create' }) => {
               )}
             </Card>
 
-            <Card className="p-8 rounded-[2rem] space-y-6 sticky top-6">
+            <Card className="p-8 rounded-[2rem] space-y-6 sticky top-28 z-10 max-h-[calc(100vh-8rem)] overflow-y-auto">
               <SectionTitle
                 action={
                   <div className="inline-flex items-center gap-2 rounded-full bg-[#eef4ff] px-4 py-2 text-blue-700 font-bold">

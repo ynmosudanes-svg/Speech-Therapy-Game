@@ -12,6 +12,7 @@ import gameService from '../../services/gameService';
 import { computeSessionMetrics } from '../../utils/sessionMetrics';
 import { silenceSiteAudio, stopGameAudio } from '../../utils/soundEffects';
 import loadingAnimation from '../../assets/Animation/2 ani.json';
+import AnimatedBackground from '../../components/game/AnimatedBackground';
 
 const GamePlay = () => {
   const navigate = useNavigate();
@@ -260,7 +261,9 @@ const GamePlay = () => {
   }
 
   return (
-    <div className="space-y-5" dir="rtl">
+    <>
+      <AnimatedBackground />
+      <div className="space-y-5 relative z-10" dir="rtl">
 
 
       {error && (
@@ -348,6 +351,7 @@ const GamePlay = () => {
         </>
       )}
     </div>
+    </>
   );
 };
 

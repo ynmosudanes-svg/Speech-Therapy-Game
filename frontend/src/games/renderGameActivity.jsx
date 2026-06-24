@@ -13,6 +13,9 @@ import EmotionFacesGame from './EmotionFacesGame';
 import ImageCompletePartGame from './ImageCompletePartGame';
 import MemoryCardsGame from './MemoryCardsGame';
 import MemoryGridGame from './MemoryGridGame';
+import TrueFalseGame from './TrueFalseGame';
+import EyeTrackingChooseGame from './EyeTrackingChooseGame';
+import EyeTrackingBirdGame from './EyeTrackingBirdGame';
 
 const renderGameActivity = ({
   game,
@@ -90,6 +93,18 @@ const renderGameActivity = ({
 
   if (game?.type === 'puzzle.jigsaw' || game?.type === 'image.complete_part') {
     return <ImageCompletePartGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'true_false') {
+    return <TrueFalseGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'eye_tracking.choose') {
+    return <EyeTrackingChooseGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'eye_tracking.bird') {
+    return <EyeTrackingBirdGame {...sharedProps} />;
   }
 
   return null;

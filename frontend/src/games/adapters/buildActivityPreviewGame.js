@@ -10,6 +10,9 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'image.complete_part') return 'اسحب الجزء الصحيح إلى الخانة الناقصة لإكمال الصورة';
   if (type === 'memory.cards') return 'افتح كارتين وابحث عن الصور المتطابقة';
   if (type === 'memory.grid') return 'تذكر أماكن الصور ثم ابحث عن الصورة المطلوبة';
+  if (type === 'true_false') return 'استمع وحدد الإجابة الصحيحة';
+  if (type === 'eye_tracking.choose') return 'انظر إلى الصورة الصحيحة باستمرار';
+  if (type === 'eye_tracking.bird') return 'انظر إلى العصفور ليطير';
   return 'اكتب السؤال هنا';
 };
 
@@ -144,6 +147,46 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       difficulty: 'easy',
       heroImage: '',
       options: [createMatchingOption('option_1', true), createMatchingOption('option_2')],
+    };
+  }
+
+  if (type === 'true_false') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      correctAnswer: true,
+      options: [
+        { id: `opt_${Date.now()}_1`, image: '' }
+      ],
+    };
+  }
+
+  if (type === 'eye_tracking.choose') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      heroImage: '',
+      options: [createMatchingOption('option_1', true), createMatchingOption('option_2', false)],
+    };
+  }
+
+  if (type === 'eye_tracking.bird') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      heroImage: '',
+      difficulty: 'easy',
     };
   }
 
@@ -374,8 +417,8 @@ export const createEmptyBuilderConfig = (type = 'matching.similar') => ({
   })),
 });
 
-export const normalizeActivityTypesForConfig = (config, fallbackType = 'matching.similar') => {
-  const defaultType = config?.templateType || fallbackType || 'matching.similar';
+export const normalizeActivityTypesForConfig = (config, fallbackType) => {
+  const defaultType = fallbackType || config?.templateType || 'matching.similar';
 
   return {
     ...config,
@@ -390,7 +433,7 @@ export const normalizeActivityTypesForConfig = (config, fallbackType = 'matching
         starsToUnlock: Number(level.starsToUnlock ?? (levelNumber === 1 ? 0 : 2)),
         activities: activities.map((activity) => ({
           ...activity,
-          type: activity?.type || defaultType,
+          type: activity.type || defaultType,
         })),
       };
     }),
@@ -446,6 +489,70 @@ export const buildActivityRuntimeGame = ({
           instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
           questionAudio: activity?.instructionAudio || '',
           hero: { image: activity?.heroImage || '' },
+          options: Array.isArray(activity?.options) ? activity.options : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'eye_tracking.choose') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
+          options: Array.isArray(activity?.options) ? activity.options : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'eye_tracking.bird') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
+          hero: { image: activity?.heroImage || '' },
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'true_false') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
+          correctAnswer: activity?.correctAnswer ?? true,
           options: Array.isArray(activity?.options) ? activity.options : [],
         },
         feedback: {

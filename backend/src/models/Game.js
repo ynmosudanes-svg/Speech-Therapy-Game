@@ -61,6 +61,9 @@ const gameSchema = new mongoose.Schema(
         'memory.grid',
         'puzzle.jigsaw',
         'matching.connect',
+        'true_false',
+        'eye_tracking.choose',
+        'eye_tracking.bird',
       ],
     },
     level: {

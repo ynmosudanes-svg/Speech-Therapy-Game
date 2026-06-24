@@ -5,7 +5,7 @@ const ChildGameBackdrop = ({ previewMode = false }) => {
 
   return (
     <div
-      className={`${layerClassName} pointer-events-none -z-10 overflow-hidden bg-[linear-gradient(135deg,_#f4fbff_0%,_#eef9ff_48%,_#f8fdff_100%)]`}
+      className={`${layerClassName} pointer-events-none -z-10 overflow-hidden`}
     >
       <div className="absolute right-[8%] top-[10%] h-56 w-56 rounded-full bg-sky-200/18 blur-[74px]" />
       <div className="absolute bottom-[9%] left-[7%] h-72 w-72 rounded-full bg-cyan-200/16 blur-[92px]" />

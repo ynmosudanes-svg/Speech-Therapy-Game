@@ -25,7 +25,12 @@ export default function EmotionFacesGame({
   therapistControlsEnabled = false,
   therapistPromptLevel = 'none',
 }) {
-  const options = useMemo(() => (Array.isArray(config?.content?.options) ? config.content.options : []), [config]);
+  const options = useMemo(() => {
+    if (Array.isArray(game?.options) && game.options.length > 0) return game.options;
+    if (Array.isArray(config?.options) && config.options.length > 0) return config.options;
+    if (Array.isArray(config?.content?.options)) return config.content.options;
+    return [];
+  }, [game?.options, config]);
   const defaultTarget = useMemo(() => options.find((option) => option?.isCorrect) || options[0] || null, [options]);
   const [targetOption, setTargetOption] = useState(defaultTarget);
   const [shuffleKey, setShuffleKey] = useState(0);
@@ -127,7 +132,7 @@ export default function EmotionFacesGame({
         onRestart={handleRestart}
       />
 
-      <GameGrid className="mx-auto w-full max-w-4xl" minWidth="clamp(120px, 20vw, 180px)">
+      <GameGrid className="mx-auto w-full max-w-4xl" minWidth="140px">
         {shuffledOptions.map((option, index) => {
           const isActive = selectedOption?.id === option.id;
           const state = isActive ? (isCorrect ? 'correct' : 'wrong') : 'idle';
@@ -138,11 +143,15 @@ export default function EmotionFacesGame({
               key={option.id || index}
               onClick={() => handleSelect(option)}
               state={state}
-              className="min-h-[clamp(132px,22vw,176px)]"
+              className="min-h-[140px]"
             >
               <div className="flex w-full flex-col items-center justify-center gap-3 py-2">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sky-50 text-5xl leading-none shadow-[inset_0_0_0_1px_rgba(186,230,253,0.75)] sm:h-24 sm:w-24 sm:text-6xl md:h-28 md:w-28 md:text-7xl">
-                  <span aria-hidden="true">{getEmoji(option)}</span>
+                <div className="flex h-[4.5rem] w-[4.5rem] md:h-[5.5rem] md:w-[5.5rem] items-center justify-center rounded-full bg-sky-50 text-[3rem] md:text-[4rem] leading-none shadow-[inset_0_0_0_1px_rgba(186,230,253,0.75)] overflow-hidden shrink-0">
+                  {option.image ? (
+                    <img src={option.image} alt={label || 'صورة'} className="h-full w-full object-cover" />
+                  ) : (
+                    <span aria-hidden="true">{getEmoji(option)}</span>
+                  )}
                 </div>
                 {label ? (
                   <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-700 md:text-base">

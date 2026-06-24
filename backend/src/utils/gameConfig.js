@@ -1,4 +1,4 @@
-﻿const SUPPORTED_TEMPLATE_TYPES = [
+const SUPPORTED_TEMPLATE_TYPES = [
   'matching.similar',
   'matching.different',
   'matching.find',
@@ -15,6 +15,10 @@
   'memory.grid',
   'puzzle.jigsaw',
   'matching.connect',
+  'emotion.faces',
+  'eye_tracking.bird',
+  'true_false',
+  'eye_tracking.choose'
 ];
 
 function createEmptyLevel(levelNumber) {
@@ -56,6 +60,8 @@ function normalizeOption(option, index) {
     image: option?.image || '',
     label: option?.label || option?.textAr || option?.text || '',
     textAr: option?.textAr || option?.label || option?.text || '',
+    emoji: option?.emoji || '',
+    questionLabelAr: option?.questionLabelAr || '',
     isCorrect: Boolean(option?.isCorrect),
   };
 }
@@ -154,7 +160,15 @@ function normalizeActivity(activity, type, index) {
     difficulty: activity?.difficulty || 'easy',
   };
 
-  if (activityType === 'matching.similar' || activityType === 'matching.different' || activityType === 'matching.find' || activityType === 'matching.shadow') {
+  if (
+    activityType === 'matching.similar' ||
+    activityType === 'matching.different' ||
+    activityType === 'matching.find' ||
+    activityType === 'matching.shadow' ||
+    activityType === 'emotion.faces' ||
+    activityType === 'eye_tracking.choose' ||
+    activityType === 'true_false'
+  ) {
     return {
       ...baseActivity,
       heroImage: activity?.heroImage || '',

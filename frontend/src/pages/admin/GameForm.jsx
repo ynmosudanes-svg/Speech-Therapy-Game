@@ -163,6 +163,30 @@ const getActivityAutoTitle = (index) => `نشاط ${index + 1}`;
 const getActivitySummary = (activity, index) =>
   activity?.titleAr?.trim() || activity?.questionAr?.trim() || getActivityAutoTitle(index);
 const getTypeCardTitle = (type) => GAME_TYPE_CARDS.find((card) => card.value === type)?.title || '';
+const DIFFICULTY_OPTIONS = [
+  { value: 'easy', label: 'سهل', helper: 'تعليمات بسيطة واختيارات قليلة', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  { value: 'medium', label: 'متوسط', helper: 'خطوات أكثر أو تمييز أدق', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+  { value: 'hard', label: 'صعب', helper: 'تحدي أعلى وتركيز أطول', className: 'border-rose-200 bg-rose-50 text-rose-700' },
+];
+const getActivityDifficultyButtonClass = (difficulty, isSelected) => {
+  const value = difficulty || 'easy';
+
+  if (value === 'hard') {
+    return isSelected
+      ? 'border-rose-500 bg-rose-50 text-rose-800 shadow-sm ring-2 ring-rose-100'
+      : 'border-rose-200 bg-rose-50/70 text-rose-700 hover:border-rose-400 hover:bg-rose-50';
+  }
+
+  if (value === 'medium') {
+    return isSelected
+      ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-sm ring-2 ring-amber-100'
+      : 'border-amber-200 bg-amber-50/70 text-amber-700 hover:border-amber-400 hover:bg-amber-50';
+  }
+
+  return isSelected
+    ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm ring-2 ring-emerald-100'
+    : 'border-emerald-200 bg-emerald-50/70 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-50';
+};
 const MAZE_PRESETS = {
   easy: {
     grid: [
@@ -910,6 +934,24 @@ const GameForm = ({ mode = 'create' }) => {
       }
 
       return { ...activity, [field]: value };
+    });
+  };
+
+  const setActivityDifficulty = (difficulty) => {
+    updateCurrentActivity((activity) => {
+      const nextActivity = { ...activity, difficulty };
+
+      if (activity?.type === 'memory.grid') {
+        const preset = {
+          easy: { gridSize: 2, viewSeconds: 5 },
+          medium: { gridSize: 3, viewSeconds: 4 },
+          hard: { gridSize: 4, viewSeconds: 3 },
+        }[difficulty];
+
+        return preset ? { ...nextActivity, ...preset } : nextActivity;
+      }
+
+      return nextActivity;
     });
   };
 
@@ -2034,11 +2076,10 @@ const GameForm = ({ mode = 'create' }) => {
                       key={activity.id}
                       type="button"
                       onClick={() => setSelectedActivity(index)}
-                      className={`rounded-[1.3rem] border px-4 py-3 text-right transition-all ${
+                      className={`rounded-[1.3rem] border px-4 py-3 text-right transition-all ${getActivityDifficultyButtonClass(
+                        activity.difficulty,
                         selectedActivity === index
-                          ? 'bg-blue-50 border-blue-600 text-blue-700'
-                          : 'bg-white border-slate-200 text-slate-700'
-                      }`}
+                      )}`}
                     >
                       <div className="font-black">{getActivityAutoTitle(index)}</div>
                       <div className="text-xs mt-1">{getActivitySummary(activity, index)}</div>
@@ -2079,7 +2120,7 @@ const GameForm = ({ mode = 'create' }) => {
                       <h3 className="text-lg font-black">إعدادات النشاط</h3>
                     </div>
                     
-                    <div className="grid md:grid-cols-1 gap-6">
+                    <div className="grid gap-6 md:grid-cols-2">
                       <div>
                         <label className="block text-slate-600 font-bold mb-2">عنوان النشاط</label>
                         <input
@@ -2101,6 +2142,28 @@ const GameForm = ({ mode = 'create' }) => {
                             label: card.title
                           }))}
                         />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-slate-600 font-bold mb-2">مستوى النشاط</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {DIFFICULTY_OPTIONS.map((option) => {
+                            const isSelected = (currentActivity.difficulty || 'easy') === option.value;
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setActivityDifficulty(option.value)}
+                                className={`rounded-2xl border-2 px-3 py-3 text-center transition-all ${
+                                  isSelected
+                                    ? `${option.className} shadow-sm ring-2 ring-offset-1 ring-blue-100`
+                                    : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/40'
+                                }`}
+                              >
+                                <span className="block text-sm font-black">{option.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2729,6 +2792,7 @@ const GameForm = ({ mode = 'create' }) => {
 
 
 
+
                   {(currentActivityType === 'cards.audio_flashcards' || currentActivityType === 'memory.cards' || currentActivityType === 'memory.grid') && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
@@ -2755,40 +2819,6 @@ const GameForm = ({ mode = 'create' }) => {
                             ? 'أضف العناصر مرة واحدة فقط، واللعبة ستكرر كل عنصر تلقائيًا لصناعة زوج مطابق. الاسم العربي يُنطق عند فتح الكارت.'
                           : 'قم بإضافة الصورة، الكلمة، وملف النطق الصوتي الذي سيعمل عند قلب الكارت.'}
                       </div>
-
-                      {currentActivityType === 'memory.grid' && (
-                        <div className="rounded-[1.5rem] border border-sky-100 bg-sky-50/70 p-4">
-                          <label className="block text-sm font-black text-slate-700 mb-2">مستوى الصعوبة</label>
-                          <div className="grid gap-2 sm:grid-cols-3">
-                            {[
-                              { difficulty: 'easy', label: 'سهل', gridSize: 2, viewSeconds: 5, helper: '2x2 - 5 ثواني' },
-                              { difficulty: 'medium', label: 'متوسط', gridSize: 3, viewSeconds: 4, helper: '3x3 - 4 ثواني' },
-                              { difficulty: 'hard', label: 'صعب', gridSize: 4, viewSeconds: 3, helper: '4x4 - 3 ثواني' },
-                            ].map((level) => (
-                              <button
-                                key={level.difficulty}
-                                type="button"
-                                onClick={() =>
-                                  updateCurrentActivity((activity) => ({
-                                    ...activity,
-                                    difficulty: level.difficulty,
-                                    gridSize: level.gridSize,
-                                    viewSeconds: level.viewSeconds,
-                                  }))
-                                }
-                                className={`rounded-xl border-2 px-3 py-3 text-sm font-black transition-all ${
-                                  (currentActivity.difficulty || 'medium') === level.difficulty
-                                    ? 'border-sky-400 bg-white text-sky-700 shadow-sm'
-                                    : 'border-sky-100 bg-white/70 text-slate-500'
-                                }`}
-                              >
-                                <span className="block">{level.label}</span>
-                                <span className="mt-1 block text-xs opacity-70">{level.helper}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
 
                       {currentActivityType === 'memory.cards' && (
                         <div className="rounded-[1.5rem] border border-sky-100 bg-sky-50/70 p-4">

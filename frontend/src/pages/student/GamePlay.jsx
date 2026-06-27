@@ -322,7 +322,7 @@ const GamePlay = () => {
               startLevel={currentLevel}
               assistantSuspended={showExitConfirm}
               assistantOptions={{
-                idleTime: Number(game?.config?.assistant?.idleTime || 8000),
+                idleTime: Number(game?.config?.assistant?.idleTime || 15000),
                 hintLevel1: game?.config?.assistant?.hintLevel1 || undefined,
                 hintLevel2: game?.config?.assistant?.hintLevel2 || undefined,
                 hintLevel3: game?.config?.assistant?.hintLevel3 || undefined,

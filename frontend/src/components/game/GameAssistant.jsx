@@ -69,7 +69,7 @@ const TherapistAvatar = ({ className = '' }) => (
 
 const GameAssistant = forwardRef(function GameAssistant(
   {
-    idleTime = 8000,
+    idleTime = 15000,
     onVisualHint,
     onGestureHint,
     onVerbalHint,

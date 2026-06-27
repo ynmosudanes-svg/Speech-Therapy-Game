@@ -57,16 +57,17 @@ export function GameSection({ children, className = '', contentClassName = '' })
   );
 }
 
-export function GameGrid({ children, className = '', minWidth = GAME_UI_TOKENS.choiceMinWidth }) {
+export function GameGrid({ children, className = '', minWidth = GAME_UI_TOKENS.choiceMinWidth, forceAutoFit = false }) {
   const itemCount = React.Children.count(children);
   const isTwoItemGrid = itemCount === 2;
+  const useFixedTwoColumns = isTwoItemGrid && !forceAutoFit;
 
   return (
     <div
-      className={`grid w-full ${isTwoItemGrid ? 'mt-8 sm:mt-0' : ''} ${className}`}
+      className={`grid w-full ${useFixedTwoColumns ? 'mt-8 sm:mt-0' : ''} ${className}`}
       style={{
         gap: GAME_UI_TOKENS.cardGap,
-        gridTemplateColumns: isTwoItemGrid
+        gridTemplateColumns: useFixedTwoColumns
           ? 'repeat(2, minmax(0, 1fr))'
           : `repeat(auto-fit, minmax(${minWidth}, 1fr))`,
         alignItems: 'stretch',

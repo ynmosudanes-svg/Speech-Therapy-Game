@@ -75,7 +75,7 @@ const GameEngine = ({
   const startIdleTimer = useCallback(() => {
     clearIdleTimer();
 
-    const idleTime = Number(assistantOptions?.idleTime || 8000);
+    const idleTime = Number(assistantOptions?.idleTime || 15000);
     if (assistantSuspended || idleTime <= 0 || activityHelpUsedRef.current) {
       return;
     }
@@ -192,7 +192,7 @@ const GameEngine = ({
     gameId: `${game.id}-${activeLevel.levelNumber}-${currentActivity.id}-${activityRunKey}`,
   });
 
-  const idleTime = Number(assistantOptions?.idleTime || 8000);
+  const idleTime = Number(assistantOptions?.idleTime || 15000);
   const helpVoiceEnabled = assistantOptions?.helpVoiceEnabled ?? false;
   const progress = ((activityIndex + 1) / Math.max(activities.length, 1)) * 100;
 

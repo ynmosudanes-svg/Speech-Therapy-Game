@@ -51,7 +51,7 @@ export default function GameHeader({
               <Volume2 className="h-2.5 w-2.5 text-white sm:h-3 sm:w-3" />
             </button>
 
-            <h2 className="relative z-10 text-[0.92rem] font-black leading-snug text-[#23425a] sm:text-sm md:text-[1.05rem]">
+            <h2 className="relative z-10 text-[1.05rem] font-black leading-snug text-[#23425a] sm:text-[1.1rem] md:text-[1.18rem]">
               {displayInstruction}
             </h2>
           </div>

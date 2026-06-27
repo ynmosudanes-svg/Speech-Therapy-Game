@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Search, Image as ImageIcon, Music, Video, LoaderCircle, UploadCloud, FolderOpen, ChevronDown, Check, Plus } from 'lucide-react';
+import { X, Search, Image as ImageIcon, Music, Video, LoaderCircle, UploadCloud, FolderOpen, ChevronDown, Check, Plus, Trash2 } from 'lucide-react';
 import ConfirmModal from '../ConfirmModal';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
@@ -19,13 +19,14 @@ const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((labels, option) => {
 const getCategoryLabel = (category) => CATEGORY_LABELS[category] || category || 'بدون بند';
 const normalizeCategoryValue = (category) => String(category || '').trim().toLowerCase();
 
-const buildCategoryOptions = (categories, { includeAll = true } = {}) => {
+const buildCategoryOptions = (categories, { includeAll = true, hiddenCategories = [] } = {}) => {
   const options = includeAll ? [...CATEGORY_OPTIONS] : CATEGORY_OPTIONS.filter((option) => option.value);
+  const hidden = new Set(hiddenCategories.map(normalizeCategoryValue));
   const seen = new Set(options.map((option) => option.value));
 
   categories
     .map(normalizeCategoryValue)
-    .filter((category) => category && !HIDDEN_LEGACY_CATEGORIES.has(category))
+    .filter((category) => category && !HIDDEN_LEGACY_CATEGORIES.has(category) && !hidden.has(category))
     .forEach((category) => {
       if (!seen.has(category)) {
         seen.add(category);
@@ -45,7 +46,16 @@ const readStoredCategories = () => {
   }
 };
 
-const CategoryPicker = ({ value, onChange, options, open, setOpen, title }) => {
+const readHiddenCategories = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('mediaLibraryHiddenCategories'));
+    return Array.isArray(stored) ? stored.map(normalizeCategoryValue).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+};
+
+const CategoryPicker = ({ value, onChange, options, open, setOpen, title, onDelete }) => {
   const activeOption = options.find((option) => option.value === value);
 
   return (
@@ -67,21 +77,39 @@ const CategoryPicker = ({ value, onChange, options, open, setOpen, title }) => {
           <div className="max-h-64 overflow-y-auto p-2" dir="ltr">
             {options.map((option) => {
               const isActive = option.value === value;
+              const canDelete = Boolean(option.value && onDelete);
               return (
-                <button
+                <div
                   key={option.value || 'all'}
-                  type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-colors ${
+                  className={`flex items-center gap-1 rounded-xl transition-colors ${
                     isActive ? 'bg-blue-50 font-black text-blue-700' : 'font-bold text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <span>{option.label}</span>
-                  {isActive && <Check size={16} className="text-blue-600" />}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                    className="flex min-w-0 flex-1 items-center justify-between rounded-xl px-3 py-2 text-left"
+                  >
+                    <span className="truncate">{option.label}</span>
+                    {isActive && <Check size={16} className="shrink-0 text-blue-600" />}
+                  </button>
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDelete(option.value);
+                      }}
+                      className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                      title="حذف البند"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -100,10 +128,12 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [uploadCategory, setUploadCategory] = useState('');
   const [customUploadCategory, setCustomUploadCategory] = useState('');
   const [savedCustomCategories, setSavedCustomCategories] = useState(() => readStoredCategories());
+  const [hiddenCategories, setHiddenCategories] = useState(() => readHiddenCategories());
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingFile, setIsDeletingFile] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [dialog, setDialog] = useState(null);
   const fileInputRef = useRef(null);
@@ -119,14 +149,21 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
       uploadCategory,
       ...savedCustomCategories,
       ...files.map((file) => file.category),
-    ]);
-  }, [files, savedCustomCategories, selectedCategory, uploadCategory]);
+    ], { hiddenCategories });
+  }, [files, hiddenCategories, savedCustomCategories, selectedCategory, uploadCategory]);
 
   const uploadCategoryOptions = useMemo(() => {
     return buildCategoryOptions([...savedCustomCategories, ...files.map((file) => file.category)], {
       includeAll: false,
+      hiddenCategories,
     });
-  }, [files, savedCustomCategories]);
+  }, [files, hiddenCategories, savedCustomCategories]);
+
+
+  const visibleFiles = useMemo(() => {
+    const hidden = new Set(hiddenCategories.map(normalizeCategoryValue));
+    return files.filter((file) => !hidden.has(normalizeCategoryValue(file.category)));
+  }, [files, hiddenCategories]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -159,6 +196,95 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     onClose();
   };
 
+  const handleDeleteFile = async (file) => {
+    const fileKey = file?.key || file?.id || file?.filename;
+    if (!fileKey) return;
+
+    try {
+      setIsDeletingFile(true);
+      await gameService.deleteUploadedFile(adminSession?.token, fileKey);
+      setFiles((current) => current.filter((item) => String(item.key || item.id || item.filename) !== String(fileKey)));
+    } catch (error) {
+      console.error('Failed to delete uploaded file:', error);
+      setDialog({
+        title: 'تعذر حذف الملف',
+        message: 'حدث خطأ أثناء حذف الملف. حاول مرة أخرى.',
+        confirmText: 'حسنًا',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
+      return;
+    } finally {
+      setIsDeletingFile(false);
+    }
+
+    setDialog(null);
+  };
+
+  const requestDeleteFile = (file) => {
+    if (!file) return;
+
+    setDialog({
+      type: 'deleteFile',
+      file,
+      title: 'حذف الملف',
+      message: 'سيتم حذف هذا الملف نهائيًا من مكتبة الوسائط. لو مستخدم داخل لعبة قد تحتاج لاختيار ملف بديل.',
+      confirmText: 'حذف الملف',
+      cancelText: 'إلغاء',
+      isDestructive: true,
+    });
+  };
+
+  const handleDeleteCategory = (category) => {
+    const normalizedCategory = normalizeCategoryValue(category);
+    if (!normalizedCategory) return;
+
+    setSavedCustomCategories((current) => {
+      const updated = current.filter((item) => normalizeCategoryValue(item) !== normalizedCategory);
+      localStorage.setItem('mediaLibraryCategories', JSON.stringify(updated));
+      return updated;
+    });
+
+    setHiddenCategories((current) => {
+      const updated = Array.from(new Set([...current, normalizedCategory]));
+      localStorage.setItem('mediaLibraryHiddenCategories', JSON.stringify(updated));
+      return updated;
+    });
+
+    setFiles((current) => current.filter((file) => normalizeCategoryValue(file.category) !== normalizedCategory));
+    if (selectedCategory === normalizedCategory) setSelectedCategory('');
+    if (uploadCategory === normalizedCategory) setUploadCategory('');
+    setFilterMenuOpen(false);
+    setUploadMenuOpen(false);
+  };
+
+  const requestDeleteCategory = (category) => {
+    const normalizedCategory = normalizeCategoryValue(category);
+    if (!normalizedCategory) return;
+
+    setDialog({
+      type: 'deleteCategory',
+      category: normalizedCategory,
+      title: 'حذف البند',
+      message: 'سيتم إخفاء البند من مكتبة الوسائط. الملفات نفسها لن تحذف من السيرفر.',
+      confirmText: 'حذف البند',
+      cancelText: 'إلغاء',
+      isDestructive: true,
+    });
+  };
+
+  const handleDialogConfirm = async () => {
+    if (dialog?.type === 'deleteFile') {
+      await handleDeleteFile(dialog.file);
+      return;
+    }
+
+    if (dialog?.type === 'deleteCategory') {
+      handleDeleteCategory(dialog.category);
+    }
+    setDialog(null);
+  };
+
   const handleAddCustomCategory = () => {
     const nextCategory = normalizeCategoryValue(customUploadCategory);
 
@@ -176,6 +302,11 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     setSavedCustomCategories((current) => {
       const updated = Array.from(new Set([...current, nextCategory]));
       localStorage.setItem('mediaLibraryCategories', JSON.stringify(updated));
+      return updated;
+    });
+    setHiddenCategories((current) => {
+      const updated = current.filter((item) => normalizeCategoryValue(item) !== nextCategory);
+      localStorage.setItem('mediaLibraryHiddenCategories', JSON.stringify(updated));
       return updated;
     });
     setUploadCategory(nextCategory);
@@ -288,6 +419,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                 open={filterMenuOpen}
                 setOpen={setFilterMenuOpen}
                 title="فلتر البند"
+                onDelete={requestDeleteCategory}
               />
             </div>
           </div>
@@ -305,6 +437,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                 open={uploadMenuOpen}
                 setOpen={setUploadMenuOpen}
                 title="ارفع داخل"
+                onDelete={requestDeleteCategory}
               />
               <button
                 type="button"
@@ -369,14 +502,14 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
               <LoaderCircle size={40} className="animate-spin" />
               <p className="font-bold text-slate-500">جاري تحميل الوسائط...</p>
             </div>
-          ) : files.length === 0 ? (
+          ) : visibleFiles.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
               <ImageIcon size={60} className="opacity-20" />
               <p className="text-lg font-bold">لا توجد ملفات متطابقة</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {files.map((file) => (
+              {visibleFiles.map((file) => (
                 <button
                   key={file.id}
                   type="button"
@@ -388,6 +521,26 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                       {getCategoryLabel(file.category)}
                     </span>
                   )}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      requestDeleteFile(file);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        requestDeleteFile(file);
+                      }
+                    }}
+                    className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-red-500 opacity-100 shadow-sm ring-1 ring-red-100 transition-colors hover:bg-red-50 hover:text-red-600 md:opacity-0 md:group-hover:opacity-100"
+                    title="حذف الملف"
+                  >
+                    <Trash2 size={15} />
+                  </span>
                   <div className="relative flex h-full w-full flex-1 items-center justify-center overflow-hidden bg-slate-50 p-2">
                     {file.type === 'image' ? (
                       <img src={file.url} alt={file.filename} className="h-full w-full object-contain mix-blend-multiply transition-transform group-hover:scale-110" loading="lazy" />
@@ -414,7 +567,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
         <ConfirmModal
           isOpen
           onClose={() => setDialog(null)}
-          onConfirm={() => setDialog(null)}
+          onConfirm={handleDialogConfirm}
           title={dialog.title}
           message={dialog.message}
           confirmText={dialog.confirmText}

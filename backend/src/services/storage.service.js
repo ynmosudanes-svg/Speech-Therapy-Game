@@ -1,7 +1,7 @@
-﻿const crypto = require('crypto');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { S3Client, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const env = require('../config/env');
 
 const UPLOAD_PREFIX = 'uploads/';
@@ -255,9 +255,54 @@ async function listUploadedFiles(req, filters = {}) {
 
   return listLocalUploadedFiles(req, query, type, category);
 }
+function normalizeUploadKey(key) {
+  const trimmedKey = trimSlashes(key);
+  if (!trimmedKey) return '';
+  return trimmedKey.startsWith(UPLOAD_PREFIX) ? trimmedKey.slice(UPLOAD_PREFIX.length) : trimmedKey;
+}
+
+async function deleteLocalUploadedFile(key) {
+  const relativeKey = normalizeUploadKey(key);
+  if (!relativeKey || relativeKey.includes('..')) return false;
+
+  const uploadsRoot = path.resolve(env.uploadsDir);
+  const targetPath = path.resolve(uploadsRoot, ...relativeKey.split('/').filter(Boolean));
+  if (!targetPath.startsWith(`${uploadsRoot}${path.sep}`)) return false;
+
+  try {
+    const stats = await fs.promises.stat(targetPath);
+    if (!stats.isFile()) return false;
+    await fs.promises.unlink(targetPath);
+    return true;
+  } catch (error) {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
+async function deleteR2UploadedFile(key) {
+  const trimmedKey = trimSlashes(key);
+  const objectKey = trimmedKey.startsWith(UPLOAD_PREFIX) ? trimmedKey : `${UPLOAD_PREFIX}${trimmedKey}`;
+  if (!objectKey || objectKey === UPLOAD_PREFIX || objectKey.includes('..')) return false;
+
+  await getR2Client().send(new DeleteObjectCommand({
+    Bucket: env.r2BucketName,
+    Key: objectKey,
+  }));
+  return true;
+}
+
+async function deleteUploadedFile(key) {
+  if (shouldUseR2()) {
+    return deleteR2UploadedFile(key);
+  }
+
+  return deleteLocalUploadedFile(key);
+}
 
 module.exports = {
   uploadUploadedFile,
   listUploadedFiles,
+  deleteUploadedFile,
   sanitizeCategory,
 };

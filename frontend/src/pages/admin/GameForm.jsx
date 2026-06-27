@@ -162,7 +162,6 @@ const EMPTY_MESSAGE = 'ارفع الملف أو اتركه فارغًا مؤقت
 const getActivityAutoTitle = (index) => `نشاط ${index + 1}`;
 const getActivitySummary = (activity, index) =>
   activity?.titleAr?.trim() || activity?.questionAr?.trim() || getActivityAutoTitle(index);
-const getTypeCardTitle = (type) => GAME_TYPE_CARDS.find((card) => card.value === type)?.title || '';
 const DIFFICULTY_OPTIONS = [
   { value: 'easy', label: 'سهل', helper: 'تعليمات بسيطة واختيارات قليلة', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
   { value: 'medium', label: 'متوسط', helper: 'خطوات أكثر أو تمييز أدق', className: 'border-amber-200 bg-amber-50 text-amber-700' },
@@ -833,30 +832,16 @@ const GameForm = ({ mode = 'create' }) => {
   };
 
   const updateDefaultActivityType = (type) => {
-    const selectedTypeCard = GAME_TYPE_CARDS.find((card) => card.value === type);
-
-    setBuilderState((current) => {
-      const previousTypeTitle = getTypeCardTitle(current.type);
-      const trimmedNameAr = current.nameAr?.trim() || '';
-      const trimmedName = current.name?.trim() || '';
-      const shouldReplaceAutoName =
-        !trimmedNameAr || trimmedNameAr === previousTypeTitle || trimmedNameAr === trimmedName;
-      const autoNameAr = shouldReplaceAutoName ? selectedTypeCard?.title || '' : trimmedNameAr;
-      const autoName = shouldReplaceAutoName ? autoNameAr : trimmedName || trimmedNameAr;
-
-      return {
-        ...current,
-        type,
-        name: autoName,
-        nameAr: autoNameAr,
-        config: {
-          ...normalizeActivityTypesForConfig(current.config, type),
-          templateType: type,
-          name: autoName,
-          nameAr: autoNameAr,
-        },
-      };
-    });
+    setBuilderState((current) => ({
+      ...current,
+      type,
+      config: {
+        ...normalizeActivityTypesForConfig(current.config, type),
+        templateType: type,
+        name: current.name || '',
+        nameAr: current.nameAr || '',
+      },
+    }));
     setFormError('');
   };
 

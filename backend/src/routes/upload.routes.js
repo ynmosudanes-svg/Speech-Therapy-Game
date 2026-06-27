@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const env = require('../config/env');
-const { uploadFile, listUploadedFiles } = require('../controllers/upload.controller');
+const { uploadFile, listUploadedFiles, deleteUploadedFile } = require('../controllers/upload.controller');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -41,4 +41,11 @@ router.get(
   listUploadedFiles
 );
 
+
+router.delete(
+  '/api/uploads',
+  authenticate,
+  authorize('SUPER_ADMIN', 'THERAPIST'),
+  deleteUploadedFile
+);
 module.exports = router;

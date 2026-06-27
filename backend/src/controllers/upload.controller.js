@@ -1,4 +1,4 @@
-﻿const storageService = require('../services/storage.service');
+const storageService = require('../services/storage.service');
 
 async function uploadFile(req, res) {
   if (!req.file) {
@@ -51,8 +51,41 @@ async function listUploadedFiles(req, res) {
   }
 }
 
+async function deleteUploadedFile(req, res) {
+  const key = req.query.key || req.body?.key;
+
+  if (!key) {
+    return res.status(400).json({
+      success: false,
+      message: 'File key is required.',
+    });
+  }
+
+  try {
+    const deleted = await storageService.deleteUploadedFile(key);
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'File deleted successfully.',
+    });
+  } catch (error) {
+    console.error('Delete File Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete file.',
+      error: error.message,
+    });
+  }
+}
 module.exports = {
   uploadFile,
   listUploadedFiles,
+  deleteUploadedFile,
 };
 

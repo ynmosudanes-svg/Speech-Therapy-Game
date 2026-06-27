@@ -7,6 +7,7 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'image.complete_part',
   'sequence.order',
   'action.drag_to_target',
+  'spatial.concepts',
   'navigation.move_to_target',
   'navigation.maze',
   'text.missing_word',
@@ -18,7 +19,8 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'emotion.faces',
   'eye_tracking.bird',
   'true_false',
-  'eye_tracking.choose'
+  'eye_tracking.choose',
+  'grammar.adjectives'
 ];
 
 function createEmptyLevel(levelNumber) {
@@ -176,6 +178,36 @@ function normalizeActivity(activity, type, index) {
     };
   }
 
+  if (activityType === 'grammar.adjectives') {
+    return {
+      ...baseActivity,
+      heroImage: activity?.heroImage || '',
+      sentenceText: activity?.sentenceText || '',
+      adjectives: Array.isArray(activity?.adjectives) ? activity.adjectives.map(normalizeOption) : [],
+      nouns: Array.isArray(activity?.nouns) ? activity.nouns.map(normalizeOption) : [],
+    };
+  }
+
+  if (activityType === 'spatial.concepts') {
+    return {
+      ...baseActivity,
+      sceneImage: activity?.sceneImage || '',
+      gameMode: activity?.gameMode || 'choose_concept',
+      conceptType: activity?.conceptType || 'above_below',
+      options: Array.isArray(activity?.options) ? activity.options.map(normalizeOption) : [],
+      dragItem: {
+        id: String(activity?.dragItem?.id || 'drag_1'),
+        image: activity?.dragItem?.image || '',
+        labelAr: activity?.dragItem?.labelAr || '',
+      },
+      dropZone: {
+        x: Number(activity?.dropZone?.x ?? 50),
+        y: Number(activity?.dropZone?.y ?? 20),
+        width: Number(activity?.dropZone?.width ?? 20),
+        height: Number(activity?.dropZone?.height ?? 20),
+      },
+    };
+  }
   if (activityType === 'action.drag_to_target') {
     return {
       ...baseActivity,

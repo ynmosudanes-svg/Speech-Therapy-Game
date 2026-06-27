@@ -16,6 +16,8 @@ import MemoryGridGame from './MemoryGridGame';
 import TrueFalseGame from './TrueFalseGame';
 import EyeTrackingChooseGame from './EyeTrackingChooseGame';
 import EyeTrackingBirdGame from './EyeTrackingBirdGame';
+import GrammarAdjectivesGame from './GrammarAdjectivesGame';
+import SpatialConceptsGame from './SpatialConceptsGame';
 
 const renderGameActivity = ({
   game,
@@ -99,12 +101,20 @@ const renderGameActivity = ({
     return <TrueFalseGame {...sharedProps} />;
   }
 
+  if (game?.type === 'grammar.adjectives') {
+    return <GrammarAdjectivesGame {...sharedProps} />;
+  }
+
   if (game?.type === 'eye_tracking.choose') {
     return <EyeTrackingChooseGame {...sharedProps} />;
   }
 
   if (game?.type === 'eye_tracking.bird') {
     return <EyeTrackingBirdGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'spatial.concepts') {
+    return <SpatialConceptsGame {...sharedProps} />;
   }
 
   return null;

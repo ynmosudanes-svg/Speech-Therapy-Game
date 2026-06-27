@@ -53,6 +53,7 @@ const gameSchema = new mongoose.Schema(
         'matching.shadow',
         'sequence.order',
         'action.drag_to_target',
+        'spatial.concepts',
         'navigation.move_to_target',
         'navigation.maze',
         'text.missing_word',
@@ -64,6 +65,7 @@ const gameSchema = new mongoose.Schema(
         'true_false',
         'eye_tracking.choose',
         'eye_tracking.bird',
+        'grammar.adjectives',
       ],
     },
     level: {

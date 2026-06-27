@@ -13,6 +13,8 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'true_false') return 'استمع وحدد الإجابة الصحيحة';
   if (type === 'eye_tracking.choose') return 'انظر إلى الصورة الصحيحة باستمرار';
   if (type === 'eye_tracking.bird') return 'انظر إلى العصفور ليطير';
+  if (type === 'grammar.adjectives') return 'اسحب الكلمة المناسبة لتكوين الجملة';
+  if (type === 'spatial.concepts') return 'أين العنصر؟ اختر المفهوم المكاني الصحيح';
   return 'اكتب السؤال هنا';
 };
 
@@ -178,6 +180,27 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
     };
   }
 
+  if (type === 'grammar.adjectives') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      heroImage: '',
+      sentenceText: 'هذا [     ] [     ]',
+      adjectives: [
+        { id: `adj_${Date.now()}_1`, textAr: 'ناعم', image: '', isCorrect: true },
+        { id: `adj_${Date.now()}_2`, textAr: 'صلب', image: '', isCorrect: false }
+      ],
+      nouns: [
+        { id: `noun_${Date.now()}_1`, textAr: 'كرسي', image: '', isCorrect: true },
+        { id: `noun_${Date.now()}_2`, textAr: 'سرير', image: '', isCorrect: false }
+      ]
+    };
+  }
+
   if (type === 'eye_tracking.bird') {
     return {
       type,
@@ -187,6 +210,26 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       instructionAudio: '',
       heroImage: '',
       difficulty: 'easy',
+    };
+  }
+
+  if (type === 'spatial.concepts') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      sceneImage: '',
+      gameMode: 'choose_concept',
+      conceptType: 'above_below',
+      options: [
+        { id: `opt_${Date.now()}_1`, textAr: 'فوق', emoji: '⬆️', image: '', isCorrect: true },
+        { id: `opt_${Date.now()}_2`, textAr: 'تحت', emoji: '⬇️', image: '', isCorrect: false },
+      ],
+      dragItem: { id: 'drag_1', image: '', labelAr: '' },
+      dropZone: { x: 50, y: 20, width: 20, height: 20 },
     };
   }
 
@@ -890,6 +933,56 @@ export const buildActivityRuntimeGame = ({
           instructionAr: activity?.questionAr || 'قم بتوصيل كل صورة بما يطابقها',
           instructionAudio: activity?.instructionAudio || '',
           pairs: Array.isArray(activity?.pairs) ? activity.pairs : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'grammar.adjectives') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
+          heroImage: activity?.heroImage || '',
+          sentenceText: activity?.sentenceText || '',
+          adjectives: Array.isArray(activity?.adjectives) ? activity.adjectives : [],
+          nouns: Array.isArray(activity?.nouns) ? activity.nouns : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'spatial.concepts') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
+          sceneImage: activity?.sceneImage || '',
+          gameMode: activity?.gameMode || 'choose_concept',
+          conceptType: activity?.conceptType || 'above_below',
+          options: Array.isArray(activity?.options) ? activity.options : [],
+          dragItem: activity?.dragItem || { id: 'drag_1', image: '', labelAr: '' },
+          dropZone: activity?.dropZone || { x: 50, y: 20, width: 20, height: 20 },
         },
         feedback: {
           successSound: sharedMedia?.successSound || '',

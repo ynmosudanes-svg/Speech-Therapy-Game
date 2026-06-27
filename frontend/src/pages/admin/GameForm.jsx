@@ -93,6 +93,11 @@ const GAME_TYPE_CARDS = [
     accent: 'from-rose-100 to-orange-100',
   },
   {
+    value: 'spatial.concepts',
+    title: 'المفاهيم المكانية',
+    description: 'صورة تفاعلية لتعليم فوق/تحت، داخل/خارج، أمام/خلف، يمين/يسار، قريب/بعيد مع اختيار أو سحب وإفلات.',
+    accent: 'from-cyan-100 to-emerald-100',
+  },  {
     value: 'navigation.move_to_target',
     title: 'التحريك بالأزرار',
     description: 'تحريك عنصر خطوة بخطوة باستخدام الأسهم حتى يصل إلى الهدف.',
@@ -145,6 +150,12 @@ const GAME_TYPE_CARDS = [
     title: 'التتبع بالعين - تتبع العصفور',
     description: 'يظهر عصفور يتحرك من اليمين لليسار فقط عندما ينظر إليه الطفل، لتدريب التركيز المستمر.',
     accent: 'from-yellow-100 to-amber-100',
+  },
+  {
+    value: 'grammar.adjectives',
+    title: 'تكوين جملة (صفة واسم)',
+    description: 'لعبة لتكوين الجمل. يسحب الطفل الصفة ثم الاسم الصحيح لملء الفراغات وتكوين جملة مفيدة.',
+    accent: 'from-orange-100 to-rose-100',
   },
 ];
 const EMPTY_MESSAGE = 'ارفع الملف أو اتركه فارغًا مؤقتًا';
@@ -1015,10 +1026,62 @@ const GameForm = ({ mode = 'create' }) => {
       };
     });
   };
+
+  // Grammar Adjectives Helpers
+  const updateAdjective = (index, field, value) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      adjectives: (activity.adjectives || []).map((opt, i) => (i === index ? { ...opt, [field]: value } : opt)),
+    }));
+  };
+  const selectCorrectAdjective = (index) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      adjectives: (activity.adjectives || []).map((opt, i) => ({ ...opt, isCorrect: i === index })),
+    }));
+  };
+  const addAdjective = () => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      adjectives: [...(activity.adjectives || []), { id: `adj_${Date.now()}`, image: '', textAr: '', isCorrect: false }],
+    }));
+  };
+  const removeAdjective = (index) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      adjectives: (activity.adjectives || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateNoun = (index, field, value) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      nouns: (activity.nouns || []).map((opt, i) => (i === index ? { ...opt, [field]: value } : opt)),
+    }));
+  };
+  const selectCorrectNoun = (index) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      nouns: (activity.nouns || []).map((opt, i) => ({ ...opt, isCorrect: i === index })),
+    }));
+  };
+  const addNoun = () => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      nouns: [...(activity.nouns || []), { id: `noun_${Date.now()}`, image: '', textAr: '', isCorrect: false }],
+    }));
+  };
+  const removeNoun = (index) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      nouns: (activity.nouns || []).filter((_, i) => i !== index),
+    }));
+  };
+
   // Auto-initialize options if empty
   useEffect(() => {
     if (
-      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal', 'image.complete_part', 'emotion.faces', 'true_false', 'eye_tracking.bird'].includes(currentActivityType) && 
+      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal', 'image.complete_part', 'emotion.faces', 'true_false', 'eye_tracking.bird', 'spatial.concepts'].includes(currentActivityType) && 
       currentActivity
     ) {
       if (!currentActivity.options || currentActivity.options.length === 0) {
@@ -1179,6 +1242,30 @@ const GameForm = ({ mode = 'create' }) => {
       },
     }));
   };
+  const updateSpatialDragItem = (field, value) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      dragItem: {
+        id: 'drag_1',
+        ...(activity.dragItem || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const updateSpatialDropZone = (field, value) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      dropZone: {
+        x: 50,
+        y: 20,
+        width: 20,
+        height: 20,
+        ...(activity.dropZone || {}),
+        [field]: value,
+      },
+    }));
+  };
 
   const applyMazePreset = (presetKey) => {
     const preset = MAZE_PRESETS[presetKey];
@@ -1323,6 +1410,24 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
+        if (activityType === 'grammar.adjectives') {
+          if (!activity.heroImage?.trim()) {
+            return `أضف الصورة الرئيسية في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.adjectives || []).length < 2) {
+            return `يجب إضافة صفتين على الأقل في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.adjectives || []).filter((o) => o.isCorrect).length !== 1) {
+            return `حدد صفة صحيحة واحدة في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.nouns || []).length < 2) {
+            return `يجب إضافة اسمين على الأقل في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.nouns || []).filter((o) => o.isCorrect).length !== 1) {
+            return `حدد اسم صحيح واحد في المستوى ${level.levelNumber}.`;
+          }
+        }
+
         if (activityType === 'matching.find') {
           if ((activity.options || []).length < 2) {
             return `لعبة أوجد الصورة تحتاج صورتين على الأقل في المستوى ${level.levelNumber}.`;
@@ -1356,6 +1461,34 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
+        if (activityType === 'spatial.concepts') {
+          const spatialMode = activity.gameMode || 'choose_concept';
+          if (!activity.sceneImage?.trim()) {
+            return `أضف صورة المشهد في لعبة المفاهيم المكانية في المستوى ${level.levelNumber}.`;
+          }
+          if (spatialMode === 'drag_to_position') {
+            if (!activity.dragItem?.image?.trim()) {
+              return `أضف صورة العنصر المتحرك في لعبة المفاهيم المكانية في المستوى ${level.levelNumber}.`;
+            }
+            const zone = activity.dropZone || {};
+            if ([zone.x, zone.y, zone.width, zone.height].some((value) => Number(value) <= 0)) {
+              return `حدد منطقة إسقاط صالحة في لعبة المفاهيم المكانية في المستوى ${level.levelNumber}.`;
+            }
+          } else {
+            if ((activity.options || []).length < 2) {
+              return `لعبة المفاهيم المكانية تحتاج اختيارين على الأقل في المستوى ${level.levelNumber}.`;
+            }
+            if ((activity.options || []).filter((option) => option.isCorrect).length !== 1) {
+              return `حدد إجابة صحيحة واحدة فقط في لعبة المفاهيم المكانية في المستوى ${level.levelNumber}.`;
+            }
+            if ((activity.options || []).some((option) => !option.textAr?.trim() && !option.image?.trim())) {
+              return `كل اختيارات المفاهيم المكانية تحتاج نصًا أو صورة في المستوى ${level.levelNumber}.`;
+            }
+            if (spatialMode === 'choose_element' && (activity.options || []).some((option) => !option.image?.trim())) {
+              return `اختيار العنصر الصحيح يحتاج صورة لكل اختيار في المستوى ${level.levelNumber}.`;
+            }
+          }
+        }
         if (activityType === 'picture.reveal') {
           if (!activity.image?.trim()) {
             return `أضف الصورة المخفية في المستوى ${level.levelNumber}.`;
@@ -2004,6 +2137,74 @@ const GameForm = ({ mode = 'create' }) => {
                       previewType="audio"
                     />
 
+                    {currentActivityType === 'spatial.concepts' && (
+                      <div className="pt-2 space-y-5">
+                        <ImageAssetField
+                          label="صورة المشهد أو الخلفية"
+                          value={currentActivity.sceneImage || ''}
+                          onSelect={(value) => setActivityField('sceneImage', value)}
+                          token={adminSession?.token}
+                          initialQuery="cartoon spatial concepts scene"
+                        />
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <label className="block text-blue-900 font-bold mb-2">نمط اللعب</label>
+                            <select
+                              value={currentActivity.gameMode || 'choose_concept'}
+                              onChange={(event) => setActivityField('gameMode', event.target.value)}
+                              className="w-full px-4 py-3 rounded-2xl border border-blue-200 bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                            >
+                              <option value="choose_concept">اختيار المفهوم الصحيح</option>
+                              <option value="choose_element">اختيار العنصر الصحيح</option>
+                              <option value="drag_to_position">السحب والإفلات</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-blue-900 font-bold mb-2">نوع المفهوم</label>
+                            <select
+                              value={currentActivity.conceptType || 'above_below'}
+                              onChange={(event) => setActivityField('conceptType', event.target.value)}
+                              className="w-full px-4 py-3 rounded-2xl border border-blue-200 bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                            >
+                              <option value="above_below">فوق / تحت</option>
+                              <option value="inside_outside">داخل / خارج</option>
+                              <option value="front_behind">أمام / خلف</option>
+                              <option value="right_left">يمين / يسار</option>
+                              <option value="near_far">قريب / بعيد</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {(currentActivity.gameMode || 'choose_concept') === 'drag_to_position' && (
+                          <div className="rounded-[1.8rem] border border-blue-100 bg-white/80 p-5 space-y-5">
+                            <ImageAssetField
+                              label="صورة العنصر المتحرك"
+                              value={currentActivity.dragItem?.image || ''}
+                              onSelect={(value) => updateSpatialDragItem('image', value)}
+                              token={adminSession?.token}
+                              initialQuery="cartoon object isolated white background"
+                            />
+
+                            <input
+                              type="text"
+                              value={currentActivity.dragItem?.labelAr || ''}
+                              onChange={(event) => updateSpatialDragItem('labelAr', event.target.value)}
+                              className="w-full px-4 py-3 rounded-2xl border border-blue-200 bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                              placeholder="اسم العنصر المتحرك"
+                            />
+
+                            <div className="grid gap-3 sm:grid-cols-4">
+                              <input type="number" min={0} max={100} value={currentActivity.dropZone?.x ?? 50} onChange={(event) => updateSpatialDropZone('x', Number(event.target.value))} className="px-4 py-3 rounded-2xl border border-blue-200 outline-none" placeholder="X" />
+                              <input type="number" min={0} max={100} value={currentActivity.dropZone?.y ?? 20} onChange={(event) => updateSpatialDropZone('y', Number(event.target.value))} className="px-4 py-3 rounded-2xl border border-blue-200 outline-none" placeholder="Y" />
+                              <input type="number" min={5} max={100} value={currentActivity.dropZone?.width ?? 20} onChange={(event) => updateSpatialDropZone('width', Number(event.target.value))} className="px-4 py-3 rounded-2xl border border-blue-200 outline-none" placeholder="العرض" />
+                              <input type="number" min={5} max={100} value={currentActivity.dropZone?.height ?? 20} onChange={(event) => updateSpatialDropZone('height', Number(event.target.value))} className="px-4 py-3 rounded-2xl border border-blue-200 outline-none" placeholder="الارتفاع" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {currentActivityType === 'matching.similar' && (
                       <div className="pt-2">
                         <ImageAssetField
@@ -2013,6 +2214,28 @@ const GameForm = ({ mode = 'create' }) => {
                           token={adminSession?.token}
                           initialQuery="child object flashcard"
                         />
+                      </div>
+                    )}
+
+                    {currentActivityType === 'grammar.adjectives' && (
+                      <div className="pt-2 space-y-4">
+                        <ImageAssetField
+                          label="الصورة الرئيسية الكبيرة"
+                          value={currentActivity.heroImage || ''}
+                          onSelect={(value) => setActivityField('heroImage', value)}
+                          token={adminSession?.token}
+                          initialQuery="object isolated white background"
+                        />
+                        <div>
+                          <label className="block text-blue-900 font-bold mb-2">جملة اللعبة (استخدم [     ] مكان الفراغ)</label>
+                          <input
+                            type="text"
+                            value={currentActivity.sentenceText || ''}
+                            onChange={(event) => setActivityField('sentenceText', event.target.value)}
+                            className="w-full px-4 py-3 rounded-2xl border border-blue-200 bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                            placeholder="مثال: هذا [     ] [     ]"
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -2433,6 +2656,70 @@ const GameForm = ({ mode = 'create' }) => {
                                 onChange={() => selectCorrectOption(optionIndex)}
                               />
                               <span>هذه هي الإجابة الصحيحة</span>
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentActivityType === 'grammar.adjectives' && (
+                    <div className="bg-orange-50/40 border border-orange-100 rounded-[2rem] p-6 space-y-6 mt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 text-orange-700">
+                          <CheckCircle2 size={24} />
+                          <h3 className="text-xl font-black">خيارات الصفات (المرحلة الأولى)</h3>
+                        </div>
+                        <Button type="button" variant="outline" onClick={addAdjective} className="!py-2 !px-4 !border-orange-200 !text-orange-700 hover:!bg-orange-100">
+                          <Plus size={18} />
+                          <span>إضافة صفة</span>
+                        </Button>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {(currentActivity.adjectives || []).map((option, index) => (
+                          <div key={option.id} className="rounded-[1.8rem] border border-[#dbe7f3] bg-[#f8fbff] p-5 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-black text-slate-800">صفة {index + 1}</h4>
+                              <button type="button" onClick={() => removeAdjective(index)} disabled={(currentActivity.adjectives || []).length <= 2} className="text-red-500 border-red-200 bg-red-50 hover:bg-red-100 p-2 rounded-xl">
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                            <input type="text" value={option.textAr || ''} onChange={(e) => updateAdjective(index, 'textAr', e.target.value)} className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none" placeholder="الصفة (مثال: ناعم)" />
+                            <ImageAssetField label="صورة الصفة" value={option.image || ''} onSelect={(value) => updateAdjective(index, 'image', value)} token={adminSession?.token} initialQuery={option.textAr} />
+                            <label className="flex items-center gap-2 font-bold text-orange-800">
+                              <input type="radio" checked={Boolean(option.isCorrect)} onChange={() => selectCorrectAdjective(index)} name={`adj_${selectedActivity}`} />
+                              <span>هذه هي الصفة الصحيحة</span>
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between mb-4 mt-8">
+                        <div className="flex items-center gap-2 text-rose-700">
+                          <CheckCircle2 size={24} />
+                          <h3 className="text-xl font-black">خيارات الأسماء (المرحلة الثانية)</h3>
+                        </div>
+                        <Button type="button" variant="outline" onClick={addNoun} className="!py-2 !px-4 !border-rose-200 !text-rose-700 hover:!bg-rose-100">
+                          <Plus size={18} />
+                          <span>إضافة اسم</span>
+                        </Button>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {(currentActivity.nouns || []).map((option, index) => (
+                          <div key={option.id} className="rounded-[1.8rem] border border-[#dbe7f3] bg-[#f8fbff] p-5 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-black text-slate-800">اسم {index + 1}</h4>
+                              <button type="button" onClick={() => removeNoun(index)} disabled={(currentActivity.nouns || []).length <= 2} className="text-red-500 border-red-200 bg-red-50 hover:bg-red-100 p-2 rounded-xl">
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                            <input type="text" value={option.textAr || ''} onChange={(e) => updateNoun(index, 'textAr', e.target.value)} className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none" placeholder="الاسم (مثال: كرسي)" />
+                            <ImageAssetField label="صورة الاسم" value={option.image || ''} onSelect={(value) => updateNoun(index, 'image', value)} token={adminSession?.token} initialQuery={option.textAr} />
+                            <label className="flex items-center gap-2 font-bold text-rose-800">
+                              <input type="radio" checked={Boolean(option.isCorrect)} onChange={() => selectCorrectNoun(index)} name={`noun_${selectedActivity}`} />
+                              <span>هذا هو الاسم الصحيح</span>
                             </label>
                           </div>
                         ))}
@@ -2862,7 +3149,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {(currentActivityType === 'matching.find' || currentActivityType === 'matching.shadow' || currentActivityType === 'picture.reveal' || currentActivityType === 'emotion.faces') && (
+                  {(currentActivityType === 'matching.find' || currentActivityType === 'matching.shadow' || currentActivityType === 'picture.reveal' || currentActivityType === 'emotion.faces' || currentActivityType === 'spatial.concepts') && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">

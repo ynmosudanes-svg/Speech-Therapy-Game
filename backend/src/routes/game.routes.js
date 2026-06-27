@@ -19,6 +19,7 @@ const supportedTypes = [
   'matching.shadow',
   'sequence.order',
   'action.drag_to_target',
+  'spatial.concepts',
   'navigation.move_to_target',
   'navigation.maze',
   'text.missing_word',

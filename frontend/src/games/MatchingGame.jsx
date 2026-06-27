@@ -205,15 +205,15 @@ const MatchingGame = ({
   };
 
   const optionMinWidth = isFindMode
-    ? 'clamp(220px, 72vw, 300px)'
+    ? 'clamp(200px, 66vw, 270px)'
     : isDifferentMode
       ? 'clamp(118px, 18vw, 176px)'
       : 'clamp(120px, 18vw, 184px)';
   const optionGridClassName = isFindMode
-    ? 'mx-auto mt-14 w-full max-w-[40rem] justify-items-center sm:mt-8 md:mt-10'
+    ? 'mx-auto mt-8 w-full max-w-[40rem] justify-items-center sm:mt-8 md:mt-10'
     : 'mx-auto w-full max-w-3xl justify-items-center';
   const optionChoiceClassName = isFindMode
-    ? 'relative w-full max-w-[300px] min-h-[clamp(210px,68vw,280px)] sm:min-h-[clamp(168px,22vw,240px)] lg:max-w-[280px] lg:min-h-[220px]'
+    ? 'relative w-full max-w-[270px] min-h-[clamp(188px,60vw,248px)] sm:min-h-[clamp(168px,22vw,240px)] lg:max-w-[280px] lg:min-h-[220px]'
     : 'relative w-full max-w-[220px] min-h-[clamp(124px,16vw,176px)] lg:max-w-[210px] lg:min-h-[160px]';
   const containerMaxWidth = isFindMode
     ? 'min(100%, clamp(22.5rem, 52vw, 46rem))'

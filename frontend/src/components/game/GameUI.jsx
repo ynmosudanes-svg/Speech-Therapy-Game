@@ -16,10 +16,10 @@ export const GAME_UI_TOKENS = {
 };
 
 export const GAME_ASSISTANT_HINT_CLASS =
-  '!border-[#19add6] bg-[#eefaff]/85 ring-[3px] ring-[#7dd3fc]/95 shadow-[0_0_0_5px_rgba(25,173,214,0.26),0_16px_34px_rgba(25,173,214,0.22)] scale-[1.01] animate-pulse';
+  '!border-[#19add6] bg-white/94 ring-[3px] ring-[#7dd3fc]/95 shadow-[0_0_0_5px_rgba(25,173,214,0.26),0_16px_34px_rgba(25,173,214,0.22)] scale-[1.01]';
 
 export const GAME_ASSISTANT_HINT_OVERLAY_CLASS =
-  'pointer-events-none absolute inset-[-1px] z-20 rounded-[inherit] ring-[3px] ring-[#7dd3fc]/90 opacity-95';
+  'pointer-events-none absolute inset-[-1px] z-20 rounded-[inherit] ring-[3px] ring-[#7dd3fc]/90 opacity-95 animate-pulse';
 
 const shellClassName =
   'border border-[#dbe7f3] bg-white/82 backdrop-blur-[10px]';

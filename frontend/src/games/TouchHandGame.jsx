@@ -47,7 +47,7 @@ const TouchHandGame = ({
   const successSound = config?.feedback?.successSound || game?.successSound || '';
   const failSound = config?.feedback?.failSound || game?.failSound || '';
   const pointerType = content.pointerType === 'finger' ? 'finger' : 'hand';
-  const pointerLabel = pointerType === 'finger' ? '\u0627\u0644\u0645\u0633' : '\u0627\u0633\u062d\u0628';
+  const pointerLabel = pointerType === 'finger' ? '\u0627\u0644\u0645\u0633' : '\u0627\u0645\u0633\u0643';
   const pointerImage = pointerType === 'finger' ? fingerPointerImage : openHandImage;
   const avatarState = showFeedback ? (isCorrect ? 'celebration' : 'error') : 'learning';
 
@@ -257,25 +257,31 @@ const TouchHandGame = ({
           })}
         </div>
 
-        <button
-          type="button"
-          className={`absolute z-30 grid h-24 w-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-white bg-gradient-to-br from-amber-100 to-orange-200 text-[#0f6f95] shadow-[0_18px_36px_-18px_rgba(15,66,92,0.45)] transition-transform duration-150 sm:h-28 sm:w-28 ${
-            isDragging ? 'scale-110 cursor-grabbing' : 'cursor-grab active:scale-105'
+        <div
+          className={`absolute z-30 h-24 w-24 -translate-x-1/2 -translate-y-1/2 transition-transform duration-150 sm:h-28 sm:w-28 ${
+            isDragging ? 'scale-110' : 'active:scale-105'
           }`}
           style={{ left: `${handPosition.x}%`, top: `${handPosition.y}%` }}
-          onPointerDown={handlePointerDown}
-          aria-label={pointerLabel}
         >
-          <img
-            src={pointerImage}
-            alt=""
-            className={pointerType === 'finger' ? 'h-16 w-16 object-contain drop-shadow-sm sm:h-20 sm:w-20' : 'h-[4.5rem] w-[4.5rem] object-contain drop-shadow-sm sm:h-24 sm:w-24'}
-            draggable="false"
-          />
-          <span className="pointer-events-none absolute -top-2 rounded-full bg-white/95 px-2 py-0.5 text-[0.65rem] font-black text-slate-600 shadow-sm">
+          <span className="pointer-events-none absolute left-1/2 top-[-1.65rem] -translate-x-1/2 rounded-full bg-white/95 px-3 py-0.5 text-[0.72rem] font-black text-slate-700 shadow-sm">
             {pointerLabel}
           </span>
-        </button>
+          <button
+            type="button"
+            className={`grid h-full w-full place-items-center overflow-hidden rounded-full border-4 border-white bg-white text-[#0f6f95] shadow-[0_18px_36px_-18px_rgba(15,66,92,0.45)] transition-colors duration-150 ${
+              isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
+            onPointerDown={handlePointerDown}
+            aria-label={pointerLabel}
+          >
+            <img
+              src={pointerImage}
+              alt=""
+              className={pointerType === 'finger' ? 'h-[92%] w-[92%] object-contain drop-shadow-sm' : 'h-full w-full object-contain drop-shadow-sm'}
+              draggable="false"
+            />
+          </button>
+        </div>
       </div>
 
       <FeedbackModal

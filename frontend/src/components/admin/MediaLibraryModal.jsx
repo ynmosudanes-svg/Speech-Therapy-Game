@@ -48,7 +48,9 @@ const buildCategoryOptions = (categories, { includeAll = true, hiddenCategories 
 const readStoredCategories = () => {
   try {
     const stored = JSON.parse(localStorage.getItem('mediaLibraryCategories'));
-    return Array.isArray(stored) ? stored.map(normalizeCategoryValue).filter(Boolean) : [];
+    return Array.isArray(stored)
+      ? stored.map(normalizeCategoryValue).filter((category) => category && !HIDDEN_LEGACY_CATEGORIES.has(category) && !isLegacyCodeCategory(category))
+      : [];
   } catch {
     return [];
   }
@@ -57,7 +59,9 @@ const readStoredCategories = () => {
 const readHiddenCategories = () => {
   try {
     const stored = JSON.parse(localStorage.getItem('mediaLibraryHiddenCategories'));
-    return Array.isArray(stored) ? stored.map(normalizeCategoryValue).filter(Boolean) : [];
+    return Array.isArray(stored)
+      ? stored.map(normalizeCategoryValue).filter((category) => category && !isLegacyCodeCategory(category))
+      : [];
   } catch {
     return [];
   }
@@ -174,7 +178,8 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     return files.filter((file) => {
       const normalizedCategory = normalizeCategoryValue(file.category);
       const matchesType = !selectedType || file.type === selectedType;
-      return matchesType && !hidden.has(normalizedCategory);
+      const isHiddenCategory = hidden.has(normalizedCategory) && !isLegacyCodeCategory(normalizedCategory);
+      return matchesType && !isHiddenCategory;
     });
   }, [files, hiddenCategories, selectedType]);
 
@@ -444,7 +449,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
           </div>
 
           <div className="mt-4 flex flex-col gap-3 rounded-[1.75rem] border border-blue-100 bg-gradient-to-l from-blue-50 to-white p-3 shadow-sm md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <div className="flex flex-1 flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
               <span className="inline-flex items-center gap-2 text-sm font-black text-slate-700">
                 <FolderOpen size={18} className="text-blue-500" />
                 ارفع داخل:
@@ -467,7 +472,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                 إضافة بند
               </button>
               {isAddingCategory && (
-                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <div className="flex w-full flex-col gap-2 rounded-2xl border border-blue-100 bg-white/80 p-2 sm:flex-row">
                   <input
                     type="text"
                     value={customUploadCategory}

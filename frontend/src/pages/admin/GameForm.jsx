@@ -99,6 +99,12 @@ const GAME_TYPE_CARDS = [
     title: 'المس باليد',
     description: 'تظهر يد كرتونية في أسفل الشاشة، ويسحبها الطفل حتى تلمس الصورة المطلوبة بدل الضغط المباشر على الإجابة.',
     accent: 'from-amber-100 to-cyan-100',
+  },  
+  {
+    value: 'motor.shake_image',
+    title: '\u0647\u0632 \u0627\u0644\u0635\u0648\u0631\u0629',
+    description: '\u0635\u0648\u0631\u0629 \u0648\u0627\u062d\u062f\u0629 \u064a\u0645\u0633\u0643\u0647\u0627 \u0627\u0644\u0637\u0641\u0644 \u0648\u064a\u0647\u0632\u0647\u0627 \u064a\u0645\u064a\u0646 \u0648\u0634\u0645\u0627\u0644 \u062d\u062a\u0649 \u062a\u062a\u062d\u0633\u0628 \u0625\u062c\u0627\u0628\u0629 \u0635\u062d\u064a\u062d\u0629.',
+    accent: 'from-lime-100 to-cyan-100',
   },  {
     value: 'spatial.concepts',
     title: 'المفاهيم المكانية',
@@ -1510,6 +1516,12 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
+
+        if (activityType === 'motor.shake_image') {
+          if (!activity.image?.trim()) {
+            return `\u0623\u0636\u0641 \u0635\u0648\u0631\u0629 \u0644\u0639\u0628\u0629 \u0647\u0632 \u0627\u0644\u0635\u0648\u0631\u0629 \u0641\u064a \u0627\u0644\u0645\u0633\u062a\u0648\u0649 ${level.levelNumber}.`;
+          }
+        }
         if (activityType === 'spatial.concepts') {
           const spatialMode = activity.gameMode || 'choose_concept';
           if (!activity.sceneImage?.trim()) {
@@ -2301,6 +2313,31 @@ const GameForm = ({ mode = 'create' }) => {
                             </div>
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {currentActivityType === 'motor.shake_image' && (
+                      <div className="pt-2 space-y-4">
+                        <ImageAssetField
+                          label={'\u0635\u0648\u0631\u0629 \u0627\u0644\u0647\u0632'}
+                          value={currentActivity.image || ''}
+                          onSelect={(value) => setActivityField('image', value)}
+                          token={adminSession?.token}
+                          initialQuery="child object isolated white background"
+                        />
+
+                        <div className="rounded-2xl border border-[#D9EAF2] bg-[#EAF7FD] px-4 py-4">
+                          <label className="block text-sm font-bold text-[#0F6FA6] mb-3">{'\u0639\u062f\u062f \u0627\u0644\u0647\u0632\u0627\u062a \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629'}</label>
+                          <input
+                            type="range"
+                            min="3"
+                            max="10"
+                            value={Number(currentActivity.requiredShakes || 6)}
+                            onChange={(event) => setActivityField('requiredShakes', Number(event.target.value))}
+                            className="w-full accent-[#0b8fc5]"
+                          />
+                          <div className="mt-2 text-center text-sm font-black text-slate-700">{Number(currentActivity.requiredShakes || 6)}</div>
+                        </div>
                       </div>
                     )}
                     {currentActivityType === 'matching.similar' && (

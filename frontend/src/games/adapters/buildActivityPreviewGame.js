@@ -5,6 +5,7 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'matching.different') return 'أوجد المختلف';
   if (type === 'matching.find') return 'أوجد الصورة المطلوبة';
   if (type === 'touch.hand') return 'اسحب اليد والمس الصورة المطلوبة';
+  if (type === 'motor.shake_image') return '\u0627\u0645\u0633\u0643 \u0627\u0644\u0635\u0648\u0631\u0629 \u0648\u0647\u0632\u0647\u0627';
   if (type === 'matching.shadow') return 'انظر إلى الظل واختر الصورة المناسبة';
   if (type === 'picture.reveal') return 'اكشف الصورة ثم اختر الإجابة الصحيحة';
   if (type === 'emotion.faces') return 'أين الوجه السعيد؟';
@@ -163,6 +164,19 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       heroImage: '',
       pointerType: 'hand',
       options: [createMatchingOption('option_1', true), createMatchingOption('option_2')],
+    };
+  }
+
+  if (type === 'motor.shake_image') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      image: '',
+      requiredShakes: 6,
     };
   }
 
@@ -569,6 +583,28 @@ export const buildActivityRuntimeGame = ({
           instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
           questionAudio: activity?.instructionAudio || '',
           options: Array.isArray(activity?.options) ? activity.options : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'motor.shake_image') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
+          image: activity?.image || activity?.heroImage || '',
+          requiredShakes: Number(activity?.requiredShakes ?? 6),
         },
         feedback: {
           successSound: sharedMedia?.successSound || '',

@@ -19,6 +19,7 @@ import EyeTrackingBirdGame from './EyeTrackingBirdGame';
 import GrammarAdjectivesGame from './GrammarAdjectivesGame';
 import SpatialConceptsGame from './SpatialConceptsGame';
 import TouchHandGame from './TouchHandGame';
+import ShakeImageGame from './ShakeImageGame';
 
 const renderGameActivity = ({
   game,
@@ -53,6 +54,11 @@ const renderGameActivity = ({
   if (game?.type === 'touch.hand') {
     return <TouchHandGame {...sharedProps} />;
   }
+
+  if (game?.type === 'motor.shake_image') {
+    return <ShakeImageGame {...sharedProps} />;
+  }
+
   if (game?.type === 'navigation.move_to_target') {
     return <NavigationGame {...sharedProps} />;
   }

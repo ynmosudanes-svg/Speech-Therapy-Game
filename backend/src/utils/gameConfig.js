@@ -4,6 +4,7 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'matching.find',
   'matching.shadow',
   'touch.hand',
+  'motor.shake_image',
   'picture.reveal',
   'image.complete_part',
   'sequence.order',
@@ -162,6 +163,14 @@ function normalizeActivity(activity, type, index) {
     instructionAudio: activity?.instructionAudio || '',
     difficulty: activity?.difficulty || 'easy',
   };
+
+  if (activityType === 'motor.shake_image') {
+    return {
+      ...baseActivity,
+      image: activity?.image || activity?.heroImage || '',
+      requiredShakes: Math.max(3, Number(activity?.requiredShakes ?? 6)),
+    };
+  }
 
   if (
     activityType === 'matching.similar' ||

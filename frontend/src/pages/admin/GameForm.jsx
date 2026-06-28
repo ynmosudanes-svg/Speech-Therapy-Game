@@ -25,6 +25,8 @@ import Card from '../../components/Card';
 import ConfirmModal from '../../components/ConfirmModal';
 import CustomSelect from '../../components/CustomSelect';
 import ImageAssetField from '../../components/ImageAssetField';
+import fingerPointerImage from '../../assets/touch-finger-pointer.png';
+import openHandImage from '../../assets/touch-open-hand.png';
 import { gameService } from '../../services/gameService';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import { SOUND_PRESET_OPTIONS, isPlayableMediaUrl, playAudioUrl } from '../../utils/soundEffects';
@@ -171,6 +173,10 @@ const DIFFICULTY_OPTIONS = [
   { value: 'easy', label: 'سهل', helper: 'تعليمات بسيطة واختيارات قليلة', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
   { value: 'medium', label: 'متوسط', helper: 'خطوات أكثر أو تمييز أدق', className: 'border-amber-200 bg-amber-50 text-amber-700' },
   { value: 'hard', label: 'صعب', helper: 'تحدي أعلى وتركيز أطول', className: 'border-rose-200 bg-rose-50 text-rose-700' },
+];
+const TOUCH_POINTER_OPTIONS = [
+  { value: 'hand', label: '\u064a\u062f', helper: '\u0633\u062d\u0628 \u064a\u062f \u0643\u0631\u062a\u0648\u0646\u064a\u0629', image: openHandImage, className: 'border-sky-200 bg-sky-50 text-sky-700' },
+  { value: 'finger', label: '\u0635\u0628\u0627\u0639', helper: '\u0645\u0624\u0634\u0631 \u0644\u0645\u0633 \u0628\u0627\u0644\u0635\u0628\u0627\u0639', image: fingerPointerImage, className: 'border-amber-200 bg-amber-50 text-amber-700' },
 ];
 const getActivityDifficultyButtonClass = (difficulty, isSelected) => {
   const value = difficulty || 'easy';
@@ -2166,6 +2172,34 @@ const GameForm = ({ mode = 'create' }) => {
                           })}
                         </div>
                       </div>
+
+                      {currentActivityType === 'touch.hand' && (
+                        <div className="md:col-span-2">
+                          <label className="block text-slate-600 font-bold mb-2">{'\u0634\u0643\u0644 \u0627\u0644\u0645\u0624\u0634\u0631'}</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {TOUCH_POINTER_OPTIONS.map((option) => {
+                              const isSelected = (currentActivity.pointerType || 'hand') === option.value;
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() => setActivityField('pointerType', option.value)}
+                                  className={`flex min-h-[7.5rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 text-center transition-all ${
+                                    isSelected
+                                      ? `${option.className} shadow-sm ring-2 ring-offset-1 ring-blue-100`
+                                      : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/40'
+                                  }`}
+                                >
+                                  {option.image ? (
+                                    <img src={option.image} alt="" className="h-16 w-16 object-contain drop-shadow-sm" draggable="false" />
+                                  ) : null}
+                                  <span className="text-sm font-black">{option.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 

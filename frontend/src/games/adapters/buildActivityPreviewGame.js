@@ -161,6 +161,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       instructionAudio: '',
       difficulty: 'easy',
       heroImage: '',
+      pointerType: 'hand',
       options: [createMatchingOption('option_1', true), createMatchingOption('option_2')],
     };
   }
@@ -545,6 +546,7 @@ export const buildActivityRuntimeGame = ({
           instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
           questionAudio: activity?.instructionAudio || '',
           hero: { image: activity?.heroImage || '' },
+          pointerType: templateType === 'touch.hand' ? (activity?.pointerType === 'finger' ? 'finger' : 'hand') : undefined,
           options: Array.isArray(activity?.options) ? activity.options : [],
         },
         feedback: {

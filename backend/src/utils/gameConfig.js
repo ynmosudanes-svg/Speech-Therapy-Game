@@ -176,6 +176,7 @@ function normalizeActivity(activity, type, index) {
     return {
       ...baseActivity,
       heroImage: activity?.heroImage || '',
+      pointerType: activityType === 'touch.hand' ? (activity?.pointerType === 'finger' ? 'finger' : 'hand') : undefined,
       options: Array.isArray(activity?.options) ? activity.options.map(normalizeOption) : [],
     };
   }
@@ -394,6 +395,7 @@ function buildConfigFromLegacyGame(game) {
         instructionAudio: game.questionAudio || '',
         difficulty: 'easy',
         heroImage: game.targetImage || correctOption?.image || '',
+        pointerType: type === 'touch.hand' ? 'hand' : undefined,
         options,
       },
     ];

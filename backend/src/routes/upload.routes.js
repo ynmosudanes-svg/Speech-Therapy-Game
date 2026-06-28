@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const env = require('../config/env');
-const { uploadFile, listUploadedFiles, deleteUploadedFile, listMediaFolders, createMediaFolder, deleteMediaFolder } = require('../controllers/upload.controller');
+const { uploadFile, listUploadedFiles, deleteUploadedFile, listMediaFolders, createMediaFolder, moveUploadedFiles, deleteMediaFolder } = require('../controllers/upload.controller');
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -56,10 +56,17 @@ router.post(
 );
 
 router.delete(
-  '/api/media-folders/:slug',
+  '/api/media-folders/:id',
   authenticate,
   authorize('SUPER_ADMIN', 'THERAPIST'),
   deleteMediaFolder
+);
+
+router.patch(
+  '/api/uploads/move',
+  authenticate,
+  authorize('SUPER_ADMIN', 'THERAPIST'),
+  moveUploadedFiles
 );
 
 router.delete(

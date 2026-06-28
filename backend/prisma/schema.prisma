@@ -132,15 +132,20 @@ model ImageLibrary {
 }
 
 model MediaFolder {
-  id              String       @id @default(cuid())
-  name            String
-  slug            String       @unique
-  createdBy       String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  assets          MediaAsset[]
+  id               String        @id @default(cuid())
+  name             String
+  slug             String        @unique
+  code             String?
+  parentId         String?
+  parent           MediaFolder?  @relation("MediaFolderChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children         MediaFolder[] @relation("MediaFolderChildren")
+  createdBy        String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  assets           MediaAsset[]
 
   @@index([name])
+  @@index([parentId])
   @@index([createdAt])
 }
 
@@ -165,6 +170,7 @@ model MediaAsset {
 
   @@index([type])
   @@index([category])
+  @@index([folderId])
   @@index([createdAt])
 }
 

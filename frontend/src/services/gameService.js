@@ -38,10 +38,15 @@ export const gameService = {
     return response.data;
   },
 
-  async getUploadedFiles(token, type = '', query = '', category = '') {
+  async getUploadedFiles(token, type = '', query = '', category = '', options = {}) {
+    const params = { type, query };
+    if (options.folderId !== undefined) params.folderId = options.folderId;
+    if (options.scope) params.scope = options.scope;
+    if (category) params.category = category;
+
     const response = await api.get('/uploads', {
       ...buildAuthConfig(token),
-      params: { type, query, category },
+      params,
     });
     return response.data;
   },
@@ -51,6 +56,11 @@ export const gameService = {
       ...buildAuthConfig(token),
       params: { key },
     });
+    return response.data;
+  },
+
+  async moveUploadedFiles(token, payload) {
+    const response = await api.patch('/uploads/move', payload, buildAuthConfig(token));
     return response.data;
   },
 
@@ -64,8 +74,8 @@ export const gameService = {
     return response.data;
   },
 
-  async deleteMediaFolder(token, slug) {
-    const response = await api.delete(`/media-folders/${encodeURIComponent(slug)}`, buildAuthConfig(token));
+  async deleteMediaFolder(token, id) {
+    const response = await api.delete(`/media-folders/${encodeURIComponent(id)}`, buildAuthConfig(token));
     return response.data;
   },
 };

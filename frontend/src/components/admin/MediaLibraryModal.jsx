@@ -9,7 +9,9 @@ const CATEGORY_OPTIONS = [
   { value: '', label: 'كل البنود' },
 ];
 
-const HIDDEN_LEGACY_CATEGORIES = new Set(['general', 'az', 'c1', 'c2', 'c3', 'c4', 'numbers']);
+const UPLOAD_ROOT_OPTION = { value: '', label: '\u0628\u062f\u0648\u0646 \u0628\u0646\u062f' };
+const HIDDEN_LEGACY_CATEGORIES = new Set(['general', 'az', 'numbers']);
+const LEGACY_CODE_CATEGORY_PATTERN = /^c\d+$/i;
 
 const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((labels, option) => {
   if (option.value) labels[option.value] = option.label;
@@ -18,6 +20,12 @@ const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((labels, option) => {
 
 const getCategoryLabel = (category) => CATEGORY_LABELS[category] || category || 'بدون بند';
 const normalizeCategoryValue = (category) => String(category || '').trim().toLowerCase();
+const isLegacyCodeCategory = (category) => LEGACY_CODE_CATEGORY_PATTERN.test(normalizeCategoryValue(category));
+const shouldDisplayCategory = (category) => {
+  const normalizedCategory = normalizeCategoryValue(category);
+  return Boolean(normalizedCategory && !HIDDEN_LEGACY_CATEGORIES.has(normalizedCategory) && !isLegacyCodeCategory(normalizedCategory));
+};
+const getDisplayFilename = (file) => shouldDisplayCategory(file?.category) ? `${file.category}/${file.filename}` : file?.filename;
 
 const buildCategoryOptions = (categories, { includeAll = true, hiddenCategories = [] } = {}) => {
   const options = includeAll ? [...CATEGORY_OPTIONS] : CATEGORY_OPTIONS.filter((option) => option.value);
@@ -26,7 +34,7 @@ const buildCategoryOptions = (categories, { includeAll = true, hiddenCategories 
 
   categories
     .map(normalizeCategoryValue)
-    .filter((category) => category && !HIDDEN_LEGACY_CATEGORIES.has(category) && !hidden.has(category))
+    .filter((category) => category && !HIDDEN_LEGACY_CATEGORIES.has(category) && !isLegacyCodeCategory(category) && !hidden.has(category))
     .forEach((category) => {
       if (!seen.has(category)) {
         seen.add(category);
@@ -153,17 +161,22 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   }, [files, hiddenCategories, savedCustomCategories, selectedCategory, uploadCategory]);
 
   const uploadCategoryOptions = useMemo(() => {
-    return buildCategoryOptions([...savedCustomCategories, ...files.map((file) => file.category)], {
+    const options = buildCategoryOptions([...savedCustomCategories, ...files.map((file) => file.category)], {
       includeAll: false,
       hiddenCategories,
     });
+    return [UPLOAD_ROOT_OPTION, ...options];
   }, [files, hiddenCategories, savedCustomCategories]);
 
 
   const visibleFiles = useMemo(() => {
     const hidden = new Set(hiddenCategories.map(normalizeCategoryValue));
-    return files.filter((file) => !hidden.has(normalizeCategoryValue(file.category)));
-  }, [files, hiddenCategories]);
+    return files.filter((file) => {
+      const normalizedCategory = normalizeCategoryValue(file.category);
+      const matchesType = !selectedType || file.type === selectedType;
+      return matchesType && !hidden.has(normalizedCategory);
+    });
+  }, [files, hiddenCategories, selectedType]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -319,37 +332,43 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     const selectedFiles = Array.from(event.target.files || []);
     if (!selectedFiles.length) return;
 
-    if (!resolvedUploadCategory) {
-      setDialog({
-        title: 'اختار البند',
-        message: 'اختار بند للرفع أو أضف بند جديد قبل رفع الملفات.',
-        confirmText: 'حسنًا',
-        hideCancelButton: true,
-        isDestructive: false,
-      });
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
     try {
       setIsUploading(true);
+      let uploadedCount = 0;
+      let failedCount = 0;
+
       for (const file of selectedFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('category', resolvedUploadCategory);
-        await gameService.uploadAsset(adminSession?.token, formData);
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          if (resolvedUploadCategory) {
+            formData.append('category', resolvedUploadCategory);
+          }
+          await gameService.uploadAsset(adminSession?.token, formData);
+          uploadedCount += 1;
+        } catch (uploadError) {
+          failedCount += 1;
+          console.error('Failed to upload file:', file?.name, uploadError);
+        }
       }
-      setSelectedCategory(resolvedUploadCategory.toLowerCase());
-      setRefreshTrigger((prev) => prev + 1);
-    } catch (error) {
-      console.error('Failed to upload files:', error);
-      setDialog({
-        title: 'تعذر الرفع',
-        message: 'حدث خطأ أثناء رفع بعض الملفات، يرجى المحاولة مرة أخرى.',
-        confirmText: 'حسنًا',
-        hideCancelButton: true,
-        isDestructive: false,
-      });
+
+      if (uploadedCount > 0) {
+        setSearchQuery('');
+        setSelectedCategory(resolvedUploadCategory ? resolvedUploadCategory.toLowerCase() : '');
+        setRefreshTrigger((prev) => prev + 1);
+      }
+
+      if (failedCount > 0) {
+        setDialog({
+          title: uploadedCount > 0 ? '\u062a\u0645 \u0631\u0641\u0639 \u0628\u0639\u0636 \u0627\u0644\u0645\u0644\u0641\u0627\u062a' : '\u062a\u0639\u0630\u0631 \u0627\u0644\u0631\u0641\u0639',
+          message: uploadedCount > 0
+            ? `\u062a\u0645 \u0631\u0641\u0639 ${uploadedCount} \u0645\u0644\u0641\u060c \u0648\u062a\u0639\u0630\u0631 \u0631\u0641\u0639 ${failedCount} \u0645\u0644\u0641. \u0633\u062a\u0638\u0647\u0631 \u0627\u0644\u0645\u0644\u0641\u0627\u062a \u0627\u0644\u062a\u064a \u062a\u0645 \u0631\u0641\u0639\u0647\u0627 \u0627\u0644\u0622\u0646.`
+            : '\u062a\u0639\u0630\u0631 \u0631\u0641\u0639 \u0627\u0644\u0645\u0644\u0641\u0627\u062a. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.',
+          confirmText: '\u062d\u0633\u0646\u064b\u0627',
+          hideCancelButton: true,
+          isDestructive: false,
+        });
+      }
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -516,7 +535,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                   onClick={() => handleSelect(file.url)}
                   className="group relative flex aspect-square flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-right transition-all hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-100"
                 >
-                  {file.category && (
+                  {shouldDisplayCategory(file.category) && (
                     <span className="absolute left-2 top-2 z-10 rounded-full bg-white/90 px-2 py-1 text-[0.65rem] font-black text-blue-600 shadow-sm" dir="ltr">
                       {getCategoryLabel(file.category)}
                     </span>
@@ -554,7 +573,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                   </div>
                   <div className="border-t border-slate-100 bg-white p-3">
                     <p className="w-full truncate text-xs font-bold text-slate-600" dir="ltr" title={file.key || file.filename}>
-                      {file.category ? `${file.category}/${file.filename}` : file.filename}
+                      {getDisplayFilename(file)}
                     </p>
                   </div>
                 </button>

@@ -93,6 +93,11 @@ const GAME_TYPE_CARDS = [
     accent: 'from-rose-100 to-orange-100',
   },
   {
+    value: 'touch.hand',
+    title: 'المس باليد',
+    description: 'تظهر يد كرتونية في أسفل الشاشة، ويسحبها الطفل حتى تلمس الصورة المطلوبة بدل الضغط المباشر على الإجابة.',
+    accent: 'from-amber-100 to-cyan-100',
+  },  {
     value: 'spatial.concepts',
     title: 'المفاهيم المكانية',
     description: 'صورة تفاعلية لتعليم فوق/تحت، داخل/خارج، أمام/خلف، يمين/يسار، قريب/بعيد مع اختيار أو سحب وإفلات.',
@@ -628,7 +633,7 @@ const GameForm = ({ mode = 'create' }) => {
   const draftStorageKey = useMemo(() => buildGameFormDraftKey(mode, gameId), [gameId, mode]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [allAvailableTags, setAllAvailableTags] = useState(() => {
     try {
       const local = JSON.parse(localStorage.getItem('allGameTags')) || [];
@@ -982,7 +987,7 @@ const GameForm = ({ mode = 'create' }) => {
         difficulty: activity.difficulty || defaults.difficulty,
       };
     });
-    
+
     // Auto-sync the main game type if the user changes the activity type directly
     setBuilderState((current) => {
       if (current.type !== newType) {
@@ -1108,7 +1113,7 @@ const GameForm = ({ mode = 'create' }) => {
   // Auto-initialize options if empty
   useEffect(() => {
     if (
-      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'picture.reveal', 'image.complete_part', 'emotion.faces', 'true_false', 'eye_tracking.bird', 'spatial.concepts'].includes(currentActivityType) && 
+      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'touch.hand', 'picture.reveal', 'image.complete_part', 'emotion.faces', 'true_false', 'eye_tracking.bird', 'spatial.concepts'].includes(currentActivityType) &&
       currentActivity
     ) {
       if (!currentActivity.options || currentActivity.options.length === 0) {
@@ -1417,7 +1422,7 @@ const GameForm = ({ mode = 'create' }) => {
     for (const level of builderState.config.levels) {
       for (const activity of level.activities || []) {
         const activityType = activity.type || builderState.type;
-        
+
         if (!activity.questionAr?.trim()) {
           return `أدخل نص السؤال في المستوى ${level.levelNumber}.`;
         }
@@ -1479,6 +1484,17 @@ const GameForm = ({ mode = 'create' }) => {
           }
         }
 
+        if (activityType === 'touch.hand') {
+          if ((activity.options || []).length < 2) {
+            return `لعبة المس باليد تحتاج صورتين على الأقل في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.options || []).filter((option) => option.isCorrect).length !== 1) {
+            return `حدد صورة صحيحة واحدة فقط للعبة المس باليد في المستوى ${level.levelNumber}.`;
+          }
+          if ((activity.options || []).some((option) => !option.image?.trim())) {
+            return `كل صور لعبة المس باليد يجب أن تكون مرفوعة في المستوى ${level.levelNumber}.`;
+          }
+        }
         if (activityType === 'emotion.faces') {
           if ((activity.options || []).length < 2) {
             return `لعبة المشاعر تحتاج شعورين على الأقل في المستوى ${level.levelNumber}.`;
@@ -1979,7 +1995,7 @@ const GameForm = ({ mode = 'create' }) => {
                 </div>
                 <ChevronDown size={18} className="text-slate-400" />
               </button>
-              
+
               {tagMenuOpen && (
                 <div className="absolute z-50 top-full mt-2 right-0 w-full sm:w-[280px] bg-white rounded-xl shadow-xl border border-slate-200 p-2">
                   <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
@@ -2104,7 +2120,7 @@ const GameForm = ({ mode = 'create' }) => {
                       <Settings size={22} />
                       <h3 className="text-lg font-black">إعدادات النشاط</h3>
                     </div>
-                    
+
                     <div className="grid gap-6 md:grid-cols-2">
                       <div>
                         <label className="block text-slate-600 font-bold mb-2">عنوان النشاط</label>
@@ -2116,7 +2132,7 @@ const GameForm = ({ mode = 'create' }) => {
                           placeholder={getActivityAutoTitle(selectedActivity)}
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-slate-600 font-bold mb-2">نوع اللعبة لهذا النشاط</label>
                         <CustomSelect
@@ -2977,7 +2993,7 @@ const GameForm = ({ mode = 'create' }) => {
                             {[3, 4].map((size) => (
                               <button
                                 type="button"
-                                key={size} 
+                                key={size}
                                 onClick={() =>
                                   updateCurrentActivity((activity) => {
                                     const currentSlot = Number.isInteger(Number(activity.missingSlotIndex))
@@ -3164,7 +3180,7 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
-                  {(currentActivityType === 'matching.find' || currentActivityType === 'matching.shadow' || currentActivityType === 'picture.reveal' || currentActivityType === 'emotion.faces' || currentActivityType === 'spatial.concepts') && (
+                  {(currentActivityType === 'matching.find' || currentActivityType === 'matching.shadow' || currentActivityType === 'touch.hand' || currentActivityType === 'picture.reveal' || currentActivityType === 'emotion.faces' || currentActivityType === 'spatial.concepts') && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2 text-emerald-700">

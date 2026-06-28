@@ -3,6 +3,7 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'matching.different',
   'matching.find',
   'matching.shadow',
+  'touch.hand',
   'picture.reveal',
   'image.complete_part',
   'sequence.order',
@@ -167,6 +168,7 @@ function normalizeActivity(activity, type, index) {
     activityType === 'matching.different' ||
     activityType === 'matching.find' ||
     activityType === 'matching.shadow' ||
+    activityType === 'touch.hand' ||
     activityType === 'emotion.faces' ||
     activityType === 'eye_tracking.choose' ||
     activityType === 'true_false'
@@ -380,7 +382,7 @@ function buildConfigFromLegacyGame(game) {
     failSound: game.failSound,
   });
 
-  if (type === 'matching.similar' || type === 'matching.different' || type === 'matching.find' || type === 'matching.shadow') {
+  if (type === 'matching.similar' || type === 'matching.different' || type === 'matching.find' || type === 'matching.shadow' || type === 'touch.hand') {
     const options = Array.isArray(game.options) ? game.options.map(normalizeOption) : [];
     const correctOption = options.find((option) => option.isCorrect) || options[0] || null;
     baseConfig.levels[0].activities = [

@@ -17,6 +17,7 @@ const supportedTypes = [
   'matching.different',
   'matching.find',
   'matching.shadow',
+  'touch.hand',
   'sequence.order',
   'action.drag_to_target',
   'spatial.concepts',

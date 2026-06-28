@@ -18,6 +18,7 @@ import EyeTrackingChooseGame from './EyeTrackingChooseGame';
 import EyeTrackingBirdGame from './EyeTrackingBirdGame';
 import GrammarAdjectivesGame from './GrammarAdjectivesGame';
 import SpatialConceptsGame from './SpatialConceptsGame';
+import TouchHandGame from './TouchHandGame';
 
 const renderGameActivity = ({
   game,
@@ -49,6 +50,9 @@ const renderGameActivity = ({
     return <DragDropGame {...sharedProps} />;
   }
 
+  if (game?.type === 'touch.hand') {
+    return <TouchHandGame {...sharedProps} />;
+  }
   if (game?.type === 'navigation.move_to_target') {
     return <NavigationGame {...sharedProps} />;
   }

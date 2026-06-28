@@ -4,6 +4,7 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'matching.similar') return 'اختر الصورة المطابقة';
   if (type === 'matching.different') return 'أوجد المختلف';
   if (type === 'matching.find') return 'أوجد الصورة المطلوبة';
+  if (type === 'touch.hand') return 'اسحب اليد والمس الصورة المطلوبة';
   if (type === 'matching.shadow') return 'انظر إلى الظل واختر الصورة المناسبة';
   if (type === 'picture.reveal') return 'اكشف الصورة ثم اختر الإجابة الصحيحة';
   if (type === 'emotion.faces') return 'أين الوجه السعيد؟';
@@ -140,6 +141,18 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
   }
 
   if (type === 'matching.find') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      heroImage: '',
+      options: [createMatchingOption('option_1', true), createMatchingOption('option_2')],
+    };
+  }
+  if (type === 'touch.hand') {
     return {
       type,
       id: `activity_${Date.now()}`,
@@ -520,7 +533,7 @@ export const buildActivityRuntimeGame = ({
 }) => {
   const titleAr = nameAr || activity?.titleAr || fallbackName;
 
-  if (templateType === 'matching.similar' || templateType === 'matching.different' || templateType === 'matching.find' || templateType === 'matching.shadow') {
+  if (templateType === 'matching.similar' || templateType === 'matching.different' || templateType === 'matching.find' || templateType === 'matching.shadow' || templateType === 'touch.hand') {
     return {
       id: gameId,
       type: templateType,

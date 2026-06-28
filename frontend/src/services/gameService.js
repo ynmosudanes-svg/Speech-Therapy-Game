@@ -53,6 +53,21 @@ export const gameService = {
     });
     return response.data;
   },
+
+  async getMediaFolders(token) {
+    const response = await api.get('/media-folders', buildAuthConfig(token));
+    return response.data;
+  },
+
+  async createMediaFolder(token, payload) {
+    const response = await api.post('/media-folders', payload, buildAuthConfig(token));
+    return response.data;
+  },
+
+  async deleteMediaFolder(token, slug) {
+    const response = await api.delete(`/media-folders/${encodeURIComponent(slug)}`, buildAuthConfig(token));
+    return response.data;
+  },
 };
 
 export default gameService;

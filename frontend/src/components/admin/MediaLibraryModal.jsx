@@ -25,7 +25,8 @@ const shouldDisplayCategory = (category) => {
   const normalizedCategory = normalizeCategoryValue(category);
   return Boolean(normalizedCategory && !HIDDEN_LEGACY_CATEGORIES.has(normalizedCategory) && !isLegacyCodeCategory(normalizedCategory));
 };
-const getDisplayFilename = (file) => shouldDisplayCategory(file?.category) ? `${file.category}/${file.filename}` : file?.filename;
+const getFriendlyFilename = (filename) => String(filename || '').replace(/^\d+_[0-9a-f-]{36}_/i, '');
+const getDisplayFilename = (file) => file?.displayName || getFriendlyFilename(file?.filename);
 
 const buildCategoryOptions = (categories, { includeAll = true, hiddenCategories = [] } = {}) => {
   const options = includeAll ? [...CATEGORY_OPTIONS] : CATEGORY_OPTIONS.filter((option) => option.value);
@@ -140,6 +141,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [uploadCategory, setUploadCategory] = useState('');
   const [customUploadCategory, setCustomUploadCategory] = useState('');
   const [savedCustomCategories, setSavedCustomCategories] = useState(() => readStoredCategories());
+  const [mediaFolders, setMediaFolders] = useState([]);
   const [hiddenCategories, setHiddenCategories] = useState(() => readHiddenCategories());
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
@@ -155,22 +157,38 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     return normalizeCategoryValue(uploadCategory);
   }, [uploadCategory]);
 
+  const folderLabelMap = useMemo(() => {
+    return mediaFolders.reduce((labels, folder) => {
+      if (folder?.slug) labels[normalizeCategoryValue(folder.slug)] = folder.name || folder.slug;
+      return labels;
+    }, {});
+  }, [mediaFolders]);
+
+  const getFolderLabel = (category) => folderLabelMap[normalizeCategoryValue(category)] || getCategoryLabel(category);
+
+  const folderOptions = useMemo(() => {
+    return mediaFolders
+      .map((folder) => ({ value: normalizeCategoryValue(folder.slug), label: folder.name || folder.slug }))
+      .filter((folder) => folder.value);
+  }, [mediaFolders]);
+
   const categoryFilterOptions = useMemo(() => {
-    return buildCategoryOptions([
+    const legacyOptions = buildCategoryOptions([
       selectedCategory,
       uploadCategory,
       ...savedCustomCategories,
       ...files.map((file) => file.category),
-    ], { hiddenCategories });
-  }, [files, hiddenCategories, savedCustomCategories, selectedCategory, uploadCategory]);
+    ], { hiddenCategories }).filter((option) => !option.value || !folderLabelMap[normalizeCategoryValue(option.value)]);
+    return [legacyOptions[0] || CATEGORY_OPTIONS[0], ...folderOptions, ...legacyOptions.filter((option) => option.value)];
+  }, [files, folderLabelMap, folderOptions, hiddenCategories, savedCustomCategories, selectedCategory, uploadCategory]);
 
   const uploadCategoryOptions = useMemo(() => {
-    const options = buildCategoryOptions([...savedCustomCategories, ...files.map((file) => file.category)], {
+    const legacyOptions = buildCategoryOptions([...savedCustomCategories, ...files.map((file) => file.category)], {
       includeAll: false,
       hiddenCategories,
-    });
-    return [UPLOAD_ROOT_OPTION, ...options];
-  }, [files, hiddenCategories, savedCustomCategories]);
+    }).filter((option) => !folderLabelMap[normalizeCategoryValue(option.value)]);
+    return [UPLOAD_ROOT_OPTION, ...folderOptions, ...legacyOptions];
+  }, [files, folderLabelMap, folderOptions, hiddenCategories, savedCustomCategories]);
 
 
   const visibleFiles = useMemo(() => {
@@ -189,13 +207,12 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     const fetchFiles = async () => {
       try {
         setLoading(true);
-        const res = await gameService.getUploadedFiles(
-          adminSession?.token,
-          selectedType,
-          searchQuery,
-          selectedCategory
-        );
-        setFiles(res?.data || []);
+        const [filesRes, foldersRes] = await Promise.all([
+          gameService.getUploadedFiles(adminSession?.token, selectedType, searchQuery, selectedCategory),
+          gameService.getMediaFolders(adminSession?.token),
+        ]);
+        setFiles(filesRes?.data || []);
+        setMediaFolders(foldersRes?.data || []);
       } catch (error) {
         console.error('Failed to fetch media:', error);
       } finally {
@@ -253,27 +270,32 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     });
   };
 
-  const handleDeleteCategory = (category) => {
+  const handleDeleteCategory = async (category) => {
     const normalizedCategory = normalizeCategoryValue(category);
     if (!normalizedCategory) return;
 
-    setSavedCustomCategories((current) => {
-      const updated = current.filter((item) => normalizeCategoryValue(item) !== normalizedCategory);
-      localStorage.setItem('mediaLibraryCategories', JSON.stringify(updated));
-      return updated;
-    });
-
-    setHiddenCategories((current) => {
-      const updated = Array.from(new Set([...current, normalizedCategory]));
-      localStorage.setItem('mediaLibraryHiddenCategories', JSON.stringify(updated));
-      return updated;
-    });
-
-    setFiles((current) => current.filter((file) => normalizeCategoryValue(file.category) !== normalizedCategory));
-    if (selectedCategory === normalizedCategory) setSelectedCategory('');
-    if (uploadCategory === normalizedCategory) setUploadCategory('');
-    setFilterMenuOpen(false);
-    setUploadMenuOpen(false);
+    try {
+      await gameService.deleteMediaFolder(adminSession?.token, normalizedCategory);
+      setMediaFolders((current) => current.filter((folder) => normalizeCategoryValue(folder.slug) !== normalizedCategory));
+      setSavedCustomCategories((current) => {
+        const updated = current.filter((item) => normalizeCategoryValue(item) !== normalizedCategory);
+        localStorage.setItem('mediaLibraryCategories', JSON.stringify(updated));
+        return updated;
+      });
+      if (selectedCategory === normalizedCategory) setSelectedCategory('');
+      if (uploadCategory === normalizedCategory) setUploadCategory('');
+      setFilterMenuOpen(false);
+      setUploadMenuOpen(false);
+    } catch (error) {
+      console.error('Failed to delete media folder:', error);
+      setDialog({
+        title: '\u062a\u0639\u0630\u0631 \u062d\u0630\u0641 \u0627\u0644\u0628\u0646\u062f',
+        message: '\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062d\u0630\u0641 \u0627\u0644\u0628\u0646\u062f. \u062d\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.',
+        confirmText: '\u062d\u0633\u0646\u064b\u0627',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
+    }
   };
 
   const requestDeleteCategory = (category) => {
@@ -298,13 +320,14 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     }
 
     if (dialog?.type === 'deleteCategory') {
-      handleDeleteCategory(dialog.category);
+      await handleDeleteCategory(dialog.category);
     }
     setDialog(null);
   };
 
-  const handleAddCustomCategory = () => {
-    const nextCategory = normalizeCategoryValue(customUploadCategory);
+  const handleAddCustomCategory = async () => {
+    const folderName = String(customUploadCategory || '').trim();
+    const nextCategory = normalizeCategoryValue(folderName);
 
     if (!nextCategory) {
       setDialog({
@@ -317,20 +340,38 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
       return;
     }
 
-    setSavedCustomCategories((current) => {
-      const updated = Array.from(new Set([...current, nextCategory]));
-      localStorage.setItem('mediaLibraryCategories', JSON.stringify(updated));
-      return updated;
-    });
-    setHiddenCategories((current) => {
-      const updated = current.filter((item) => normalizeCategoryValue(item) !== nextCategory);
-      localStorage.setItem('mediaLibraryHiddenCategories', JSON.stringify(updated));
-      return updated;
-    });
-    setUploadCategory(nextCategory);
-    setSelectedCategory(nextCategory);
-    setCustomUploadCategory('');
-    setIsAddingCategory(false);
+    try {
+      const res = await gameService.createMediaFolder(adminSession?.token, { name: folderName, slug: nextCategory });
+      const folder = res?.data || { name: folderName, slug: nextCategory };
+      const savedCategory = normalizeCategoryValue(folder.slug || nextCategory);
+      setMediaFolders((current) => {
+        const filtered = current.filter((item) => normalizeCategoryValue(item.slug) !== savedCategory);
+        return [...filtered, folder].sort((a, b) => String(a.name || a.slug).localeCompare(String(b.name || b.slug), 'ar'));
+      });
+      setSavedCustomCategories((current) => {
+        const updated = current.filter((item) => normalizeCategoryValue(item) !== savedCategory);
+        localStorage.setItem('mediaLibraryCategories', JSON.stringify(updated));
+        return updated;
+      });
+      setHiddenCategories((current) => {
+        const updated = current.filter((item) => normalizeCategoryValue(item) !== savedCategory);
+        localStorage.setItem('mediaLibraryHiddenCategories', JSON.stringify(updated));
+        return updated;
+      });
+      setUploadCategory(savedCategory);
+      setSelectedCategory(savedCategory);
+      setCustomUploadCategory('');
+      setIsAddingCategory(false);
+    } catch (error) {
+      console.error('Failed to create media folder:', error);
+      setDialog({
+        title: '\u062a\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0628\u0646\u062f',
+        message: '\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0628\u0646\u062f. \u062d\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.',
+        confirmText: '\u062d\u0633\u0646\u064b\u0627',
+        hideCancelButton: true,
+        isDestructive: false,
+      });
+    }
   };
 
   const handleFileUpload = async (event) => {
@@ -348,6 +389,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
           formData.append('file', file);
           if (resolvedUploadCategory) {
             formData.append('category', resolvedUploadCategory);
+            formData.append('folderName', getFolderLabel(resolvedUploadCategory));
           }
           await gameService.uploadAsset(adminSession?.token, formData);
           uploadedCount += 1;
@@ -542,7 +584,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                 >
                   {shouldDisplayCategory(file.category) && (
                     <span className="absolute left-2 top-2 z-10 rounded-full bg-white/90 px-2 py-1 text-[0.65rem] font-black text-blue-600 shadow-sm" dir="ltr">
-                      {getCategoryLabel(file.category)}
+                      {getFolderLabel(file.category)}
                     </span>
                   )}
                   <span

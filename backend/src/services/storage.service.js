@@ -20,7 +20,7 @@ function sanitizeCategory(category) {
     .toLowerCase()
     .replace(/\\+/g, '/')
     .split('/')
-    .map((part) => part.trim().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, ''))
+    .map((part) => part.trim().replace(/[^a-z0-9\u0600-\u06ff_-]+/g, '-').replace(/^-+|-+$/g, ''))
     .filter(Boolean)
     .join('/');
 
@@ -94,7 +94,15 @@ function getR2Client() {
 
 function createStoredFileName(originalName) {
   const ext = path.extname(originalName || '').toLowerCase();
-  return `${Date.now()}_${crypto.randomUUID()}${ext}`;
+  const originalBaseName = path.basename(originalName || 'file', ext);
+  const safeOriginalName = originalBaseName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0600-\u06ff_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'file';
+
+  return `${Date.now()}_${crypto.randomUUID()}_${safeOriginalName}${ext}`;
 }
 
 function getMediaType(name, mimeType = '') {
@@ -130,7 +138,13 @@ async function uploadToLocal(req, file, category) {
 
   return {
     url: getLocalPublicUrl(req, relativeName),
-    filename: relativeName,
+    filename,
+    key: relativeName,
+    originalName: file.originalname || '',
+    displayName: path.basename(file.originalname || filename, path.extname(file.originalname || filename)),
+    type: getMediaType(filename, file.mimetype),
+    mimeType: file.mimetype || '',
+    size: file.size || file.buffer?.length || 0,
     category: sanitizeCategory(category),
   };
 }
@@ -150,7 +164,13 @@ async function uploadToR2(file, category) {
 
   return {
     url: getR2PublicUrl(key),
-    filename: key,
+    filename,
+    key,
+    originalName: file.originalname || '',
+    displayName: path.basename(file.originalname || filename, path.extname(file.originalname || filename)),
+    type: getMediaType(filename, file.mimetype),
+    mimeType: file.mimetype || '',
+    size: file.size || file.buffer?.length || 0,
     category: safeCategory,
   };
 }
@@ -304,5 +324,6 @@ module.exports = {
   uploadUploadedFile,
   listUploadedFiles,
   deleteUploadedFile,
+  getMediaType,
   sanitizeCategory,
 };

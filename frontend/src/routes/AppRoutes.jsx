@@ -6,6 +6,7 @@ import StudentLayout from '../layouts/StudentLayout';
 import RoleRoute from '../components/RoleRoute';
 
 import AdminDashboard from '../pages/admin/AdminDashboard';
+import ActivityLogPage from '../pages/admin/ActivityLogPage';
 import CreateGame from '../pages/admin/CreateGame';
 import EditGame from '../pages/admin/EditGame';
 import GamesManager from '../pages/admin/GamesManager';
@@ -27,6 +28,7 @@ import StudentWorkspaceSection from '../pages/student/StudentWorkspaceSection';
 import GamesLibrary from '../pages/student/GamesLibrary';
 import ParentDashboard from '../pages/parent/ParentDashboard';
 import ParentChildReport from '../pages/parent/ParentChildReport';
+import NotFoundPage from '../pages/NotFoundPage';
 import { useTherapyStore } from '../hooks/useTherapyStore';
 
 const AppRoutes = () => {
@@ -99,25 +101,34 @@ const AppRoutes = () => {
       />
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN']} />}>
+          <Route path="activity" element={<ActivityLogPage />} />
+        </Route>
 
-        <Route path="patients" element={<PatientsList />} />
-        <Route path="patients/create" element={<StudentForm mode="create" />} />
-        <Route path="patients/edit/:studentId" element={<StudentForm mode="edit" />} />
-        <Route path="patients/:id" element={<PatientDetails />} />
         <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'THERAPIST']} />}>
+          <Route path="patients" element={<PatientsList />} />
+          <Route path="patients/create" element={<StudentForm mode="create" />} />
+          <Route path="patients/edit/:studentId" element={<StudentForm mode="edit" />} />
+          <Route path="patients/:id" element={<PatientDetails />} />
+        </Route>
+        <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']} />}>
           <Route path="library" element={<LibraryPage />} />
         </Route>
         <Route path="curriculum" element={<Navigate to="/admin/games" replace />} />
 
-        <Route path="games" element={<GamesManager />} />
-        <Route path="games/create" element={<CreateGame />} />
-        <Route path="games/edit/:gameId" element={<EditGame />} />
+        <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'ADMIN', 'DATA_ENTRY', 'THERAPIST']} />}>
+          <Route path="games" element={<GamesManager />} />
+          <Route path="games/create" element={<CreateGame />} />
+          <Route path="games/edit/:gameId" element={<EditGame />} />
+        </Route>
 
-        <Route path="students" element={<Navigate to="/admin/patients" replace />} />
-        <Route path="students/create" element={<Navigate to="/admin/patients/create" replace />} />
-        <Route path="students/edit/:studentId" element={<StudentForm mode="edit" />} />
-        <Route path="students/:id" element={<PatientDetails />} />
-        <Route path="reports" element={<ReportsPage />} />
+        <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'THERAPIST']} />}>
+          <Route path="students" element={<Navigate to="/admin/patients" replace />} />
+          <Route path="students/create" element={<Navigate to="/admin/patients/create" replace />} />
+          <Route path="students/edit/:studentId" element={<StudentForm mode="edit" />} />
+          <Route path="students/:id" element={<PatientDetails />} />
+          <Route path="reports" element={<ReportsPage />} />
+        </Route>
 
         <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN']} />}>
           <Route path="therapists" element={<TherapistsList />} />
@@ -125,12 +136,14 @@ const AppRoutes = () => {
           <Route path="therapists/edit/:therapistId" element={<TherapistForm mode="edit" />} />
         </Route>
 
-        <Route path="parents" element={<ParentsList />} />
-        <Route path="parents/create" element={<ParentForm mode="create" />} />
-        <Route path="parents/edit/:parentId" element={<ParentForm mode="edit" />} />
+        <Route element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'THERAPIST']} />}>
+          <Route path="parents" element={<ParentsList />} />
+          <Route path="parents/create" element={<ParentForm mode="create" />} />
+          <Route path="parents/edit/:parentId" element={<ParentForm mode="edit" />} />
+        </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };

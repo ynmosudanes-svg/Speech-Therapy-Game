@@ -10,8 +10,18 @@ datasource db {
 
 enum Role {
   SUPER_ADMIN
+  ADMIN
+  DATA_ENTRY
   THERAPIST
   PARENT
+}
+
+enum GameStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
 }
 
 enum SessionType {
@@ -78,6 +88,7 @@ model Game {
   level           Int
   config          Json?
   isActive        Boolean       @default(true)
+  status          GameStatus    @default(PUBLISHED)
   questionText    String?
   questionTextAr  String?
   questionAudio   String?
@@ -89,11 +100,30 @@ model Game {
   items           Json?
   successSound    String?
   failSound       String?
+  createdById     String?
+  updatedById     String?
+  reviewedById    String?
+  approvedById    String?
+  publishedById   String?
+  archivedById    String?
+  restoredById    String?
+  rejectedById    String?
+  reviewNotes     String?
+  approvedAt      DateTime?
+  publishedAt     DateTime?
+  archivedAt      DateTime?
+  restoredAt      DateTime?
+  rejectedAt      DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   students        StudentGame[]
   sessions        Session[]
   libraries       GameLibraryItem[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([archivedAt])
 }
 
 model GameLibrary {
@@ -174,6 +204,39 @@ model MediaAsset {
   @@index([createdAt])
 }
 
+model AuditLog {
+  id              String    @id @default(cuid())
+  actorId         String?
+  actorRole       String?
+  action          String
+  entityType      String
+  entityId        String?
+  before          Json?
+  after           Json?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime  @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model GameVersion {
+  id              String    @id @default(cuid())
+  gameId          String
+  versionNumber   Int
+  snapshot        Json
+  changedById     String?
+  changeType      String
+  createdAt       DateTime  @default(now())
+
+  @@unique([gameId, versionNumber])
+  @@index([gameId])
+  @@index([changedById])
+  @@index([createdAt])
+}
 model StudentGame {
   studentId       String
   gameId          String

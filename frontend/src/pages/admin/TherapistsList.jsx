@@ -1,107 +1,103 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, Plus, ShieldCheck, UserCheck, EyeOff, MoreVertical, ShieldAlert, Trash2 } from 'lucide-react';
+import { Edit, EyeOff, Plus, Search, ShieldAlert, ShieldCheck, Trash2, UserCheck } from 'lucide-react';
 import Button from '../../components/Button';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import { therapistService } from '../../services/therapistService';
 
+const T = {
+  title: '\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646',
+  subtitle: '\u0623\u0636\u0641 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0648\u062d\u062f\u062f \u062f\u0648\u0631 \u0643\u0644 \u0634\u062e\u0635 \u062f\u0627\u062e\u0644 \u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u062d\u0643\u0645.',
+  search: '\u0627\u0628\u062d\u062b \u0639\u0646 \u0645\u0633\u062a\u062e\u062f\u0645...',
+  addUser: '\u0625\u0636\u0627\u0641\u0629 \u0645\u0633\u062a\u062e\u062f\u0645',
+  active: '\u062d\u0633\u0627\u0628 \u0646\u0634\u0637',
+  inactive: '\u063a\u064a\u0631 \u0646\u0634\u0637',
+  edit: '\u062a\u0639\u062f\u064a\u0644',
+  deactivate: '\u062a\u0639\u0637\u064a\u0644',
+  activate: '\u062a\u0641\u0639\u064a\u0644',
+  delete: '\u062d\u0630\u0641',
+  noUsers: '\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0633\u0627\u0628\u0627\u062a \u0645\u0637\u0627\u0628\u0642\u0629',
+  sessionError: '\u062c\u0644\u0633\u0629 \u0627\u0644\u0625\u062f\u0627\u0631\u0629 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d\u0629. \u0633\u062c\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.',
+  fetchError: '\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062c\u0644\u0628 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a.',
+  actionError: '\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0625\u062c\u0631\u0627\u0621.',
+  confirmDeleteTitle: '\u062d\u0630\u0641 \u0627\u0644\u062d\u0633\u0627\u0628',
+  confirmDeactivateTitle: '\u062a\u0639\u0637\u064a\u0644 \u0627\u0644\u062d\u0633\u0627\u0628',
+  confirmActivateTitle: '\u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u062d\u0633\u0627\u0628',
+  confirmDeleteMessage: '\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0645\u0646 \u062d\u0630\u0641 \u0647\u0630\u0627 \u0627\u0644\u062d\u0633\u0627\u0628\u061f',
+  confirmDeactivateMessage: '\u0644\u0646 \u064a\u062a\u0645\u0643\u0646 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0645\u0646 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u062d\u062a\u0649 \u064a\u062a\u0645 \u062a\u0641\u0639\u064a\u0644\u0647 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.',
+  confirmActivateMessage: '\u0633\u064a\u062a\u0645\u0643\u0646 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0645\u0646 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.',
+  yes: '\u0646\u0639\u0645',
+  cancel: '\u0625\u0644\u063a\u0627\u0621',
+};
+
+const ROLE_LABELS = {
+  SUPER_ADMIN: '\u0645\u0633\u0624\u0648\u0644 \u0631\u0626\u064a\u0633\u064a',
+  ADMIN: '\u0623\u062f\u0645\u0646 \u0645\u062d\u062a\u0648\u0649',
+  DATA_ENTRY: '\u0645\u062f\u062e\u0644 \u0628\u064a\u0627\u0646\u0627\u062a',
+  THERAPIST: '\u0623\u062e\u0635\u0627\u0626\u064a',
+};
+
+const ROLE_STYLES = {
+  SUPER_ADMIN: 'border-amber-100 bg-amber-50 text-amber-700',
+  ADMIN: 'border-blue-100 bg-blue-50 text-blue-700',
+  DATA_ENTRY: 'border-sky-100 bg-sky-50 text-sky-700',
+  THERAPIST: 'border-emerald-100 bg-emerald-50 text-emerald-700',
+};
+
 const TherapistsList = () => {
   const navigate = useNavigate();
   const { adminSession } = useTherapyStore();
-  const [therapists, setTherapists] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeMenuId, setActiveMenuId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setActiveMenuId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const toggleMenu = (id, e) => {
-    e.stopPropagation();
-    setActiveMenuId(activeMenuId === id ? null : id);
-  };
-
-  const displayedTherapists = useMemo(() => {
-    const list = Array.isArray(therapists) ? [...therapists] : [];
-
-    if (adminSession?.user?.role !== 'SUPER_ADMIN') {
-      return list;
-    }
-
-    const currentAdminId = adminSession?.user?.id;
-    const alreadyIncluded = list.some((therapist) => String(therapist.id) === String(currentAdminId));
-
-    let finalDisplay = list;
-    if (!alreadyIncluded && currentAdminId) {
-      finalDisplay = [
-        {
-          id: currentAdminId,
-          name: adminSession?.name || adminSession?.user?.name || 'المسؤول الرئيسي',
-          email: adminSession?.email || adminSession?.user?.email || '',
-          role: 'SUPER_ADMIN',
-          isActive: true,
-        },
-        ...list,
-      ];
-    }
-
-    if (searchTerm.trim() !== '') {
-      const lowerTerm = searchTerm.toLowerCase();
-      finalDisplay = finalDisplay.filter(t => 
-        (t.name && t.name.toLowerCase().includes(lowerTerm)) || 
-        (t.email && t.email.toLowerCase().includes(lowerTerm))
-      );
-    }
-
-    return finalDisplay;
-  }, [adminSession?.email, adminSession?.name, adminSession?.user?.id, adminSession?.user?.name, adminSession?.user?.role, therapists, searchTerm]);
-
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, currentStatus: false, actionType: null });
 
+  const loadUsers = async () => {
+    if (!adminSession?.token) {
+      setUsers([]);
+      setError(T.sessionError);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      const response = await therapistService.getTherapists(adminSession.token);
+      setUsers(Array.isArray(response?.data) ? response.data : []);
+    } catch (_fetchError) {
+      setUsers([]);
+      setError(T.fetchError);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchTherapists = async () => {
-      if (!adminSession?.token) {
-        setTherapists([]);
-        setError('جلسة الإدارة غير متاحة. سجّل الدخول مرة أخرى.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError('');
-        const response = await therapistService.getTherapists(adminSession.token);
-        setTherapists(Array.isArray(response?.data) ? response.data : []);
-      } catch (_fetchError) {
-        setTherapists([]);
-        setError('حدث خطأ أثناء جلب قائمة الدكاترة.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTherapists();
+    loadUsers();
   }, [adminSession?.token]);
 
-  const handleToggleActiveClick = (id, currentStatus) => {
-    setActiveMenuId(null);
-    setConfirmModal({ isOpen: true, id, currentStatus, actionType: 'toggle' });
-  };
+  const displayedUsers = useMemo(() => {
+    const list = Array.isArray(users) ? [...users] : [];
+    const currentAdminId = adminSession?.user?.id;
+    const alreadyIncluded = list.some((user) => String(user.id) === String(currentAdminId));
 
-  const handleDeleteClick = (id) => {
-    setActiveMenuId(null);
-    setConfirmModal({ isOpen: true, id, currentStatus: false, actionType: 'delete' });
-  };
+    if (adminSession?.user?.role === 'SUPER_ADMIN' && currentAdminId && !alreadyIncluded) {
+      list.unshift({
+        id: currentAdminId,
+        name: adminSession?.name || adminSession?.user?.name || ROLE_LABELS.SUPER_ADMIN,
+        email: adminSession?.email || adminSession?.user?.email || '',
+        role: 'SUPER_ADMIN',
+        isActive: true,
+      });
+    }
+
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return list;
+    return list.filter((user) => [user.name, user.email, ROLE_LABELS[user.role], user.role].join(' ').toLowerCase().includes(query));
+  }, [adminSession, searchTerm, users]);
 
   const executeConfirmAction = async () => {
     const { id, currentStatus, actionType } = confirmModal;
@@ -111,218 +107,85 @@ const TherapistsList = () => {
       setError('');
       if (actionType === 'delete') {
         await therapistService.deleteTherapist(adminSession.token, id);
-      } else if (actionType === 'toggle') {
-        if (currentStatus) {
-          await therapistService.deactivateTherapist(adminSession.token, id);
-        } else {
-          await therapistService.updateTherapist(adminSession.token, id, { isActive: true });
-        }
+      } else if (currentStatus) {
+        await therapistService.deactivateTherapist(adminSession.token, id);
+      } else {
+        await therapistService.updateTherapist(adminSession.token, id, { isActive: true });
       }
-
-      const response = await therapistService.getTherapists(adminSession.token);
-      setTherapists(Array.isArray(response?.data) ? response.data : []);
+      await loadUsers();
     } catch (err) {
-      setError(err.response?.data?.message || 'حدث خطأ أثناء تنفيذ الإجراء.');
+      setError(err.response?.data?.message || T.actionError);
     }
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-12 h-12 rounded-full border-4 border-cyan-200 border-t-[#178bb6] animate-spin" />
-      </div>
-    );
+    return <div className="flex h-64 items-center justify-center"><div className="h-12 w-12 animate-spin rounded-full border-4 border-cyan-200 border-t-[#178bb6]" /></div>;
   }
 
   return (
-    <div className="animate-fade-in space-y-8 h-full font-sans text-slate-800" dir="rtl">
-      {/* الترويسة العلوية */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+    <div className="space-y-8 font-sans text-slate-800" dir="rtl">
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-cyan-50 rounded-2xl flex items-center justify-center text-[#178bb6]">
-            <ShieldCheck size={28} strokeWidth={2.5} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">إدارة الدكاترة</h1>
-            <p className="text-slate-500 mt-1 text-sm">إضافة الدكاترة الجدد وتعيين حساباتهم وصلاحياتهم.</p>
-          </div>
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 text-[#178bb6]"><ShieldCheck size={28} strokeWidth={2.5} /></div>
+          <div><h1 className="text-2xl font-black text-slate-900">{T.title}</h1><p className="mt-1 text-sm text-slate-500">{T.subtitle}</p></div>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex flex-col items-center gap-3 sm:flex-row">
           <div className="relative w-full sm:w-72">
-            <input 
-              type="text" 
-              placeholder="ابحث عن دكتور..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3 pl-10 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-[#178bb6] transition-all"
-            />
-            <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <Search size={18} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input type="text" placeholder={T.search} value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 pr-11 text-slate-900 outline-none transition-all focus:border-[#178bb6] focus:ring-4 focus:ring-cyan-500/10" />
           </div>
-          <button 
-            onClick={() => navigate('/admin/therapists/create')}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-[#178bb6] to-cyan-500 hover:from-[#126d8f] hover:to-[#178bb6] text-white px-6 py-3 rounded-xl font-bold shadow-md shadow-cyan-500/30 transition-all active:scale-95"
-          >
-            <Plus size={20} strokeWidth={2.5} />
-            إضافة دكتور جديد
-          </button>
+          <button onClick={() => navigate('/admin/therapists/create')} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#178bb6] to-cyan-500 px-6 py-3 font-bold text-white shadow-md shadow-cyan-500/30 transition-all hover:from-[#126d8f] hover:to-[#178bb6] sm:w-auto"><Plus size={20} strokeWidth={2.5} />{T.addUser}</button>
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-2xl bg-red-50 border border-red-100 p-4 text-red-600 font-bold">
-          {error}
-        </div>
-      )}
+      {error && <div className="rounded-2xl border border-red-100 bg-red-50 p-4 font-bold text-red-600">{error}</div>}
 
-      {/* شبكة الدكاترة */}
-      {displayedTherapists.length === 0 ? (
-        <div className="bg-white border border-slate-100 rounded-[2rem] p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-sm">
-          <div className="w-20 h-20 rounded-[2rem] bg-slate-50 flex items-center justify-center mb-6 text-slate-400">
-            <ShieldAlert size={40} />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-3">لا يوجد دكاترة بعد</h3>
-          <p className="text-slate-500 mb-8 max-w-md">
-            يمكنك الآن إضافة دكتور جديد لتمكينه من إدارة جلسات وطلاب العيادة.
-          </p>
-          <Button onClick={() => navigate('/admin/therapists/create')} variant="primary" className="bg-[#178bb6] hover:bg-[#126d8f]">
-            إضافة دكتور
-          </Button>
+      {displayedUsers.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-[2rem] border border-slate-100 bg-white p-12 text-center shadow-sm">
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-slate-50 text-slate-400"><ShieldAlert size={40} /></div>
+          <h3 className="mb-3 text-2xl font-black text-slate-900">{T.noUsers}</h3>
+          <Button onClick={() => navigate('/admin/therapists/create')} variant="primary" className="bg-[#178bb6] hover:bg-[#126d8f]">{T.addUser}</Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedTherapists.map((doctor) => (
-            <div key={doctor.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden cursor-default">
-              
-              {/* تأثير بصري في الخلفية (Blob) */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-50 to-transparent rounded-bl-full opacity-50 group-hover:scale-110 transition-transform duration-500 pointer-events-none"></div>
-
-              {/* رأس البطاقة: المعلومات والقائمة */}
-              <div className="flex justify-between items-start mb-8 relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-[#178bb6] to-cyan-400 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-md transform group-hover:rotate-3 transition-transform duration-300 flex-shrink-0">
-                    {doctor.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black text-slate-900 mb-1 group-hover:text-[#178bb6] transition-colors truncate max-w-[150px]">{doctor.name}</h2>
-                    <p className="text-sm font-medium text-slate-500 truncate max-w-[150px]">{doctor.email}</p>
-                  </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {displayedUsers.map((user) => {
+            const isSuperAdmin = user.role === 'SUPER_ADMIN';
+            return (
+              <div key={user.id} className="relative flex min-h-[16rem] flex-col overflow-hidden rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl">
+                <div className="absolute right-0 top-0 h-32 w-32 rounded-bl-full bg-gradient-to-br from-cyan-50 to-transparent opacity-60" />
+                <div className="relative z-10 mb-6 flex items-start gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#178bb6] to-cyan-400 text-2xl font-black text-white shadow-md">{String(user.name || '?').charAt(0).toUpperCase()}</div>
+                  <div className="min-w-0"><h2 className="truncate text-xl font-black text-slate-900">{user.name}</h2><p className="truncate text-sm font-medium text-slate-500">{user.email}</p></div>
                 </div>
 
-                {/* القائمة المنسدلة للخيارات (ثلاث نقاط) */}
-                <div className="relative z-20" ref={activeMenuId === doctor.id ? menuRef : null}>
-                  <button 
-                    onClick={(e) => toggleMenu(doctor.id, e)}
-                    className={`p-2 rounded-xl transition-all ${activeMenuId === doctor.id ? 'bg-cyan-50 text-[#178bb6]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
-                  >
-                    <MoreVertical size={20} />
-                  </button>
+                <div className="relative z-10 mt-auto flex flex-wrap gap-2 border-t border-slate-50 pt-4">
+                  <span className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold ${ROLE_STYLES[user.role] || 'border-slate-200 bg-slate-50 text-slate-600'}`}><ShieldCheck size={14} />{ROLE_LABELS[user.role] || user.role}</span>
+                  <span className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold ${user.isActive ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>{user.isActive ? <UserCheck size={14} /> : <EyeOff size={14} />}{user.isActive ? T.active : T.inactive}</span>
+                </div>
 
-                  {activeMenuId === doctor.id && (
-                    <div className="absolute left-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-30 animate-fade-in py-1">
-                      <button 
-                        onClick={() => {
-                          setActiveMenuId(null);
-                          navigate(`/admin/therapists/edit/${doctor.id}`);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors text-right"
-                      >
-                        <div className="bg-amber-50 text-amber-500 p-1.5 rounded-lg"><Edit size={16} /></div>
-                        تعديل البيانات
-                      </button>
-                      
-                      {doctor.role !== 'SUPER_ADMIN' && (
-                        <>
-                          <button 
-                            onClick={() => handleToggleActiveClick(doctor.id, doctor.isActive)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition-colors text-right border-t border-slate-50 ${doctor.isActive ? 'text-slate-500 hover:bg-slate-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
-                          >
-                            <div className={`p-1.5 rounded-lg ${doctor.isActive ? 'bg-slate-50 text-slate-500' : 'bg-emerald-50 text-emerald-500'}`}>
-                              {doctor.isActive ? <EyeOff size={16} /> : <UserCheck size={16} />}
-                            </div>
-                            {doctor.isActive ? 'تعطيل الحساب' : 'تفعيل الحساب'}
-                          </button>
-                          
-                          <button 
-                            onClick={() => handleDeleteClick(doctor.id)}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors text-right border-t border-slate-50"
-                          >
-                            <div className="bg-red-50 text-red-500 p-1.5 rounded-lg"><Trash2 size={16} /></div>
-                            حذف نهائي
-                          </button>
-                        </>
-                      )}
-                    </div>
+                <div className="relative z-10 mt-5 flex flex-wrap gap-2">
+                  <button onClick={() => navigate(`/admin/therapists/edit/${user.id}`)} className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 ring-1 ring-slate-200 transition-colors hover:bg-slate-200"><Edit size={16} />{T.edit}</button>
+                  {!isSuperAdmin && (
+                    <button onClick={() => setConfirmModal({ isOpen: true, id: user.id, currentStatus: user.isActive, actionType: 'toggle' })} className="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100">{user.isActive ? <EyeOff size={16} /> : <UserCheck size={16} />}{user.isActive ? T.deactivate : T.activate}</button>
+                  )}
+                  {!isSuperAdmin && (
+                    <button onClick={() => setConfirmModal({ isOpen: true, id: user.id, currentStatus: false, actionType: 'delete' })} className="inline-flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-100"><Trash2 size={16} />{T.delete}</button>
                   )}
                 </div>
               </div>
-
-              {/* الشارات (Badges) في أسفل البطاقة */}
-              <div className="mt-auto pt-4 border-t border-slate-50 flex flex-wrap gap-2 relative z-10">
-                {doctor.role === 'SUPER_ADMIN' && (
-                  <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-100 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
-                    <ShieldCheck size={14} strokeWidth={2.5} />
-                    مسؤول رئيسي
-                  </div>
-                )}
-                {doctor.isActive ? (
-                  <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-600 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
-                    <UserCheck size={14} strokeWidth={2.5} />
-                    حساب نشط
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-500 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
-                    <EyeOff size={14} strokeWidth={2.5} />
-                    غير نشط
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {/* بطاقة الإضافة السريعة */}
-          <div 
-            onClick={() => navigate('/admin/therapists/create')}
-            className="bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-[2rem] p-6 flex flex-col items-center justify-center text-slate-400 hover:bg-cyan-50/50 hover:border-cyan-300 hover:text-[#178bb6] transition-all cursor-pointer min-h-[200px] group"
-          >
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform duration-300 group-hover:shadow-cyan-100 text-slate-300 group-hover:text-[#178bb6]">
-              <Plus size={28} strokeWidth={2.5} />
-            </div>
-            <span className="font-bold text-lg">إضافة دكتور جديد</span>
-          </div>
+            );
+          })}
         </div>
       )}
-
-      <style dangerouslySetInnerHTML={{__html: `
-        .animate-fade-in { 
-          animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
-        }
-        @keyframes fadeIn { 
-          from { opacity: 0; transform: translateY(10px); } 
-          to { opacity: 1; transform: translateY(0); } 
-        }
-      `}} />
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, id: null, currentStatus: false, actionType: null })}
         onConfirm={executeConfirmAction}
-        title={
-          confirmModal.actionType === 'delete' ? 'حذف نهائي للحساب' :
-          confirmModal.currentStatus ? 'تعطيل الحساب' : 'تفعيل الحساب'
-        }
-        message={
-          confirmModal.actionType === 'delete' ? 'هل أنت متأكد من رغبتك في حذف هذا الحساب نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.' :
-          confirmModal.currentStatus 
-          ? 'هل أنت متأكد من رغبتك في تعطيل هذا الحساب؟ لن يتمكن من الدخول للمنصة مرة أخرى.' 
-          : 'هل أنت متأكد من رغبتك في تفعيل هذا الحساب؟ سيتمكن من الدخول للمنصة وإدارة الطلاب.'
-        }
-        confirmText={
-          confirmModal.actionType === 'delete' ? 'نعم، قم بالحذف' :
-          confirmModal.currentStatus ? 'نعم، قم بالتعطيل' : 'نعم، قم بالتفعيل'
-        }
-        cancelText="إلغاء"
+        title={confirmModal.actionType === 'delete' ? T.confirmDeleteTitle : confirmModal.currentStatus ? T.confirmDeactivateTitle : T.confirmActivateTitle}
+        message={confirmModal.actionType === 'delete' ? T.confirmDeleteMessage : confirmModal.currentStatus ? T.confirmDeactivateMessage : T.confirmActivateMessage}
+        confirmText={T.yes}
+        cancelText={T.cancel}
         isDestructive={confirmModal.actionType === 'delete' || confirmModal.currentStatus}
         position="top"
       />

@@ -140,6 +140,8 @@ const getActivityCount = (game) =>
 
 const getSelectedItemLabel = (index) => `لعبة ${index + 1}`;
 const getGameCodeLabel = (gameCode) => `كود ${gameCode}`;
+const getGameBandValue = (game) => String(game?.gameCode || '').trim().toUpperCase().charAt(0);
+const getGameBandLabel = (band) => band || '\u0628\u0646\u062f \u063a\u064a\u0631 \u0645\u062d\u062f\u062f';
 const getGameTypeLabel = (type) => GAME_TYPE_LABELS_AR[type] || GAME_TYPE_LABELS[type] || type || 'تصنيف غير محدد';
 const getGameTypeOrderIndex = (type) => {
   const index = GAME_TYPE_ORDER.indexOf(type);
@@ -311,7 +313,8 @@ export default function LibraryPage() {
   const [libraryForm, setLibraryForm] = useState(createEmptyLibraryForm());
   const [searchQuery, setSearchQuery] = useState('');
   const [gameSearchQuery, setGameSearchQuery] = useState('');
-  const [selectedGameType, setSelectedGameType] = useState('all');
+  const [selectedGameBand, setSelectedGameBand] = useState('all');
+  const [gameBandFilterOpen, setGameBandFilterOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [colorHue, setColorHue] = useState(195);
   const [loading, setLoading] = useState(true);
@@ -369,32 +372,53 @@ export default function LibraryPage() {
     [libraries, selectedLibraryId]
   );
 
-  const gameTypes = useMemo(() => {
-    const types = games
-      .map((game) => String(game?.type || '').trim())
+  const gameUsedInOtherPlanMap = useMemo(() => {
+    const currentLibraryId = libraryForm.id ? String(libraryForm.id) : '';
+    const usageMap = new Map();
+
+    libraries.forEach((libraryItem) => {
+      const libraryId = String(libraryItem?.id || '');
+      if (!libraryId || libraryId === currentLibraryId) return;
+
+      const gameIds = Array.isArray(libraryItem?.gameIds) ? libraryItem.gameIds : [];
+      gameIds.forEach((gameId) => {
+        const normalizedGameId = String(gameId);
+        if (!usageMap.has(normalizedGameId)) {
+          usageMap.set(normalizedGameId, libraryItem);
+        }
+      });
+    });
+
+    return usageMap;
+  }, [libraries, libraryForm.id]);
+
+  const gameBands = useMemo(() => {
+    const bands = games
+      .map((game) => getGameBandValue(game))
       .filter(Boolean);
 
-    return [...new Set(types)].sort((first, second) => {
-      const orderDifference = getGameTypeOrderIndex(first) - getGameTypeOrderIndex(second);
-      if (orderDifference !== 0) return orderDifference;
-      return getGameTypeLabel(first).localeCompare(getGameTypeLabel(second), 'ar');
-    });
+    return [...new Set(bands)].sort((first, second) => first.localeCompare(second, 'ar', { numeric: true }));
   }, [games]);
+
+  const selectedGameBandLabel = useMemo(
+    () => (selectedGameBand === 'all' ? '\u0643\u0644 \u0627\u0644\u0628\u0646\u0648\u062f' : getGameBandLabel(selectedGameBand)),
+    [selectedGameBand]
+  );
 
   const filteredGames = useMemo(() => {
     const query = gameSearchQuery.trim().toLowerCase();
 
     return games.filter((game) => {
-      const gameType = String(game?.type || '').trim();
-      const matchesType = selectedGameType === 'all' || gameType === selectedGameType;
-      if (!matchesType) return false;
+      const gameBand = getGameBandValue(game);
+      const matchesBand = selectedGameBand === 'all' || gameBand === selectedGameBand;
+      if (!matchesBand) return false;
 
       if (!query) return true;
 
-      const haystack = `${getGameTitle(game)} ${game?.gameCode || ''} ${game?.type || ''}`.toLowerCase();
+      const haystack = `${getGameTitle(game)} ${game?.gameCode || ''} ${gameBand}`.toLowerCase();
       return haystack.includes(query);
     });
-  }, [games, gameSearchQuery, selectedGameType]);
+  }, [games, gameSearchQuery, selectedGameBand]);
 
   const selectedGames = useMemo(
     () =>
@@ -449,12 +473,20 @@ export default function LibraryPage() {
   };
 
   const handleToggleGame = (gameId) => {
-    setLibraryForm((current) => ({
-      ...current,
-      gameIds: current.gameIds.includes(gameId)
-        ? current.gameIds.filter((id) => id !== gameId)
-        : [...current.gameIds, gameId],
-    }));
+    const normalizedGameId = String(gameId);
+    const usedInOtherPlan = gameUsedInOtherPlanMap.has(normalizedGameId);
+
+    setLibraryForm((current) => {
+      const isSelected = current.gameIds.includes(normalizedGameId);
+      if (usedInOtherPlan && !isSelected) return current;
+
+      return {
+        ...current,
+        gameIds: isSelected
+          ? current.gameIds.filter((id) => id !== normalizedGameId)
+          : [...current.gameIds, normalizedGameId],
+      };
+    });
   };
 
   const moveGame = (gameId, direction) => {
@@ -975,20 +1007,61 @@ export default function LibraryPage() {
                   />
                 </div>
 
-                <div className="relative">
-                  <select
-                    value={selectedGameType}
-                    onChange={(event) => setSelectedGameType(event.target.value)}
-                    className="w-full appearance-none rounded-[1.4rem] border border-slate-200 bg-slate-50 py-3 pr-4 pl-10 text-sm font-black text-slate-700 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                <div className="relative z-20">
+                  <button
+                    type="button"
+                    onClick={() => setGameBandFilterOpen((current) => !current)}
+                    aria-expanded={gameBandFilterOpen}
+                    className={`flex w-full items-center justify-between gap-3 rounded-[1.05rem] border px-3 py-2 text-xs font-black outline-none transition-all duration-200 ${
+                      gameBandFilterOpen
+                        ? 'border-sky-400 bg-white text-sky-800 shadow-[0_16px_32px_-26px_rgba(14,165,233,0.75)] ring-4 ring-sky-100'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-sky-200 hover:bg-white'
+                    }`}
                   >
-                    <option value="all">كل التصنيفات</option>
-                    {gameTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {getGameTypeLabel(type)}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <span className="truncate">{selectedGameBandLabel}</span>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                      gameBandFilterOpen ? 'bg-sky-50 text-sky-700' : 'bg-white text-slate-400 ring-1 ring-slate-100'
+                    }`}>
+                      {gameBandFilterOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                    </span>
+                  </button>
+
+                  <AnimatePresence>
+                    {gameBandFilterOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                        transition={{ duration: 0.16 }}
+                        className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-30 overflow-hidden rounded-[1rem] border border-sky-100 bg-white p-1 shadow-[0_22px_50px_-30px_rgba(15,23,42,0.45)] ring-1 ring-sky-50"
+                      >
+                        <div className="max-h-48 overflow-y-auto pl-1">
+                          {[{ value: 'all', label: '\u0643\u0644 \u0627\u0644\u0628\u0646\u0648\u062f' }, ...gameBands.map((band) => ({ value: band, label: getGameBandLabel(band) }))].map((option) => {
+                            const isActive = selectedGameBand === option.value;
+
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedGameBand(option.value);
+                                  setGameBandFilterOpen(false);
+                                }}
+                                className={`flex w-full items-center justify-between gap-3 rounded-[0.8rem] px-3 py-2 text-right text-xs font-black transition ${
+                                  isActive
+                                    ? 'bg-sky-600 text-white shadow-[0_12px_24px_-18px_rgba(2,132,199,0.75)]'
+                                    : 'text-slate-700 hover:bg-sky-50 hover:text-sky-800'
+                                }`}
+                              >
+                                <span>{option.label}</span>
+                                {isActive && <CheckCircle2 size={14} />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
@@ -997,25 +1070,34 @@ export default function LibraryPage() {
                   filteredGames.map((game) => {
                     const gameId = String(game.id);
                     const isSelected = libraryForm.gameIds.includes(gameId);
+                    const usedInOtherPlan = gameUsedInOtherPlanMap.get(gameId);
+                    const isBlocked = Boolean(usedInOtherPlan) && !isSelected;
 
                     return (
                       <motion.button
                         key={game.id}
                         layout
                         type="button"
+                        disabled={isBlocked}
                         onClick={() => handleToggleGame(gameId)}
-                        whileHover={{ y: -2 }}
-                        whileTap={{ scale: 0.995 }}
-                        className={`rounded-[1.6rem] border p-4 text-right transition ${
-                          isSelected
-                            ? 'border-sky-200 bg-sky-50 shadow-[0_20px_35px_-30px_rgba(14,165,233,0.8)]'
-                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                        whileHover={isBlocked ? undefined : { y: -2 }}
+                        whileTap={isBlocked ? undefined : { scale: 0.995 }}
+                        className={`rounded-[1.6rem] border p-4 text-right transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                          isBlocked
+                            ? 'border-slate-200 bg-slate-100/80'
+                            : isSelected
+                              ? 'border-sky-200 bg-sky-50 shadow-[0_20px_35px_-30px_rgba(14,165,233,0.8)]'
+                              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex flex-wrap items-center gap-3 xl:justify-end">
                           <div
                             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
-                              isSelected ? 'bg-sky-600 text-white' : 'bg-slate-100 text-sky-700'
+                              isBlocked
+                                ? 'bg-slate-200 text-slate-400'
+                                : isSelected
+                                  ? 'bg-sky-600 text-white'
+                                  : 'bg-slate-100 text-sky-700'
                             }`}
                           >
                             {isSelected ? <CheckCircle2 size={19} /> : <Gamepad2 size={19} />}
@@ -1036,7 +1118,12 @@ export default function LibraryPage() {
                               <span className="inline-flex min-w-fit whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-slate-600">
                                 {getActivityCount(game)} نشاط
                               </span>
-                              {libraryForm.gameIds.includes(gameId) && (
+                              {usedInOtherPlan && (
+                                <span className="inline-flex min-w-fit whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-amber-700">
+                                  {'\u0645\u0648\u062c\u0648\u062f\u0629 \u0641\u064a \u062e\u0637\u0629'}: {usedInOtherPlan?.name || '--'}
+                                </span>
+                              )}
+                              {!isBlocked && libraryForm.gameIds.includes(gameId) && (
                                 <span className="inline-flex min-w-fit whitespace-nowrap rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
                                   {getSelectedItemLabel(libraryForm.gameIds.indexOf(gameId))}
                                 </span>

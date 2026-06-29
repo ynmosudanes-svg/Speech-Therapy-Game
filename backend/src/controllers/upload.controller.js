@@ -1,6 +1,7 @@
-const path = require('path');
+﻿const path = require('path');
 const prisma = require('../config/prisma');
 const storageService = require('../services/storage.service');
+const { logActivity } = require('../services/audit.service');
 
 const GENERAL_FOLDER_ID = '__general__';
 
@@ -198,6 +199,8 @@ async function uploadFile(req, res) {
       include: { folder: true },
     });
 
+    await logActivity({ req, action: 'FILE_UPLOADED', entityType: 'MediaAsset', entityId: asset.id, after: asset });
+
     return res.status(201).json({
       success: true,
       url: asset.url,
@@ -254,6 +257,8 @@ async function deleteUploadedFile(req, res) {
     await prisma.mediaAsset.deleteMany({ where: { key } });
     if (!deleted) return res.status(404).json({ success: false, message: 'File not found.' });
 
+    await logActivity({ req, action: 'FILE_DELETED', entityType: 'MediaAsset', entityId: key, before: { key } });
+
     return res.json({ success: true, message: 'File deleted successfully.' });
   } catch (error) {
     console.error('Delete File Error:', error);
@@ -299,6 +304,7 @@ async function createMediaFolder(req, res) {
       },
     });
 
+    await logActivity({ req, action: 'MEDIA_FOLDER_CREATED', entityType: 'MediaFolder', entityId: folder.id, after: folder });
     return res.status(201).json({ success: true, data: formatFolder(folder) });
   } catch (error) {
     console.error('Create Folder Error:', error);
@@ -356,6 +362,7 @@ async function moveUploadedFiles(req, res) {
       moved.push(formatAsset(asset));
     }
 
+    await logActivity({ req, action: 'FILES_MOVED', entityType: 'MediaAsset', after: { count: moved.length, folderId: folder?.id || null } });
     return res.json({ success: true, count: moved.length, data: moved });
   } catch (error) {
     console.error('Move Files Error:', error);
@@ -385,6 +392,7 @@ async function deleteMediaFolder(req, res) {
     }
 
     await prisma.mediaFolder.delete({ where: { id: folder.id } });
+    await logActivity({ req, action: 'MEDIA_FOLDER_DELETED', entityType: 'MediaFolder', entityId: folder.id, before: folder });
     return res.json({ success: true, message: 'Folder deleted successfully.' });
   } catch (error) {
     console.error('Delete Folder Error:', error);

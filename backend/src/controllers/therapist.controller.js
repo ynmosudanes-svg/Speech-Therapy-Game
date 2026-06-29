@@ -2,7 +2,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const therapistService = require('../services/therapist.service');
 
 const createTherapist = asyncHandler(async (req, res) => {
-  const therapist = await therapistService.createTherapist(req.body);
+  const therapist = await therapistService.createTherapist(req.body, req.user, req);
   res.status(201).json({
     success: true,
     message: 'Therapist created successfully.',
@@ -20,7 +20,7 @@ const getTherapists = asyncHandler(async (_req, res) => {
 });
 
 const updateTherapist = asyncHandler(async (req, res) => {
-  const therapist = await therapistService.updateTherapist(req.params.id, req.body);
+  const therapist = await therapistService.updateTherapist(req.params.id, req.body, req.user, req);
   res.json({
     success: true,
     message: 'Therapist updated successfully.',
@@ -29,7 +29,7 @@ const updateTherapist = asyncHandler(async (req, res) => {
 });
 
 const deactivateTherapist = asyncHandler(async (req, res) => {
-  const therapist = await therapistService.deactivateTherapist(req.params.id);
+  const therapist = await therapistService.deactivateTherapist(req.params.id, req.user, req);
   res.json({
     success: true,
     message: 'Therapist deactivated successfully.',
@@ -38,7 +38,7 @@ const deactivateTherapist = asyncHandler(async (req, res) => {
 });
 
 const deleteTherapist = asyncHandler(async (req, res) => {
-  await therapistService.deleteTherapist(req.params.id);
+  await therapistService.deleteTherapist(req.params.id, req.user, req);
   res.json({
     success: true,
     message: 'Therapist deleted successfully.',

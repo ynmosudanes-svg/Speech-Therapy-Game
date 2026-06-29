@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const {
   createParent,
   getParents,
@@ -52,9 +52,8 @@ router.route('/api/parents')
   .post(createParent)
   .get(getParents);
 
-router.route('/api/parents/:id')
-  .put(updateParent)
-  .delete(deleteParent);
+router.put('/api/parents/:id', updateParent);
+router.delete('/api/parents/:id', authorize('SUPER_ADMIN'), deleteParent);
 
 router.put('/api/parents/:id/deactivate', deactivateParent);
 

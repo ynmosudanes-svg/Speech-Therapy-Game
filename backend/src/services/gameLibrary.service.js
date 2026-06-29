@@ -35,6 +35,27 @@ async function ensureGamesExist(gameIds = []) {
     throw new ApiError(400, 'One or more selected games do not exist.');
   }
 }
+async function ensureGamesAreNotUsedInOtherLibraries(gameIds = [], currentLibraryId = null) {
+  if (!gameIds.length) return;
+
+  const usedItems = await prisma.gameLibraryItem.findMany({
+    where: {
+      gameId: { in: gameIds },
+      ...(currentLibraryId ? { libraryId: { not: currentLibraryId } } : {}),
+    },
+    include: {
+      library: { select: { id: true, name: true } },
+      game: { select: { id: true, gameCode: true, name: true, nameAr: true, title: true } },
+    },
+  });
+
+  if (!usedItems.length) return;
+
+  const firstUsed = usedItems[0];
+  const gameName = firstUsed.game?.nameAr || firstUsed.game?.name || firstUsed.game?.title || firstUsed.game?.gameCode || firstUsed.gameId;
+  const libraryName = firstUsed.library?.name || 'another plan';
+  throw new ApiError(409, 'Game "' + gameName + '" is already assigned to plan "' + libraryName + '".');
+}
 
 async function listLibraries() {
   const libraries = await prisma.gameLibrary.findMany({
@@ -78,6 +99,7 @@ async function createLibrary(payload) {
     : [];
 
   await ensureGamesExist(gameIds);
+  await ensureGamesAreNotUsedInOtherLibraries(gameIds);
 
   const library = await prisma.gameLibrary.create({
     data: {
@@ -119,6 +141,7 @@ async function updateLibrary(libraryId, payload) {
 
   if (gameIds) {
     await ensureGamesExist(gameIds);
+    await ensureGamesAreNotUsedInOtherLibraries(gameIds, libraryId);
   }
 
   const updatedLibrary = await prisma.$transaction(async (tx) => {

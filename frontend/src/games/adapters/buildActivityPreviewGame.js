@@ -176,7 +176,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       instructionAudio: '',
       difficulty: 'easy',
       image: '',
-      requiredShakes: 6,
+      requiredShakes: 3,
     };
   }
 
@@ -604,7 +604,7 @@ export const buildActivityRuntimeGame = ({
           instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
           questionAudio: activity?.instructionAudio || '',
           image: activity?.image || activity?.heroImage || '',
-          requiredShakes: Number(activity?.requiredShakes ?? 6),
+          requiredShakes: Math.min(3, Math.max(1, Number(activity?.requiredShakes ?? 3) || 3)),
         },
         feedback: {
           successSound: sharedMedia?.successSound || '',

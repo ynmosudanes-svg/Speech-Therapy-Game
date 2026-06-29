@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const { body, param } = require('express-validator');
 const {
   getStudents,
@@ -68,6 +68,7 @@ router.patch(
 router.delete(
   '/api/students/:id',
   staffOnly,
+  authorize('SUPER_ADMIN'),
   [param('id').notEmpty().withMessage('Student id is required.'), validateRequest],
   deleteStudent
 );

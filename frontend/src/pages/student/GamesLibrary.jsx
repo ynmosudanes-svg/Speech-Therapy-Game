@@ -8,6 +8,7 @@ const fallbackColors = ['#1584C3', '#06B6D4', '#DC0B13', '#14A383', '#A855F7', '
 
 const getLibraryColor = (library, index) => library?.color || fallbackColors[index % fallbackColors.length];
 const getGameTitle = (game) => game.titleAr || game.config?.nameAr || game.title || game.name || 'لعبة علاجية';
+const getGameCodeLabel = (game) => game?.gameCode ? `كود ${game.gameCode}` : '';
 
 const normalizeList = (response) => (Array.isArray(response) ? response : response?.data || []);
 
@@ -162,9 +163,16 @@ const GamesLibrary = () => {
                       <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#EAF7FD] shadow-sm ring-1 ring-[#cfe3f3]" style={{ color: accent }}>
                         <Gamepad2 size={29} />
                       </span>
-                      <span className="rounded-full bg-[#EAF7FD] px-3 py-1 text-xs font-black text-[#1584C3] ring-1 ring-[#cfe3f3]">
-                        تجربة حرة
-                      </span>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {getGameCodeLabel(game) && (
+                          <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#1584C3] ring-1 ring-[#cfe3f3]">
+                            {getGameCodeLabel(game)}
+                          </span>
+                        )}
+                        <span className="rounded-full bg-[#EAF7FD] px-3 py-1 text-xs font-black text-[#1584C3] ring-1 ring-[#cfe3f3]">
+                          تجربة حرة
+                        </span>
+                      </div>
                     </div>
 
                     <h3 className="text-xl font-black leading-8 text-slate-900">{getGameTitle(game)}</h3>

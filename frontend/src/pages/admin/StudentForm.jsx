@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, Save, UserRoundPlus, Layers, User, Search, CheckCircle2, ChevronUp, ChevronDown, GripVertical, Check } from 'lucide-react';
+import { ArrowRight, Save, UserRoundPlus, Layers, User, Search, CheckCircle2, ChevronUp, ChevronDown, GripVertical, Check, UsersRound } from 'lucide-react';
 import Button from '../../components/Button';
+import ConfirmModal from '../../components/ConfirmModal';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
 import gameLibraryService from '../../services/gameLibraryService';
@@ -20,6 +21,78 @@ const defaultForm = {
 };
 
 const getTagLabel = (tag) => `التصنيف ${tag}`;
+
+const getPersonOptionLabel = (person) => [person?.name, person?.email].filter(Boolean).join(' - ');
+
+const AssignmentDropdown = ({ label, required = false, value, placeholder, options, onChange, isOpen, onToggle, onClose, icon: Icon, assignmentLabel }) => {
+  const selectedOption = options.find((option) => String(option.value) === String(value));
+
+  return (
+    <div className="relative">
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-right transition-all ${
+          isOpen
+            ? 'border-[#178bb6] bg-white shadow-[0_14px_32px_-24px_rgba(23,139,182,0.65)] ring-4 ring-cyan-100'
+            : 'border-gray-200 bg-gray-50 hover:border-cyan-200 hover:bg-white'
+        }`}
+      >
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isOpen ? 'bg-cyan-50 text-[#178bb6]' : 'bg-white text-slate-400 ring-1 ring-slate-100'}`}
+          >
+            {Icon ? <Icon size={17} /> : <User size={17} />}
+          </span>
+          <span className={`min-w-0 flex-1 truncate text-sm font-bold ${selectedOption ? 'text-slate-900' : 'text-slate-400'}`}>
+            {selectedOption?.label || placeholder}
+          </span>
+        </span>
+        <ChevronDown size={17} className={`shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-[#178bb6]' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-[calc(100%+0.45rem)] z-50 overflow-hidden rounded-xl border border-cyan-100 bg-white p-1.5 shadow-[0_24px_55px_-32px_rgba(15,23,42,0.45)]">
+          <div className="max-h-56 overflow-y-auto pl-1 custom-scrollbar">
+            {options.map((option) => {
+              const isSelected = String(option.value) === String(value);
+
+              return (
+                <button
+                  key={option.value || 'empty'}
+                  type="button"
+                  onClick={() => {
+                    onChange(option.value, option);
+                    onClose();
+                  }}
+                  className={`grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-3 py-2.5 text-right text-sm font-bold transition ${
+                    isSelected
+                      ? 'bg-[#178bb6] text-white shadow-[0_12px_24px_-18px_rgba(23,139,182,0.8)]'
+                      : 'text-slate-700 hover:bg-cyan-50 hover:text-[#126d8f]'
+                  }`}
+                >
+                  <span className="flex h-5 w-5 items-center justify-center">
+                    {isSelected && <Check size={15} />}
+                  </span>
+                  <span className="min-w-0 truncate">{option.label}</span>
+                  {assignmentLabel && option.value ? (
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black ${isSelected ? 'bg-white/20 text-white' : 'bg-cyan-50 text-[#178bb6]'}`}>
+                      {assignmentLabel}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const StudentForm = ({ mode = 'create' }) => {
   const navigate = useNavigate();
@@ -41,8 +114,22 @@ const StudentForm = ({ mode = 'create' }) => {
   const [selectedTag, setSelectedTag] = useState('');
   const [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
+  const [gamesPanelOpen, setGamesPanelOpen] = useState(false);
+  const [therapistMenuOpen, setTherapistMenuOpen] = useState(false);
+  const [parentMenuOpen, setParentMenuOpen] = useState(false);
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+  const [resultDialog, setResultDialog] = useState(null);
+  const [assignmentAlert, setAssignmentAlert] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
 
+  const showAssignmentAlert = (assignmentLabel, option) => {
+    if (!option?.value) return;
+
+    setAssignmentAlert({
+      title: '\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u062a\u0639\u064a\u064a\u0646',
+      message: `\u062a\u0645 \u0627\u062e\u062a\u064a\u0627\u0631 ${option.label} - ${assignmentLabel}.`,
+    });
+  };
   const toggleGroup = (groupId) => {
     setExpandedGroups(prev => ({
       ...prev,
@@ -60,6 +147,27 @@ const StudentForm = ({ mode = 'create' }) => {
     return Array.from(tags).sort();
   }, [availableGames]);
 
+  const therapistOptions = useMemo(
+    () => therapists.map((therapist) => ({
+      value: therapist.id,
+      label: getPersonOptionLabel(therapist),
+    })),
+    [therapists]
+  );
+
+  const parentOptions = useMemo(
+    () => [
+      { value: '', label: '\u0628\u062f\u0648\u0646 \u0648\u0644\u064a \u0623\u0645\u0631' },
+      ...parents.map((parent) => ({
+        value: parent.id,
+        label: getPersonOptionLabel(parent),
+      })),
+    ],
+    [parents]
+  );
+
+  const selectedTherapistLabel = therapistOptions.find((option) => String(option.value) === String(formData.therapistId))?.label || '\u0644\u0645 \u064a\u062a\u0645 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u062f\u0643\u062a\u0648\u0631';
+  const selectedParentLabel = parentOptions.find((option) => String(option.value) === String(formData.parentId))?.label || '\u0628\u062f\u0648\u0646 \u0648\u0644\u064a \u0623\u0645\u0631';
   const isEdit = mode === 'edit';
   const student = useMemo(
     () => (Array.isArray(students) ? students.find((item) => String(item.id) === String(studentId)) : null),
@@ -275,6 +383,20 @@ const StudentForm = ({ mode = 'create' }) => {
     }));
   };
 
+  const moveAssignedGameOrder = (gameIndex, direction) => {
+    const targetIndex = gameIndex + direction;
+    if (targetIndex < 0 || targetIndex >= formData.assignedGameIds.length) return;
+
+    setFormData((current) => {
+      const nextAssignedGameIds = [...current.assignedGameIds];
+      [nextAssignedGameIds[gameIndex], nextAssignedGameIds[targetIndex]] = [
+        nextAssignedGameIds[targetIndex],
+        nextAssignedGameIds[gameIndex],
+      ];
+      return { ...current, assignedGameIds: nextAssignedGameIds };
+    });
+  };
+
   // Group games by library to allow ordering libraries and games within them
   const groupedAssignedGames = useMemo(() => {
     const groups = [];
@@ -374,33 +496,46 @@ const StudentForm = ({ mode = 'create' }) => {
     setFormData(prev => ({ ...prev, assignedGameIds: newFlatIds }));
   };
 
-  const handleSubmit = async (event) => {
+  const buildPayload = () => ({
+    name: formData.name.trim(),
+    age: Number(formData.age),
+    diagnosis: formData.diagnosis.trim() || undefined,
+    planName: formData.planName.trim() || undefined,
+    therapistId: formData.therapistId || undefined,
+    parentId: formData.parentId || undefined,
+    assignedGames: uniqueAssignedGameIds.map((id, index) => ({
+      gameId: id,
+      order: index,
+    })),
+  });
+
+  const handleSubmit = (event) => {
     event.preventDefault();
-    setSubmitting(true);
     setError('');
     setSuccessNotice('');
 
     if (!adminSession?.token) {
-      setError('جلسة الإدارة غير متاحة. سجلي الدخول مرة أخرى.');
-      setSubmitting(false);
+      setError('\u062c\u0644\u0633\u0629 \u0627\u0644\u0625\u062f\u0627\u0631\u0629 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d\u0629. \u0633\u062c\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.');
       return;
     }
 
-    const payload = {
-      name: formData.name.trim(),
-      age: Number(formData.age),
-      diagnosis: formData.diagnosis.trim() || undefined,
-      planName: formData.planName.trim() || undefined,
-      currentLevel: Number(formData.currentLevel),
-      therapistId: formData.therapistId || undefined,
-      parentId: formData.parentId || undefined,
-      assignedGames: uniqueAssignedGameIds.map((id, index) => ({
-        gameId: id,
-        order: index,
-      })),
-    };
+    if (adminSession?.user?.role === 'SUPER_ADMIN' && !formData.therapistId) {
+      setError('\u0627\u062e\u062a\u0627\u0631 \u0627\u0644\u062f\u0643\u062a\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0642\u0628\u0644 \u0627\u0644\u062d\u0641\u0638.');
+      return;
+    }
+
+    setSaveConfirmOpen(true);
+  };
+
+  const handleConfirmedSubmit = async () => {
+    setSaveConfirmOpen(false);
+    setSubmitting(true);
+    setError('');
+    setSuccessNotice('');
 
     try {
+      const payload = buildPayload();
+
       if (isEdit && student) {
         await updateStudent(student.id, payload);
       } else {
@@ -408,13 +543,14 @@ const StudentForm = ({ mode = 'create' }) => {
       }
 
       await fetchStudents(adminSession.token);
-      setSuccessNotice('تم الحفظ بنجاح');
-      setSubmitting(false);
-      await new Promise((resolve) => setTimeout(resolve, 900));
-      navigate('/admin/patients');
+      setResultDialog({
+        title: isEdit ? '\u062a\u0645 \u062d\u0641\u0638 \u0627\u0644\u062a\u0639\u062f\u064a\u0644\u0627\u062a' : '\u062a\u0645\u062a \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0633\u062a\u0641\u064a\u062f',
+        message: '\u062a\u0645 \u062d\u0641\u0638 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u0633\u062a\u0641\u064a\u062f \u0648\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062e\u0637\u0629 \u0628\u0646\u062c\u0627\u062d.',
+      });
     } catch (submitError) {
       setSuccessNotice('');
-      setError(submitError?.response?.data?.message || submitError?.message || 'تعذر حفظ بيانات المستفيد.');
+      setError(submitError?.response?.data?.message || submitError?.message || '\u062a\u0639\u0630\u0631 \u062d\u0641\u0638 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u0633\u062a\u0641\u064a\u062f.');
+    } finally {
       setSubmitting(false);
     }
   };
@@ -466,10 +602,10 @@ const StudentForm = ({ mode = 'create' }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* العمود الأيمن: الإعدادات واختيار الألعاب */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="mx-auto max-w-3xl space-y-6">
           
           {/* بطاقة البيانات الأساسية */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -491,8 +627,7 @@ const StudentForm = ({ mode = 'create' }) => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">العمر <span className="text-red-500">*</span></label>
                   <input 
                     type="number" 
@@ -504,18 +639,6 @@ const StudentForm = ({ mode = 'create' }) => {
                     required
                     className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">المستوى الحالي</label>
-                  <input 
-                    type="number" 
-                    min="1"
-                    name="currentLevel"
-                    value={formData.currentLevel}
-                    onChange={handleChange}
-                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
-                  />
-                </div>
               </div>
 
               <div>
@@ -543,46 +666,152 @@ const StudentForm = ({ mode = 'create' }) => {
               </div>
 
               {adminSession?.user?.role === 'SUPER_ADMIN' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">الدكتور المسؤول <span className="text-red-500">*</span></label>
-                  <select 
-                    name="therapistId"
-                    value={formData.therapistId}
-                    onChange={handleChange}
-                    required
-                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
-                  >
-                    <option value="">اختار الدكتور</option>
-                    {therapists.map((therapist) => (
-                      <option key={therapist.id} value={therapist.id}>
-                        {therapist.name} - {therapist.email}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <AssignmentDropdown
+                  label={'\u0627\u0644\u062f\u0643\u062a\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644'}
+                  required
+                  value={formData.therapistId}
+                  placeholder={'\u0627\u062e\u062a\u0627\u0631 \u0627\u0644\u062f\u0643\u062a\u0648\u0631'}
+                  options={therapistOptions}
+                  icon={User}
+                  assignmentLabel={'\u062a\u0639\u064a\u064a\u0646 \u0643\u0640 \u062f\u0643\u062a\u0648\u0631'}
+                  isOpen={therapistMenuOpen}
+                  onToggle={() => {
+                    setTherapistMenuOpen((open) => !open);
+                    setParentMenuOpen(false);
+                  }}
+                  onClose={() => setTherapistMenuOpen(false)}
+                  onChange={(value, option) => {
+                    setFormData((current) => ({ ...current, therapistId: value }));
+                    showAssignmentAlert('\u062a\u0639\u064a\u064a\u0646 \u0643\u0640 \u062f\u0643\u062a\u0648\u0631', option);
+                  }}
+                />
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">ولي الأمر (اختياري)</label>
-                <select 
-                  name="parentId"
-                  value={formData.parentId}
-                  onChange={handleChange}
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#178bb6]/20 focus:border-[#178bb6] transition-all"
-                >
-                  <option value="">اختار ولي الأمر</option>
-                  {parents.map((parent) => (
-                    <option key={parent.id} value={parent.id}>
-                      {parent.name} - {parent.email}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <AssignmentDropdown
+                label={'\u0648\u0644\u064a \u0627\u0644\u0623\u0645\u0631 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a)'}
+                value={formData.parentId}
+                placeholder={'\u0627\u062e\u062a\u0627\u0631 \u0648\u0644\u064a \u0627\u0644\u0623\u0645\u0631'}
+                options={parentOptions}
+                icon={UsersRound}
+                assignmentLabel={'\u062a\u0639\u064a\u064a\u0646 \u0643\u0640 \u0648\u0644\u064a \u0623\u0645\u0631'}
+                isOpen={parentMenuOpen}
+                onToggle={() => {
+                  setParentMenuOpen((open) => !open);
+                  setTherapistMenuOpen(false);
+                }}
+                onClose={() => setParentMenuOpen(false)}
+                onChange={(value, option) => {
+                  setFormData((current) => ({ ...current, parentId: value }));
+                  showAssignmentAlert('\u062a\u0639\u064a\u064a\u0646 \u0643\u0640 \u0648\u0644\u064a \u0623\u0645\u0631', option);
+                }}
+              />
             </div>
           </div>
 
-          {/* بطاقة اختيار الألعاب */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[500px]">
+
+          <div className="rounded-2xl border border-cyan-100 bg-[linear-gradient(135deg,#f8fdff,#eef9fd)] p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-[#178bb6] shadow-sm ring-1 ring-cyan-100">
+                  <Layers size={22} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-900">{'\u0623\u0644\u0639\u0627\u0628 \u0627\u0644\u062e\u0637\u0629'}</h2>
+                  <p className="mt-1 text-sm font-medium text-slate-500">
+                    {formData.assignedGameIds.length ? '\u064a\u0645\u0643\u0646\u0643 \u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0623\u0644\u0639\u0627\u0628 \u0648\u062a\u0631\u062a\u064a\u0628\u0647\u0627 \u0645\u0646 \u0627\u0644\u0644\u0648\u062d\u0629 \u0627\u0644\u0639\u0627\u0626\u0645\u0629.' : '\u0644\u0645 \u064a\u062a\u0645 \u0627\u062e\u062a\u064a\u0627\u0631 \u0623\u0644\u0639\u0627\u0628 \u0628\u0639\u062f.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-white px-3 py-1.5 text-sm font-black text-[#178bb6] ring-1 ring-cyan-100">
+                  {formData.assignedGameIds.length} {'\u0644\u0639\u0628\u0629'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setGamesPanelOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#178bb6] px-4 py-2.5 text-sm font-black text-white shadow-sm shadow-cyan-500/30 transition hover:bg-[#126d8f] active:scale-[0.98]"
+                >
+                  <Layers size={17} />
+                  {'\u062a\u0639\u062f\u064a\u0644 \u0623\u0644\u0639\u0627\u0628 \u0627\u0644\u062e\u0637\u0629'}
+                </button>
+              </div>
+            </div>
+
+            {formData.assignedGameIds.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-cyan-100 pt-4">
+                {formData.assignedGameIds.slice(0, 4).map((gameId) => {
+                  const game = availableGames.find((item) => String(item.id) === String(gameId));
+                  return (
+                    <span key={gameId} className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-600 ring-1 ring-slate-100">
+                      {game?.titleAr || game?.title || game?.name || gameId}
+                    </span>
+                  );
+                })}
+                {formData.assignedGameIds.length > 4 && (
+                  <span className="rounded-full bg-cyan-50 px-3 py-1.5 text-xs font-black text-[#178bb6] ring-1 ring-cyan-100">
+                    +{formData.assignedGameIds.length - 4}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+
+
+        </div>
+
+        {/* شريط الإجراءات السفلي */}
+        <div className="mx-auto flex max-w-3xl justify-end pt-2">
+          <button 
+            type="submit"
+            disabled={submitting}
+            className="flex items-center gap-2 bg-[#178bb6] hover:bg-[#126d8f] text-white px-8 py-3 rounded-xl font-medium shadow-sm shadow-cyan-500/30 transition-all focus:ring-4 focus:ring-cyan-500/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isEdit ? <Save size={20} /> : <UserRoundPlus size={20} />}
+            {isEdit ? 'حفظ التعديلات' : 'إضافة المستفيد'}
+          </button>
+        </div>
+
+      </form>
+
+
+      {gamesPanelOpen && (
+        <div className="fixed inset-x-0 top-0 bottom-[-120px] z-[9999] flex items-start justify-center p-4 pt-8 sm:p-8" dir="rtl">
+          <button
+            type="button"
+            aria-label="close games panel"
+            className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm"
+            onClick={() => setGamesPanelOpen(false)}
+          />
+          <div className="relative flex h-[min(720px,calc(100vh-5rem))] w-full max-w-6xl flex-col overflow-hidden rounded-[1.25rem] border border-cyan-100 bg-slate-50 shadow-[0_28px_70px_-38px_rgba(15,23,42,0.6)]">
+            <div className="flex flex-col gap-3 border-b border-cyan-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50 text-[#178bb6]">
+                  <Layers size={22} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-900">{'\u062a\u0639\u062f\u064a\u0644 \u0623\u0644\u0639\u0627\u0628 \u0627\u0644\u062e\u0637\u0629'}</h2>
+                  <p className="mt-1 text-sm font-medium text-slate-500">{'\u0627\u062e\u062a\u0631 \u0627\u0644\u0623\u0644\u0639\u0627\u0628 \u0648\u063a\u064a\u0631 \u062a\u0631\u062a\u064a\u0628\u0647\u0627 \u062b\u0645 \u0627\u0636\u063a\u0637 \u062a\u0645 \u0644\u0644\u0631\u062c\u0648\u0639 \u0644\u0644\u0641\u0648\u0631\u0645.'}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <span className="rounded-full bg-cyan-50 px-3 py-1.5 text-sm font-black text-[#178bb6] ring-1 ring-cyan-100">
+                  {formData.assignedGameIds.length} {'\u0644\u0639\u0628\u0629 \u0645\u062e\u062a\u0627\u0631\u0629'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setGamesPanelOpen(false)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#178bb6] px-4 py-2 text-sm font-black text-white shadow-sm shadow-cyan-500/30 transition hover:bg-[#126d8f] active:scale-[0.98]"
+                >
+                  <Check size={17} />
+                  {'\u062a\u0645'}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid min-h-0 flex-1 gap-3 overflow-hidden p-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                        {/* بطاقة اختيار الألعاب */}
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex min-h-0 h-full flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-800">الألعاب المخصصة</h2>
               <span className="bg-[#178bb6]/10 text-[#126d8f] text-xs px-2.5 py-1 rounded-full font-medium">
@@ -590,7 +819,7 @@ const StudentForm = ({ mode = 'create' }) => {
               </span>
             </div>
 
-            <div className="flex gap-2 mb-4">
+            <div className="grid gap-2 mb-4 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
               <div className="relative flex-1">
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <Search size={18} className="text-gray-400" />
@@ -707,7 +936,7 @@ const StudentForm = ({ mode = 'create' }) => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+            <div className="min-h-0 flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
               {loadingGames && (
                 <div className="text-center text-sm text-gray-500 py-4">جارٍ تحميل الألعاب...</div>
               )}
@@ -743,7 +972,6 @@ const StudentForm = ({ mode = 'create' }) => {
                             {game.gameCode}
                           </span>
                         )}
-                        <span>المستوى {game.level}</span>
                         {(game.config?.tags || []).length > 0 && (
                           <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-100">
                             {getTagLabel(game.config.tags[0])}
@@ -761,165 +989,127 @@ const StudentForm = ({ mode = 'create' }) => {
               })}
             </div>
           </div>
-
-        </div>
-
-        {/* العمود الأيسر: ترتيب الألعاب */}
-        <div className="lg:col-span-7">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full">
-            <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-              <h2 className="text-lg font-semibold text-gray-800">ترتيب الألعاب في الخطة</h2>
-              <p className="text-sm text-gray-500">يمكنك تغيير الترتيب باستخدام الأسهم</p>
-            </div>
-
-            {formData.assignedGameIds.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                <Layers size={48} className="mb-4 opacity-20" />
-                <p>لم يتم تحديد أي ألعاب بعد</p>
-              </div>
-            ) : visibleGroups.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                <Layers size={48} className="mb-4 opacity-20" />
-                <p>لا توجد ألعاب مخصصة في هذه المكتبة</p>
-              </div>
-            ) : (
-              <div className="space-y-6 max-h-[800px] overflow-y-auto custom-scrollbar pr-2">
-                {visibleGroups.map((group, groupIndex) => {
-                  const isExpanded = expandedGroups[group.id] !== false; // Default to true
-
-                  return (
-                  <div key={group.id} className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm transition-all duration-300">
-                    {/* رأس المكتبة (Group Header) */}
-                    <div 
-                      className="flex items-center justify-between bg-slate-100 px-4 py-3 border-b border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors"
-                      onClick={() => toggleGroup(group.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`text-slate-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                          <ChevronDown size={20} />
-                        </div>
-                        <div className="bg-[#178bb6] text-white p-1.5 rounded-lg shadow-sm">
-                          <Layers size={18} />
-                        </div>
-                        <h3 className="font-bold text-slate-800 text-base">{group.name}</h3>
-                        <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold">
-                          {group.gameIds.length} لعبة
-                        </span>
-                      </div>
-                      
-                      {/* أزرار ترتيب المكتبة بالكامل */}
-                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        <span className="text-xs text-slate-500 ml-2 hidden sm:inline-block">ترتيب المكتبة:</span>
-                        <button 
-                          type="button"
-                          onClick={() => moveLibrary(groupIndex, -1)}
-                          disabled={isLibraryOrderingFiltered || groupIndex === 0}
-                          className={`p-1 rounded-md transition-colors ${
-                            (isLibraryOrderingFiltered || groupIndex === 0) ? 'text-gray-300 cursor-not-allowed' : 'text-slate-500 hover:text-[#178bb6] hover:bg-slate-300'
-                          }`}
-                          title="نقل المكتبة للأعلى"
-                        >
-                          <ChevronUp size={20} />
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={() => moveLibrary(groupIndex, 1)}
-                          disabled={isLibraryOrderingFiltered || groupIndex === visibleGroups.length - 1}
-                          className={`p-1 rounded-md transition-colors ${
-                            (isLibraryOrderingFiltered || groupIndex === visibleGroups.length - 1) ? 'text-gray-300 cursor-not-allowed' : 'text-slate-500 hover:text-[#178bb6] hover:bg-slate-300'
-                          }`}
-                          title="نقل المكتبة للأسفل"
-                        >
-                          <ChevronDown size={20} />
-                        </button>
-                      </div>
+                      {/* العمود الأيسر: ترتيب الألعاب */}
+              <div className="min-h-0">
+                <div className="flex h-full min-h-0 flex-col rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <div className="mb-3 flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+                    <div>
+                      <h2 className="text-lg font-black text-gray-800">{'\u062a\u0631\u062a\u064a\u0628 \u0627\u0644\u0623\u0644\u0639\u0627\u0628'}</h2>
+                      <p className="mt-1 text-sm font-medium text-gray-500">{'\u062d\u062f\u062f \u062a\u0631\u062a\u064a\u0628 \u0638\u0647\u0648\u0631 \u0627\u0644\u0623\u0644\u0639\u0627\u0628 \u062f\u0627\u062e\u0644 \u0627\u0644\u062e\u0637\u0629.'}</p>
                     </div>
+                    <span className="rounded-full bg-[#178bb6]/10 px-3 py-1.5 text-xs font-black text-[#126d8f]">
+                      {formData.assignedGameIds.length} {'\u0645\u062e\u062a\u0627\u0631\u0629'}
+                    </span>
+                  </div>
 
-                    {/* قائمة الألعاب داخل المكتبة */}
-                    {isExpanded && (
-                      <div className="p-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                        {group.gameIds.map((gameId, gameIndex) => {
-                          const game = availableGames.find(g => String(g.id) === gameId);
-                          if (!game) return null;
-                          const gameTitle = game.titleAr || game.title || game.name;
+                  {formData.assignedGameIds.length === 0 ? (
+                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-slate-50 text-center text-gray-400">
+                      <Layers size={44} className="mb-3 opacity-25" />
+                      <p className="text-sm font-bold">{'\u0644\u0645 \u064a\u062a\u0645 \u0627\u062e\u062a\u064a\u0627\u0631 \u0623\u0644\u0639\u0627\u0628 \u0628\u0639\u062f'}</p>
+                      <p className="mt-1 text-xs font-medium">{'\u0627\u062e\u062a\u0631 \u0623\u0644\u0639\u0627\u0628 \u0645\u0646 \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0644\u0625\u0638\u0647\u0627\u0631\u0647\u0627 \u0647\u0646\u0627.'}</p>
+                    </div>
+                  ) : (
+                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                      {formData.assignedGameIds.map((gameId, index) => {
+                        const game = availableGames.find((item) => String(item.id) === String(gameId));
+                        const gameTitle = game?.titleAr || game?.title || game?.name || '\u0644\u0639\u0628\u0629 ' + (index + 1);
 
                         return (
-                          <div 
-                            key={gameId} 
-                            className="group flex items-center bg-white border border-slate-200 p-2.5 rounded-xl hover:border-[#178bb6]/40 hover:shadow-sm transition-all"
-                          >
-                            {/* أزرار ترتيب اللعبة داخل المكتبة */}
-                            <div className="flex flex-col items-center ml-3 gap-0.5">
-                              <button 
-                                type="button"
-                                onClick={() => moveGameWithinLibrary(group.id, gameIndex, -1)}
-                                disabled={gameIndex === 0}
-                                className={`p-0.5 rounded-md transition-colors ${
-                                  gameIndex === 0 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-[#178bb6] hover:bg-[#178bb6]/10'
-                                }`}
-                              >
-                                <ChevronUp size={18} />
-                              </button>
-                              <button 
-                                type="button"
-                                onClick={() => moveGameWithinLibrary(group.id, gameIndex, 1)}
-                                disabled={gameIndex === group.gameIds.length - 1}
-                                className={`p-0.5 rounded-md transition-colors ${
-                                  gameIndex === group.gameIds.length - 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-[#178bb6] hover:bg-[#178bb6]/10'
-                                }`}
-                              >
-                                <ChevronDown size={18} />
-                              </button>
-                            </div>
-
-                            {/* رقم الترتيب الكلي في الخطة */}
-                            <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 ml-3 group-hover:bg-[#178bb6]/10 group-hover:text-[#178bb6] group-hover:border-[#178bb6]/20 transition-colors">
-                              {formData.assignedGameIds.indexOf(gameId) + 1}
-                            </div>
-
-                            {/* اسم اللعبة */}
-                            <div className="flex-1">
-                              <h4 className="font-medium text-slate-800 text-sm">{gameTitle}</h4>
-                              <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5">
-                                {!!game.gameCode && (
-                                  <span className="bg-cyan-50 text-[#178bb6] px-1.5 py-0.5 rounded font-bold border border-cyan-100">
+                          <div key={String(gameId)} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 transition hover:border-cyan-100 hover:bg-white">
+                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white text-xs font-black text-[#178bb6] ring-1 ring-cyan-100">
+                              {index + 1}
+                            </span>
+                            <GripVertical size={18} className="shrink-0 text-slate-300" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-black text-slate-800">{gameTitle}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-400">
+                                {!!game?.gameCode && (
+                                  <span className="rounded-full bg-white px-2 py-0.5 text-[#178bb6] ring-1 ring-cyan-100">
                                     {game.gameCode}
                                   </span>
                                 )}
-                                <span>المستوى {game.level}</span>
-                              </p>
+                                {(game?.config?.tags || []).length > 0 && (
+                                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-blue-700 ring-1 ring-blue-100">
+                                    {getTagLabel(game.config.tags[0])}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-
-                            {/* أيقونة السحب */}
-                            <div className="text-slate-300 mr-2">
-                              <GripVertical size={18} />
+                            <div className="flex shrink-0 items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => moveAssignedGameOrder(index, -1)}
+                                disabled={index === 0}
+                                className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-cyan-200 hover:text-[#178bb6] disabled:cursor-not-allowed disabled:opacity-35"
+                                aria-label="move game up"
+                              >
+                                <ChevronUp size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveAssignedGameOrder(index, 1)}
+                                disabled={index === formData.assignedGameIds.length - 1}
+                                className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-cyan-200 hover:text-[#178bb6] disabled:cursor-not-allowed disabled:opacity-35"
+                                aria-label="move game down"
+                              >
+                                <ChevronDown size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => toggleAssignedGame(gameId)}
+                                className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 text-xs font-black text-red-600 transition hover:bg-red-100"
+                              >
+                                {'\u0625\u0632\u0627\u0644\u0629'}
+                              </button>
                             </div>
                           </div>
                         );
                       })}
-                      </div>
-                    )}
-                  </div>
-                )})}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
+      )}
 
-        {/* شريط الإجراءات السفلي */}
-        <div className="lg:col-span-12 flex justify-end pt-4">
-          <button 
-            type="submit"
-            disabled={submitting}
-            className="flex items-center gap-2 bg-[#178bb6] hover:bg-[#126d8f] text-white px-8 py-3 rounded-xl font-medium shadow-sm shadow-cyan-500/30 transition-all focus:ring-4 focus:ring-cyan-500/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isEdit ? <Save size={20} /> : <UserRoundPlus size={20} />}
-            {isEdit ? 'حفظ التعديلات' : 'إضافة المستفيد'}
-          </button>
-        </div>
-
-      </form>
-
+      <ConfirmModal
+        isOpen={!!assignmentAlert}
+        onClose={() => setAssignmentAlert(null)}
+        onConfirm={() => setAssignmentAlert(null)}
+        title={assignmentAlert?.title || ''}
+        message={assignmentAlert?.message || ''}
+        confirmText={'\u062a\u0645\u0627\u0645'}
+        isDestructive={false}
+        hideCancelButton
+      />
+      <ConfirmModal
+        isOpen={saveConfirmOpen}
+        onClose={() => setSaveConfirmOpen(false)}
+        onConfirm={handleConfirmedSubmit}
+        title={'\u062a\u0623\u0643\u064a\u062f \u062d\u0641\u0638 \u0627\u0644\u0645\u0633\u062a\u0641\u064a\u062f'}
+        message={`\u0633\u064a\u062a\u0645 \u062d\u0641\u0638 \u0628\u064a\u0627\u0646\u0627\u062a ${formData.name || '\u0627\u0644\u0645\u0633\u062a\u0641\u064a\u062f'} \u0645\u0639 \u0627\u0644\u062f\u0643\u062a\u0648\u0631: ${selectedTherapistLabel}\u060c \u0648\u0648\u0644\u064a \u0627\u0644\u0623\u0645\u0631: ${selectedParentLabel}\u060c \u0648\u0639\u062f\u062f \u0627\u0644\u0623\u0644\u0639\u0627\u0628: ${uniqueAssignedGameIds.length}.`}
+        confirmText={submitting ? '\u062c\u0627\u0631\u064a \u0627\u0644\u062d\u0641\u0638...' : '\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u062d\u0641\u0638'}
+        cancelText={'\u0645\u0631\u0627\u062c\u0639\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a'}
+        isDestructive={false}
+      />
+      <ConfirmModal
+        isOpen={!!resultDialog}
+        onClose={() => {
+          setResultDialog(null);
+          navigate('/admin/patients');
+        }}
+        onConfirm={() => {
+          setResultDialog(null);
+          navigate('/admin/patients');
+        }}
+        title={resultDialog?.title || ''}
+        message={resultDialog?.message || ''}
+        confirmText={'\u062a\u0645\u0627\u0645'}
+        isDestructive={false}
+        hideCancelButton
+      />
       <style dangerouslySetInnerHTML={{__html: `
         /* تخصيص شريط التمرير ليكون أنيقاً */
         .custom-scrollbar::-webkit-scrollbar {

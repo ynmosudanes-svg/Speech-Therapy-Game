@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const { body, param } = require('express-validator');
 const {
   getLibraries,
@@ -7,8 +7,9 @@ const {
   updateLibrary,
   deleteLibrary,
 } = require('../controllers/gameLibrary.controller');
-const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { authenticate, authorizePermission } = require('../middleware/auth.middleware');
 const { validateRequest } = require('../middleware/validate.middleware');
+const { PERMISSIONS } = require('../utils/permissions');
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.post(
   '/api/game-libraries',
   [
     authenticate,
-    authorize('SUPER_ADMIN', 'THERAPIST'),
+    authorizePermission(PERMISSIONS.GAMES_UPDATE_ANY),
     body('name').trim().notEmpty().withMessage('Library name is required.'),
     body('description').optional({ nullable: true }).isString(),
     body('color').optional({ nullable: true }).isString(),
@@ -38,7 +39,7 @@ router.put(
   '/api/game-libraries/:id',
   [
     authenticate,
-    authorize('SUPER_ADMIN', 'THERAPIST'),
+    authorizePermission(PERMISSIONS.GAMES_UPDATE_ANY),
     param('id').notEmpty().withMessage('Library id is required.'),
     body('name').optional().trim().notEmpty().withMessage('Library name cannot be empty.'),
     body('description').optional({ nullable: true }).isString(),
@@ -53,7 +54,7 @@ router.delete(
   '/api/game-libraries/:id',
   [
     authenticate,
-    authorize('SUPER_ADMIN', 'THERAPIST'),
+    authorizePermission(PERMISSIONS.GAMES_PERMANENT_DELETE),
     param('id').notEmpty().withMessage('Library id is required.'),
     validateRequest,
   ],

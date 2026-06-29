@@ -21,13 +21,13 @@ const defaultTherapistSession = {
 };
 
 export const PROMPT_LEVELS = [
-  { id: 'none', label: 'بدون مساعدة' },
-  { id: 'visual', label: 'بصري' },
-  { id: 'verbal', label: 'لفظي' },
-  { id: 'gestural', label: 'إيمائي' },
-  { id: 'modeling', label: 'نمذجة' },
-  { id: 'partial_physical', label: 'جسدي جزئي' },
-  { id: 'full_physical', label: 'جسدي كامل' },
+  { id: 'none', label: '\u0628\u062f\u0648\u0646 \u0645\u0633\u0627\u0639\u062f\u0629' },
+  { id: 'visual', label: '\u0628\u0635\u0631\u064a' },
+  { id: 'verbal', label: '\u0644\u0641\u0638\u064a' },
+  { id: 'gestural', label: '\u0625\u064a\u0645\u0627\u0626\u064a' },
+  { id: 'modeling', label: '\u0646\u0645\u0630\u062c\u0629' },
+  { id: 'partial_physical', label: '\u062c\u0633\u062f\u064a \u062c\u0632\u0626\u064a' },
+  { id: 'full_physical', label: '\u062c\u0633\u062f\u064a \u0643\u0627\u0645\u0644' },
 ];
 
 const TherapyContext = createContext(null);
@@ -57,8 +57,16 @@ const normalizeRole = (role) => {
 
   const normalized = String(role).trim().toUpperCase();
 
-  if (normalized === 'ADMIN' || normalized === 'SUPERADMIN' || normalized === 'SUPER_ADMIN') {
+  if (normalized === 'SUPERADMIN' || normalized === 'SUPER_ADMIN') {
     return 'SUPER_ADMIN';
+  }
+
+  if (normalized === 'DATAENTRY' || normalized === 'DATA_ENTRY') {
+    return 'DATA_ENTRY';
+  }
+
+  if (normalized === 'ADMIN') {
+    return 'ADMIN';
   }
 
   if (normalized === 'DOCTOR' || normalized === 'THERAPIST') {
@@ -287,7 +295,7 @@ export function TherapyProvider({ children }) {
     } catch (error) {
       return {
         success: false,
-        message: getErrorMessage(error, 'الكود غير صحيح.'),
+        message: getErrorMessage(error, '\u0627\u0644\u0643\u0648\u062f \u063a\u064a\u0631 \u0635\u062d\u064a\u062d.'),
       };
     }
   }, []);
@@ -424,7 +432,7 @@ export function TherapyProvider({ children }) {
     const tokens = [...new Set(candidateTokens.filter(Boolean))];
 
     if (tokens.length === 0) {
-      throw new Error('لا توجد صلاحية لحفظ الجلسة.');
+      throw new Error('\u0644\u0627 \u062a\u0648\u062c\u062f \u0635\u0644\u0627\u062d\u064a\u0629 \u0644\u062d\u0641\u0638 \u0627\u0644\u062c\u0644\u0633\u0629.');
     }
 
     let lastError = null;
@@ -446,13 +454,13 @@ export function TherapyProvider({ children }) {
       }
     }
 
-    throw lastError || new Error('لا توجد صلاحية لحفظ الجلسة.');
+    throw lastError || new Error('\u0644\u0627 \u062a\u0648\u062c\u062f \u0635\u0644\u0627\u062d\u064a\u0629 \u0644\u062d\u0641\u0638 \u0627\u0644\u062c\u0644\u0633\u0629.');
   }, [adminSession?.token, studentSession?.token, therapistSession?.isActive]);
 
   const getStudentReport = useCallback(async (studentId) => {
     const token = adminSession?.token || studentSession?.token;
     if (!token) {
-      throw new Error('لا توجد صلاحية لجلب التقرير.');
+      throw new Error('\u0644\u0627 \u062a\u0648\u062c\u062f \u0635\u0644\u0627\u062d\u064a\u0629 \u0644\u062c\u0644\u0628 \u0627\u0644\u062a\u0642\u0631\u064a\u0631.');
     }
 
     const response = await reportService.getStudentReport(token, studentId);

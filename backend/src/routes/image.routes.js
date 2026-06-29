@@ -1,7 +1,9 @@
-const express = require('express');
+﻿const express = require('express');
 const { body, param, query } = require('express-validator');
 const { searchImages, saveImage, getLibrary, deleteImage } = require('../controllers/image.controller');
+const { authenticate, authorizePermission } = require('../middleware/auth.middleware');
 const { validateRequest } = require('../middleware/validate.middleware');
+const { PERMISSIONS } = require('../utils/permissions');
 
 const router = express.Router();
 
@@ -20,6 +22,8 @@ router.get('/api/images/library', getLibrary);
 router.post(
   '/api/images/library',
   [
+    authenticate,
+    authorizePermission(PERMISSIONS.FILES_UPLOAD),
     body('url').trim().notEmpty().withMessage('Image url is required.'),
     body('thumbnail').trim().notEmpty().withMessage('Thumbnail is required.'),
     body('category').optional().isString().withMessage('Category must be text.'),
@@ -32,6 +36,8 @@ router.post(
 router.delete(
   '/api/images/library/:id',
   [
+    authenticate,
+    authorizePermission(PERMISSIONS.FILES_DELETE),
     param('id').trim().notEmpty().withMessage('Image id is required.'),
     validateRequest,
   ],

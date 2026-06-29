@@ -1,6 +1,7 @@
-const ApiError = require('../utils/apiError');
+﻿const ApiError = require('../utils/apiError');
 const { verifyToken } = require('../utils/jwt');
 const { normalizeRole } = require('../utils/roles');
+const { hasPermission } = require('../utils/permissions');
 
 function authenticate(req, _res, next) {
   const authHeader = req.headers.authorization || '';
@@ -55,8 +56,22 @@ function authorize(...roles) {
   };
 }
 
+function authorizePermission(permission) {
+  return (req, _res, next) => {
+    if (!req.user) {
+      return next(new ApiError(401, 'Authentication is required.'));
+    }
+
+    if (!hasPermission(req.user, permission)) {
+      return next(new ApiError(403, 'You do not have permission to perform this action.'));
+    }
+
+    return next();
+  };
+}
 module.exports = {
   authenticate,
   optionalAuthenticate,
   authorize,
+  authorizePermission,
 };

@@ -37,7 +37,7 @@ const ShakeImageGame = ({
   const instructionAr = content.instructionAr || game?.questionTextAr || '\u0627\u0645\u0633\u0643 \u0627\u0644\u0635\u0648\u0631\u0629 \u0648\u0647\u0632\u0647\u0627';
   const questionAudio = content.questionAudio || content.instructionAudio || game?.questionAudio || '';
   const image = content.image || content.hero?.image || game?.targetImage || '';
-  const requiredShakes = Math.max(3, Number(content.requiredShakes || 6));
+  const requiredShakes = Math.min(3, Math.max(1, Number(content.requiredShakes || 3) || 3));
   const successSound = config?.feedback?.successSound || game?.successSound || '';
   const failSound = config?.feedback?.failSound || game?.failSound || '';
   const progress = Math.min(100, Math.round((shakeScore / requiredShakes) * 100));
@@ -138,12 +138,12 @@ const ShakeImageGame = ({
     if (!registerAssistantActions) return undefined;
 
     registerAssistantActions({
-      onVisualHint: () => setShakeScore((current) => Math.min(requiredShakes - 1, current + 1)),
-      onGestureHint: () => setShakeScore((current) => Math.min(requiredShakes - 1, current + 1)),
+      onVisualHint: () => setShakeScore((current) => Math.min(Math.max(0, requiredShakes - 1), current + 1)),
+      onGestureHint: () => setShakeScore((current) => Math.min(Math.max(0, requiredShakes - 1), current + 1)),
       onVerbalHint: () => {
         if (helpVoiceEnabled) speak('\u0627\u0645\u0633\u0643 \u0627\u0644\u0635\u0648\u0631\u0629 \u0648\u062d\u0631\u0643\u0647\u0627 \u064a\u0645\u064a\u0646 \u0648\u0634\u0645\u0627\u0644.');
       },
-      onPhysicalPrompt: () => setShakeScore((current) => Math.min(requiredShakes - 1, current + 1)),
+      onPhysicalPrompt: () => setShakeScore((current) => Math.min(Math.max(0, requiredShakes - 1), current + 1)),
     });
 
     return () => registerAssistantActions({});

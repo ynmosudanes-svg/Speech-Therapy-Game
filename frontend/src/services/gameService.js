@@ -26,6 +26,51 @@ export const gameService = {
     return response.data;
   },
 
+  async submitGameForReview(token, gameId) {
+    const response = await api.patch(`/games/${gameId}/submit-review`, {}, buildAuthConfig(token));
+    return response.data;
+  },
+
+  async approveGame(token, gameId) {
+    const response = await api.patch(`/games/${gameId}/approve`, {}, buildAuthConfig(token));
+    return response.data;
+  },
+
+  async rejectGame(token, gameId, payload = {}) {
+    const response = await api.patch(`/games/${gameId}/reject`, payload, buildAuthConfig(token));
+    return response.data;
+  },
+
+  async publishGame(token, gameId) {
+    const response = await api.patch(`/games/${gameId}/publish`, {}, buildAuthConfig(token));
+    return response.data;
+  },
+
+  async archiveGame(token, gameId) {
+    const response = await api.patch(`/games/${gameId}/archive`, {}, buildAuthConfig(token));
+    return response.data;
+  },
+
+  async restoreGame(token, gameId) {
+    const response = await api.patch(`/games/${gameId}/restore`, {}, buildAuthConfig(token));
+    return response.data;
+  },
+
+  async permanentlyDeleteGame(token, gameId) {
+    const response = await api.delete(`/games/${gameId}/permanent`, buildAuthConfig(token));
+    return response.data;
+  },
+
+  async getGameVersions(token, gameId) {
+    const response = await api.get(`/games/${gameId}/versions`, buildAuthConfig(token));
+    return response.data;
+  },
+
+  async restoreGameVersion(token, gameId, versionId) {
+    const response = await api.patch(`/games/${gameId}/versions/${versionId}/restore`, {}, buildAuthConfig(token));
+    return response.data;
+  },
+
   async uploadAsset(token, formData) {
     const response = await api.post('/upload', formData, {
       ...buildAuthConfig(token),

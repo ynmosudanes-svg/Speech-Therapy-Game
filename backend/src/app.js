@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -15,6 +15,7 @@ const sessionRoutes = require('./routes/session.routes');
 const reportRoutes = require('./routes/report.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const parentRoutes = require('./routes/parent.routes');
+const auditRoutes = require('./routes/audit.routes');
 const { notFoundHandler, errorHandler } = require('./middleware/error.middleware');
 
 const app = express();
@@ -88,6 +89,7 @@ app.use(sessionRoutes);
 app.use(reportRoutes);
 app.use(uploadRoutes);
 app.use(parentRoutes);
+app.use(auditRoutes);
 
 
 app.get('/api/test-db-url', (req, res) => {

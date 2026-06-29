@@ -119,14 +119,10 @@ const StudentsList = () => {
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-4 mb-5">
+                <div className="grid gap-4 mb-5">
                   <div className="rounded-[1.5rem] bg-[#fff7e7] p-4 border border-[#f4df99]">
                     <div className="text-sm font-bold text-slate-500 mb-1">الألعاب المخصصة</div>
                     <div className="text-3xl font-black text-slate-900">{assignedGames.length}</div>
-                  </div>
-                  <div className="rounded-[1.5rem] bg-[#eff6ff] p-4 border border-blue-100">
-                    <div className="text-sm font-bold text-slate-500 mb-1">المستوى الحالي</div>
-                    <div className="font-black text-slate-900">المستوى {student.currentLevel}</div>
                   </div>
                 </div>
 

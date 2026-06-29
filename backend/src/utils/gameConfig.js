@@ -168,7 +168,7 @@ function normalizeActivity(activity, type, index) {
     return {
       ...baseActivity,
       image: activity?.image || activity?.heroImage || '',
-      requiredShakes: Math.max(3, Number(activity?.requiredShakes ?? 6)),
+      requiredShakes: Math.min(3, Math.max(1, Number(activity?.requiredShakes ?? 3) || 3)),
     };
   }
 

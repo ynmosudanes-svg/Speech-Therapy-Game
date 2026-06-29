@@ -20,6 +20,7 @@ import {
 import ConfirmModal from '../ConfirmModal';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 import gameService from '../../services/gameService';
+import { PERMISSIONS, hasPermission } from '../../utils/permissions';
 
 const GENERAL_FOLDER_ID = '__general__';
 const GENERAL_FOLDER = {
@@ -109,14 +110,16 @@ const FolderTreeNode = ({ folder, selectedFolderId, expandedIds, onToggle, onSel
           {isSelected ? <FolderOpen size={17} className="shrink-0 text-blue-500" /> : <Folder size={17} className="shrink-0 text-slate-400" />}
           <span className="truncate">{folder.name}</span>
         </button>
-        <button
-          type="button"
-          onClick={() => onDelete(folder)}
-          className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 group-hover:flex"
-          title="حذف الفولدر"
-        >
-          <Trash2 size={14} />
-        </button>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(folder)}
+            className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 group-hover:flex"
+            title="Delete folder"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
       {hasChildren && isExpanded && (
         <div className="mt-1 space-y-1">
@@ -157,6 +160,9 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const fileInputRef = useRef(null);
   const { adminSession } = useTherapyStore();
+  const userRole = adminSession?.user?.role;
+  const canDeleteMedia = hasPermission(userRole, PERMISSIONS.FILES_DELETE);
+  const canOrganizeMedia = userRole !== 'DATA_ENTRY';
 
   const tree = useMemo(() => buildTree(mediaFolders), [mediaFolders]);
   const flatFolders = useMemo(() => flattenFolders(tree), [tree]);
@@ -431,12 +437,14 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
           <aside className="flex min-h-0 flex-col border-l border-slate-100 bg-slate-50/80 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="font-black text-slate-800">الفولدرات</div>
-              <button type="button" onClick={() => setIsAddingFolder((value) => !value)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700" title="إضافة فولدر">
-                <Plus size={18} />
-              </button>
+              {canOrganizeMedia && (
+                <button type="button" onClick={() => setIsAddingFolder((value) => !value)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm hover:bg-blue-700" title="إضافة فولدر">
+                  <Plus size={18} />
+                </button>
+              )}
             </div>
 
-            {isAddingFolder && (
+            {canOrganizeMedia && isAddingFolder && (
               <div className="mb-3 rounded-2xl border border-blue-100 bg-white p-2 shadow-sm">
                 <input
                   type="text"
@@ -476,7 +484,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                     expandedIds={expandedIds}
                     onToggle={toggleExpanded}
                     onSelect={handleSelectFolder}
-                    onDelete={requestDeleteFolder}
+                    onDelete={canDeleteMedia ? requestDeleteFolder : null}
                   />
                 ))}
               </div>
@@ -552,7 +560,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  {selectedKeys.size > 0 && (
+                  {canOrganizeMedia && selectedKeys.size > 0 && (
                     <button type="button" onClick={() => setMovePanelOpen((value) => !value)} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-blue-100 bg-white px-4 text-sm font-black text-blue-700 shadow-sm hover:bg-blue-50">
                       <MoveRight size={17} />
                       نقل إلى فولدر
@@ -566,7 +574,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                 </div>
               </div>
 
-              {movePanelOpen && (
+              {canOrganizeMedia && movePanelOpen && (
                 <div className="mt-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
                   <div className="mb-2 text-sm font-black text-slate-700">اختر الفولدر الجديد</div>
                   <div className="grid max-h-48 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
@@ -644,9 +652,11 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
                               <button type="button" onClick={() => toggleFileSelection(file)} className={`absolute left-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full border shadow-sm ${isSelected ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-200 bg-white/95 text-slate-400 hover:text-blue-600'}`} title="تحديد الملف">
                                 {isSelected && <Check size={17} />}
                               </button>
-                              <button type="button" onClick={() => requestDeleteFile(file)} className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-red-500 opacity-100 shadow-sm ring-1 ring-red-100 transition-colors hover:bg-red-50 md:opacity-0 md:group-hover:opacity-100" title="حذف الملف">
-                                <Trash2 size={15} />
-                              </button>
+                              {canDeleteMedia && (
+                                <button type="button" onClick={() => requestDeleteFile(file)} className="absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-red-500 opacity-100 shadow-sm ring-1 ring-red-100 transition-colors hover:bg-red-50 md:opacity-0 md:group-hover:opacity-100" title="حذف الملف">
+                                  <Trash2 size={15} />
+                                </button>
+                              )}
                               {searchScope === 'all' && file.folderName && (
                                 <span className="absolute bottom-12 left-2 z-10 max-w-[75%] truncate rounded-full bg-white/95 px-2 py-1 text-[0.65rem] font-black text-blue-600 shadow-sm">{file.folderName}</span>
                               )}

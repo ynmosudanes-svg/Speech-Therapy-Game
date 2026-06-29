@@ -1,8 +1,9 @@
-const express = require('express');
+﻿const express = require('express');
 const multer = require('multer');
 const env = require('../config/env');
 const { uploadFile, listUploadedFiles, deleteUploadedFile, listMediaFolders, createMediaFolder, moveUploadedFiles, deleteMediaFolder } = require('../controllers/upload.controller');
-const { authenticate, authorize } = require('../middleware/auth.middleware');
+const { authenticate, authorize, authorizePermission } = require('../middleware/auth.middleware');
+const { PERMISSIONS } = require('../utils/permissions');
 
 const router = express.Router();
 
@@ -26,53 +27,45 @@ const upload = multer({
   }
 });
 
+const staffCanViewMedia = authorize('SUPER_ADMIN', 'ADMIN', 'DATA_ENTRY', 'THERAPIST');
+
 router.post(
   '/api/upload',
   authenticate,
-  authorize('SUPER_ADMIN', 'THERAPIST'),
+  authorizePermission(PERMISSIONS.FILES_UPLOAD),
   upload.single('file'),
   uploadFile
 );
 
-router.get(
-  '/api/uploads',
-  authenticate,
-  authorize('SUPER_ADMIN', 'THERAPIST'),
-  listUploadedFiles
-);
-
-router.get(
-  '/api/media-folders',
-  authenticate,
-  authorize('SUPER_ADMIN', 'THERAPIST'),
-  listMediaFolders
-);
+router.get('/api/uploads', authenticate, staffCanViewMedia, listUploadedFiles);
+router.get('/api/media-folders', authenticate, staffCanViewMedia, listMediaFolders);
 
 router.post(
   '/api/media-folders',
   authenticate,
-  authorize('SUPER_ADMIN', 'THERAPIST'),
+  authorizePermission(PERMISSIONS.FILES_UPLOAD),
   createMediaFolder
 );
 
 router.delete(
   '/api/media-folders/:id',
   authenticate,
-  authorize('SUPER_ADMIN', 'THERAPIST'),
+  authorizePermission(PERMISSIONS.FILES_DELETE),
   deleteMediaFolder
 );
 
 router.patch(
   '/api/uploads/move',
   authenticate,
-  authorize('SUPER_ADMIN', 'THERAPIST'),
+  authorizePermission(PERMISSIONS.FILES_UPLOAD),
   moveUploadedFiles
 );
 
 router.delete(
   '/api/uploads',
   authenticate,
-  authorize('SUPER_ADMIN', 'THERAPIST'),
+  authorizePermission(PERMISSIONS.FILES_DELETE),
   deleteUploadedFile
 );
+
 module.exports = router;

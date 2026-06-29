@@ -19,6 +19,7 @@ import {
   HelpCircle,
   CheckCircle2,
   ChevronDown,
+  GripVertical,
 } from 'lucide-react';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
@@ -631,6 +632,8 @@ const GameForm = ({ mode = 'create' }) => {
   });
   const [selectedLevel, setSelectedLevel] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState(0);
+  const [draggedActivityIndex, setDraggedActivityIndex] = useState(null);
+  const [dragOverActivityIndex, setDragOverActivityIndex] = useState(null);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [savedGameId, setSavedGameId] = useState(gameId || '');
@@ -900,6 +903,45 @@ const GameForm = ({ mode = 'create' }) => {
       activities: level.activities.filter((_, index) => index !== activityIndex),
     }));
     setSelectedActivity((current) => Math.max(Math.min(current, currentActivities.length - 2), 0));
+  };
+
+  const resetActivityDragState = () => {
+    setDraggedActivityIndex(null);
+    setDragOverActivityIndex(null);
+  };
+
+  const reorderActivities = (fromIndex, toIndex) => {
+    if (fromIndex === null || toIndex === null || fromIndex === toIndex) {
+      resetActivityDragState();
+      return;
+    }
+
+    const safeFromIndex = Number(fromIndex);
+    const safeToIndex = Number(toIndex);
+    if (
+      safeFromIndex < 0 ||
+      safeToIndex < 0 ||
+      safeFromIndex >= currentActivities.length ||
+      safeToIndex >= currentActivities.length
+    ) {
+      resetActivityDragState();
+      return;
+    }
+
+    updateLevel(selectedLevel, (level) => {
+      const activities = [...level.activities];
+      const [movedActivity] = activities.splice(safeFromIndex, 1);
+      activities.splice(safeToIndex, 0, movedActivity);
+      return { ...level, activities };
+    });
+
+    setSelectedActivity((current) => {
+      if (current === safeFromIndex) return safeToIndex;
+      if (safeFromIndex < current && safeToIndex >= current) return current - 1;
+      if (safeFromIndex > current && safeToIndex <= current) return current + 1;
+      return current;
+    });
+    resetActivityDragState();
   };
 
   const createMemoryCardDraft = (index = 0) => ({
@@ -2090,20 +2132,51 @@ const GameForm = ({ mode = 'create' }) => {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  {currentActivities.map((activity, index) => (
-                    <button
-                      key={activity.id}
-                      type="button"
-                      onClick={() => setSelectedActivity(index)}
-                      className={`rounded-[1.3rem] border px-4 py-3 text-right transition-all ${getActivityDifficultyButtonClass(
-                        activity.difficulty,
-                        selectedActivity === index
-                      )}`}
-                    >
-                      <div className="font-black">{getActivityAutoTitle(index)}</div>
-                      <div className="text-xs mt-1">{getActivitySummary(activity, index)}</div>
-                    </button>
-                  ))}
+                  {currentActivities.map((activity, index) => {
+                    const isDragging = draggedActivityIndex === index;
+                    const isDragOver = dragOverActivityIndex === index && draggedActivityIndex !== index;
+
+                    return (
+                      <button
+                        key={activity.id}
+                        type="button"
+                        draggable
+                        onClick={() => setSelectedActivity(index)}
+                        onDragStart={(event) => {
+                          setDraggedActivityIndex(index);
+                          event.dataTransfer.effectAllowed = 'move';
+                          event.dataTransfer.setData('text/plain', String(index));
+                        }}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = 'move';
+                          setDragOverActivityIndex(index);
+                        }}
+                        onDragLeave={() => {
+                          setDragOverActivityIndex((current) => (current === index ? null : current));
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          const fromIndex = Number(event.dataTransfer.getData('text/plain'));
+                          reorderActivities(Number.isNaN(fromIndex) ? draggedActivityIndex : fromIndex, index);
+                        }}
+                        onDragEnd={resetActivityDragState}
+                        className={[
+                          'group relative flex items-center gap-2 rounded-[1.3rem] border px-4 py-3 text-right transition-all cursor-grab active:cursor-grabbing',
+                          getActivityDifficultyButtonClass(activity.difficulty, selectedActivity === index),
+                          isDragging ? 'opacity-50 scale-[0.98]' : '',
+                          isDragOver ? 'ring-4 ring-emerald-200 border-emerald-300 translate-y-[-2px]' : '',
+                        ].filter(Boolean).join(' ')}
+                        title={'\u0627\u0633\u062d\u0628 \u0644\u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u062a\u0631\u062a\u064a\u0628'}
+                      >
+                        <GripVertical size={16} className="shrink-0 opacity-45 transition group-hover:opacity-80" />
+                        <span className="min-w-0">
+                          <div className="font-black">{getActivityAutoTitle(index)}</div>
+                          <div className="text-xs mt-1">{getActivitySummary(activity, index)}</div>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {!currentActivities.length && (
@@ -2330,13 +2403,13 @@ const GameForm = ({ mode = 'create' }) => {
                           <label className="block text-sm font-bold text-[#0F6FA6] mb-3">{'\u0639\u062f\u062f \u0627\u0644\u0647\u0632\u0627\u062a \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629'}</label>
                           <input
                             type="range"
-                            min="3"
-                            max="10"
-                            value={Number(currentActivity.requiredShakes || 6)}
+                            min="1"
+                            max="3"
+                            value={Math.min(3, Math.max(1, Number(currentActivity.requiredShakes || 3) || 3))}
                             onChange={(event) => setActivityField('requiredShakes', Number(event.target.value))}
                             className="w-full accent-[#0b8fc5]"
                           />
-                          <div className="mt-2 text-center text-sm font-black text-slate-700">{Number(currentActivity.requiredShakes || 6)}</div>
+                          <div className="mt-2 text-center text-sm font-black text-slate-700">{Math.min(3, Math.max(1, Number(currentActivity.requiredShakes || 3) || 3))}</div>
                         </div>
                       </div>
                     )}

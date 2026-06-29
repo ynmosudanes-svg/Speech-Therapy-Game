@@ -45,14 +45,14 @@ async function ensureGamesAreNotUsedInOtherLibraries(gameIds = [], currentLibrar
     },
     include: {
       library: { select: { id: true, name: true } },
-      game: { select: { id: true, gameCode: true, name: true, nameAr: true, title: true } },
+      game: { select: { id: true, gameCode: true, name: true, title: true, titleAr: true } },
     },
   });
 
   if (!usedItems.length) return;
 
   const firstUsed = usedItems[0];
-  const gameName = firstUsed.game?.nameAr || firstUsed.game?.name || firstUsed.game?.title || firstUsed.game?.gameCode || firstUsed.gameId;
+  const gameName = firstUsed.game?.titleAr || firstUsed.game?.name || firstUsed.game?.title || firstUsed.game?.gameCode || firstUsed.gameId;
   const libraryName = firstUsed.library?.name || 'another plan';
   throw new ApiError(409, 'Game "' + gameName + '" is already assigned to plan "' + libraryName + '".');
 }

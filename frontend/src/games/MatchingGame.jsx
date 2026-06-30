@@ -25,6 +25,7 @@ const MatchingGame = ({
   helpVoiceEnabled = false,
 }) => {
   const [selectedOption, setSelectedOption] = useState(null);
+  const [selectedOptionIds, setSelectedOptionIds] = useState([]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
@@ -50,6 +51,11 @@ const MatchingGame = ({
   const isDifferentMode = gameType === 'matching.different';
   const isFindMode = gameType === 'matching.find';
   const isShadowMode = gameType === 'matching.shadow';
+  const getOptionKey = (option, index = 0) => option?.id || `option_${index}`;
+  const correctOptionKeys = useMemo(
+    () => options.map((option, index) => (option.isCorrect ? getOptionKey(option, index) : null)).filter(Boolean),
+    [options],
+  );
   const avatarState = showFeedback ? (isCorrect ? 'celebration' : 'error') : 'learning';
 
   useEffect(() => {
@@ -153,8 +159,39 @@ const MatchingGame = ({
     return () => registerAssistantActions({});
   }, [helpVoiceEnabled, options, registerAssistantActions]);
 
-  const handleOptionSelect = (option) => {
+  const handleOptionSelect = (option, index = 0) => {
     onAssistantInteraction?.();
+
+    if (isDifferentMode) {
+      const optionKey = getOptionKey(option, index);
+
+      if (selectedOptionIds.includes(optionKey)) {
+        return;
+      }
+
+      setAttempts((current) => current + 1);
+      setSelectedOption(option);
+
+      if (!option.isCorrect) {
+        setIsCorrect(false);
+        setShowFeedback(true);
+        setVisualPulse(false);
+        setGestureArrow(false);
+        setPhysicalHighlight(false);
+        return;
+      }
+
+      const nextSelectedOptionIds = [...selectedOptionIds, optionKey];
+      const allCorrectSelected = correctOptionKeys.length > 0 && correctOptionKeys.every((key) => nextSelectedOptionIds.includes(key));
+      setSelectedOptionIds(nextSelectedOptionIds);
+      setIsCorrect(true);
+      setShowFeedback(allCorrectSelected);
+      setVisualPulse(false);
+      setGestureArrow(false);
+      setPhysicalHighlight(false);
+      return;
+    }
+
     setAttempts((current) => current + 1);
     setSelectedOption(option);
     setIsCorrect(Boolean(option.isCorrect));
@@ -179,6 +216,7 @@ const MatchingGame = ({
 
     if (previewMode) {
       setSelectedOption(null);
+      setSelectedOptionIds([]);
       return;
     }
 
@@ -186,19 +224,20 @@ const MatchingGame = ({
     const responseTime = Date.now() - startTime;
     const timeSpent = Math.floor(responseTime / 1000);
     onComplete({
-      correctAnswers: 1,
-      wrongAnswers: Math.max(totalAttempts - 1, 0),
+      correctAnswers: isDifferentMode ? correctOptionKeys.length : 1,
+      wrongAnswers: Math.max(totalAttempts - (isDifferentMode ? correctOptionKeys.length : 1), 0),
       attempts: [totalAttempts],
       prompts: [therapistControlsEnabled ? therapistPromptLevel : 'none'],
       timeSpent,
       responseTime,
-      selectedAnswer: selectedOption?.id || '',
+      selectedAnswer: isDifferentMode ? selectedOptionIds.join(',') : (selectedOption?.id || ''),
       isCorrect: true,
     });
   };
 
   const handleRestart = () => {
     setSelectedOption(null);
+    setSelectedOptionIds([]);
     setShowFeedback(false);
     setIsCorrect(false);
     setAttempts(0);
@@ -229,12 +268,14 @@ const MatchingGame = ({
   const shouldShowHeroImage = !isFindMode && (!isDifferentMode || hasHeroImage);
   const findGridColumnClassName = options.length >= 5 ? 'md:grid-cols-3' : 'md:grid-cols-2';
   const optionCards = options.map((option, index) => {
+    const optionKey = getOptionKey(option, index);
+    const isSelectedInMultiChoice = isDifferentMode && selectedOptionIds.includes(optionKey);
+    const isActiveWrongChoice = showFeedback && !isCorrect && selectedOption === option;
     const isHintedCorrect = (visualPulse || physicalHighlight) && option.isCorrect;
-    const state =
-      selectedOption?.id === option.id
-        ? isCorrect
-          ? 'correct'
-          : 'wrong'
+    const state = isActiveWrongChoice
+      ? 'wrong'
+      : isSelectedInMultiChoice || (showFeedback && isCorrect && selectedOption === option)
+        ? 'correct'
         : isHintedCorrect
           ? 'hint'
           : 'idle';
@@ -242,7 +283,7 @@ const MatchingGame = ({
     return (
       <GameChoice
         key={option.id || index}
-        onClick={() => handleOptionSelect(option)}
+        onClick={() => handleOptionSelect(option, index)}
         state={state}
         className={optionChoiceClassName}
       >
@@ -256,6 +297,12 @@ const MatchingGame = ({
         {!!option.textAr && (
           <div className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 md:text-sm">
             {option.textAr}
+          </div>
+        )}
+
+        {isSelectedInMultiChoice && (
+          <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-base font-black text-white shadow-lg">
+            ✓
           </div>
         )}
 

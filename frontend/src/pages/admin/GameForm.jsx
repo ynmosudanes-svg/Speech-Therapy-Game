@@ -49,14 +49,14 @@ const GAME_TYPE_CARDS = [
   },
   {
     value: 'matching.different',
-    title: 'أوجد المختلف',
-    description: 'صورة رئيسية في السؤال ومعها اختياران أو أكثر يختار منها الطفل الصورة المختلفة. مثال: قطة كبيرة وفوق الاختيارات قطة وكلب.',
+    title: 'اختيار من متعدد',
+    description: 'اختيار من متعدد بصورة رئيسية اختيارية أو بدونها، ويمكن تحديد أكثر من إجابة صحيحة.',
     accent: 'from-amber-100 to-orange-100',
   },
   {
     value: 'matching.find',
     title: 'أوجد الصورة',
-    description: 'بدون صورة رئيسية فوق. يسمع الطفل التعليمات مثل: أوجد القطة، ثم يختار من 2 أو 3 أو 4 أو 6 صور.',
+    description: 'يبحث الطفل عن الصورة المطلوبة من التعليمات. مثال: اسمع كلمة قطة ثم اختر صورة القطة من بين الصور.',
     accent: 'from-fuchsia-100 to-pink-100',
   },
   {
@@ -824,6 +824,9 @@ const GameForm = ({ mode = 'create' }) => {
   const currentActivity = currentActivities[selectedActivity] || null;
 
   const currentActivityType = currentActivity?.type || builderState.type;
+  const differentUsesHeroImage = currentActivityType === 'matching.different'
+    ? (currentActivity?.useHeroImage ?? Boolean(currentActivity?.heroImage?.trim()))
+    : false;
 
   useEffect(() => {
     const hasActivityWithoutType = (builderState.config?.levels || []).some((level) =>
@@ -1688,17 +1691,14 @@ const GameForm = ({ mode = 'create' }) => {
         }
 
         if (activityType === 'matching.different') {
-          if (!activity.heroImage?.trim()) {
-            return `أضف الصورة الرئيسية في المستوى ${level.levelNumber}.`;
-          }
           if ((activity.options || []).length < 2) {
-            return `لعبة أوجد المختلف تحتاج صورتين على الأقل في المستوى ${level.levelNumber}.`;
+            return `لعبة اختيار من متعدد تحتاج صورتين على الأقل في المستوى ${level.levelNumber}.`;
           }
-          if ((activity.options || []).filter((option) => option.isCorrect).length !== 1) {
-            return `حدد الصورة المختلفة بشكل صحيح في المستوى ${level.levelNumber}.`;
+          if ((activity.options || []).filter((option) => option.isCorrect).length < 1) {
+            return `حدد إجابة صحيحة واحدة على الأقل في المستوى ${level.levelNumber}.`;
           }
           if ((activity.options || []).some((option) => !option.image?.trim())) {
-            return `كل صور أوجد المختلف يجب أن تكون مرفوعة في المستوى ${level.levelNumber}.`;
+            return `كل صور اختيار من متعدد يجب أن تكون مرفوعة في المستوى ${level.levelNumber}.`;
           }
         }
 
@@ -2039,7 +2039,7 @@ const GameForm = ({ mode = 'create' }) => {
                     <div className="text-base font-black text-slate-900 mb-1 leading-tight">{typeCard.title}</div>
                     {builderState.type === typeCard.value && (
                       <div className="mb-2 rounded-full bg-blue-100 px-3 py-1 text-[11px] font-black text-blue-700">
-                        افتراضي للأنشطة الجديدة
+                        افتراضي
                       </div>
                     )}
                     <div className="text-xs leading-5 text-slate-500 opacity-80 group-hover:opacity-100 transition-opacity">{typeCard.description}</div>
@@ -2503,14 +2503,36 @@ const GameForm = ({ mode = 'create' }) => {
                     )}
 
                     {currentActivityType === 'matching.different' && (
-                      <div className="pt-2">
-                        <ImageAssetField
-                          label="الصورة الرئيسية في السؤال"
-                          value={currentActivity.heroImage || ''}
-                          onSelect={(value) => setActivityField('heroImage', value)}
-                          token={adminSession?.token}
-                          initialQuery="single object white background"
-                        />
+                      <div className="pt-2 space-y-4">
+                        <label className="flex items-center justify-between gap-4 rounded-2xl border border-[#D9EAF2] bg-white px-4 py-3 shadow-sm">
+                          <div className="space-y-1">
+                            <div className="text-sm font-black text-slate-800">استخدام صورة رئيسية</div>
+                            <div className="text-xs font-bold text-slate-500">فعّلها لو عايز صورة سؤال فوق الاختيارات، أو اتركها مغلقة لاختيار من متعدد فقط.</div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(differentUsesHeroImage)}
+                            onChange={(event) => {
+                              const checked = event.target.checked;
+                              updateCurrentActivity((activity) => ({
+                                ...activity,
+                                useHeroImage: checked,
+                                heroImage: checked ? (activity.heroImage || '') : '',
+                              }));
+                            }}
+                            className="h-5 w-5 accent-[#0b8fc5]"
+                          />
+                        </label>
+
+                        {differentUsesHeroImage && (
+                          <ImageAssetField
+                            label="الصورة الرئيسية"
+                            value={currentActivity.heroImage || ''}
+                            onSelect={(value) => setActivityField('heroImage', value)}
+                            token={adminSession?.token}
+                            initialQuery="single object white background"
+                          />
+                        )}
                       </div>
                     )}
 
@@ -3497,7 +3519,7 @@ const GameForm = ({ mode = 'create' }) => {
                       </div>
 
                       <div className="rounded-2xl bg-amber-50/80 border border-amber-100/80 px-4 py-3 text-sm font-bold text-amber-700/90">
-                        الطفل سيرى الصورة الرئيسية أولًا، ثم يختار من الصور أيها المختلفة عنها. مثال مناسب: قطة كبيرة في الوسط، وتحتها قطة وكلب ليختار الطفل الكلب لأنه المختلف.
+                        اختر وضع النشاط: اختيارات فقط، أو فعّل الصورة الرئيسية من الأعلى إذا كنت تريد صورة سؤال قبل الاختيارات. يمكنك تحديد إجابة صحيحة واحدة أو أكثر باستخدام مربعات الاختيار.
                       </div>
 
                       <div className="grid gap-4">
@@ -3538,11 +3560,11 @@ const GameForm = ({ mode = 'create' }) => {
 
                             <label className="flex items-center gap-2 font-bold text-emerald-800">
                               <input
-                                type="radio"
+                                type="checkbox"
                                 checked={Boolean(option.isCorrect)}
-                                onChange={() => selectCorrectOption(optionIndex)}
+                                onChange={(event) => updateOption(optionIndex, 'isCorrect', event.target.checked)}
                               />
-                              <span>هذه هي الصورة المختلفة</span>
+                              <span>هذه إجابة صحيحة</span>
                             </label>
                           </div>
                         ))}

@@ -2,7 +2,7 @@ const fallbackName = 'لعبة علاجية';
 const getDefaultActivityTitle = (index = 0) => `نشاط ${index + 1}`;
 const getDefaultInstructionForType = (type) => {
   if (type === 'matching.similar') return 'اختر الصورة المطابقة';
-  if (type === 'matching.different') return 'أوجد المختلف';
+  if (type === 'matching.different') return 'اختيار من متعدد';
   if (type === 'matching.find') return 'أوجد الصورة المطلوبة';
   if (type === 'touch.hand') return 'اسحب اليد والمس الصورة المطلوبة';
   if (type === 'motor.shake_image') return '\u0627\u0645\u0633\u0643 \u0627\u0644\u0635\u0648\u0631\u0629 \u0648\u0647\u0632\u0647\u0627';
@@ -138,6 +138,7 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       instructionAudio: '',
       difficulty: 'easy',
       heroImage: '',
+      useHeroImage: false,
       options: [createMatchingOption('option_1', true), createMatchingOption('option_2')],
     };
   }
@@ -578,7 +579,7 @@ export const buildActivityRuntimeGame = ({
         content: {
           instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
           questionAudio: activity?.instructionAudio || '',
-          hero: { image: activity?.heroImage || '' },
+          hero: { image: templateType === 'matching.different' && activity?.useHeroImage === false ? '' : (activity?.heroImage || '') },
           pointerType: templateType === 'touch.hand' ? (activity?.pointerType === 'finger' ? 'finger' : 'hand') : undefined,
           options: Array.isArray(activity?.options) ? activity.options : [],
         },
@@ -644,7 +645,7 @@ export const buildActivityRuntimeGame = ({
         content: {
           instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
           questionAudio: activity?.instructionAudio || '',
-          hero: { image: activity?.heroImage || '' },
+          hero: { image: templateType === 'matching.different' && activity?.useHeroImage === false ? '' : (activity?.heroImage || '') },
         },
         feedback: {
           successSound: sharedMedia?.successSound || '',

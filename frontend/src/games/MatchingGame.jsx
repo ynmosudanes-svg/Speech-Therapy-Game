@@ -39,6 +39,7 @@ const MatchingGame = ({
   const instructionAr = config?.content?.instructionAr || game?.questionTextAr || 'اكتب السؤال هنا';
   const questionAudio = config?.content?.questionAudio || game?.questionAudio || '';
   const heroImage = config?.content?.hero?.image || '';
+  const hasHeroImage = Boolean(heroImage?.trim());
   const options = useMemo(
     () => (Array.isArray(config?.content?.options) ? config.content.options : []),
     [config],
@@ -207,18 +208,25 @@ const MatchingGame = ({
   const optionMinWidth = isFindMode
     ? 'clamp(200px, 66vw, 270px)'
     : isDifferentMode
-      ? 'clamp(118px, 18vw, 176px)'
+      ? 'clamp(132px, 26vw, 200px)'
       : 'clamp(120px, 18vw, 184px)';
   const optionGridClassName = isFindMode
     ? 'mx-auto mt-8 w-full max-w-[40rem] justify-items-center sm:mt-8 md:mt-10'
-    : 'mx-auto w-full max-w-3xl justify-items-center';
+    : isDifferentMode
+      ? 'mx-auto w-full max-w-2xl justify-items-center'
+      : 'mx-auto w-full max-w-3xl justify-items-center';
   const optionChoiceClassName = isFindMode
     ? 'relative w-full max-w-[220px] min-h-[clamp(142px,42vw,220px)] sm:min-h-[clamp(168px,22vw,230px)] lg:max-w-[220px] lg:min-h-[210px]'
-    : 'relative w-full max-w-[220px] min-h-[clamp(124px,16vw,176px)] lg:max-w-[210px] lg:min-h-[160px]';
+    : isDifferentMode
+      ? 'relative w-full max-w-[230px] min-h-[clamp(136px,30vw,190px)] sm:min-h-[clamp(150px,21vw,200px)] lg:min-h-[170px]'
+      : 'relative w-full max-w-[220px] min-h-[clamp(124px,16vw,176px)] lg:max-w-[210px] lg:min-h-[160px]';
   const containerMaxWidth = isFindMode
     ? 'min(100%, clamp(22.5rem, 52vw, 46rem))'
-    : 'min(100%, clamp(20rem, 52vw, 46rem))';
+    : isDifferentMode
+      ? 'min(100%, clamp(22rem, 54vw, 44rem))'
+      : 'min(100%, clamp(20rem, 52vw, 46rem))';
   const heroImageSrc = !shadowRevealed && shadowHeroPreviewSrc ? shadowHeroPreviewSrc : heroImage;
+  const shouldShowHeroImage = !isFindMode && (!isDifferentMode || hasHeroImage);
   const findGridColumnClassName = options.length >= 5 ? 'md:grid-cols-3' : 'md:grid-cols-2';
   const optionCards = options.map((option, index) => {
     const isHintedCorrect = (visualPulse || physicalHighlight) && option.isCorrect;
@@ -273,8 +281,8 @@ const MatchingGame = ({
         onRestart={handleRestart}
       />
 
-      {!isFindMode && (
-        <GameSection className={isShadowMode ? 'mx-auto max-w-[clamp(190px,26vw,260px)]' : 'mx-auto max-w-[clamp(210px,28vw,290px)]'}>
+      {shouldShowHeroImage && (
+        <GameSection className={isShadowMode ? 'mx-auto max-w-[clamp(190px,26vw,260px)]' : isDifferentMode ? 'mx-auto max-w-[clamp(160px,24vw,230px)]' : 'mx-auto max-w-[clamp(210px,28vw,290px)]'}>
           <GameImage
             src={heroImageSrc}
             alt={game?.titleAr || game?.name || 'Hero'}

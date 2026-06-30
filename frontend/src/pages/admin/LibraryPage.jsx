@@ -44,7 +44,7 @@ const GAME_TYPE_ORDER = [
 ];
 const GAME_TYPE_LABELS = {
   'matching.similar': 'الصورة المطابقة',
-  'matching.different': 'أوجد المختلف',
+  'matching.different': 'اختيار من متعدد',
   'matching.find': 'أوجد الصورة',
   'matching.shadow': 'مطابقة الظل',
   'touch.hand': 'المس باليد',
@@ -64,7 +64,7 @@ const GAME_TYPE_LABELS = {
 };
 const GAME_TYPE_LABELS_AR = {
   'matching.similar': 'الصورة المطابقة',
-  'matching.different': 'أوجد المختلف',
+  'matching.different': 'اختيار من متعدد',
   'matching.find': 'أوجد الصورة',
   'matching.shadow': 'مطابقة الظل',
   'touch.hand': 'المس باليد',

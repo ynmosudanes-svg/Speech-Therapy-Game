@@ -147,11 +147,19 @@ export default function MultiStepCommandGame({
   const { speak } = useSpeechSynthesis();
   const sceneRef = useRef(null);
   const itemRefs = useRef({});
+  const hintTimersRef = useRef([]);
 
   const currentStep = commandSteps[currentStepIndex] || null;
   const currentTargetId = getStepTargetId(currentStep);
   const totalSteps = Math.max(commandSteps.length, 1);
   const avatarState = showFeedback ? 'celebration' : 'learning';
+  const difficulty = content?.difficulty || config?.difficulty || 'easy';
+  const lastCompletedTargetId = completedTargets[completedTargets.length - 1] || '';
+
+  const clearHintTimers = () => {
+    hintTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    hintTimersRef.current = [];
+  };
 
   useEffect(() => {
     if (!previewMode && questionAudio) {
@@ -164,28 +172,62 @@ export default function MultiStepCommandGame({
 
     registerAssistantActions({
       onVisualHint: () => {
+        if (difficulty === 'hard') return;
         setPulseTargetId(currentTargetId);
-        window.setTimeout(() => setPulseTargetId(''), 2400);
+        window.setTimeout(() => setPulseTargetId(''), 1600);
       },
       onGestureHint: () => {
+        if (difficulty === 'hard') return;
         setPulseTargetId(currentTargetId);
-        window.setTimeout(() => setPulseTargetId(''), 3000);
+        window.setTimeout(() => setPulseTargetId(''), 1800);
       },
       onVerbalHint: () => {
+        if (difficulty === 'hard') return;
         const item = items.find((entry) => entry.id === currentTargetId);
         if (helpVoiceEnabled) {
           speak(item?.labelAr ? ['\u0627\u0636\u063a\u0637 \u0639\u0644\u0649', item.labelAr].join(' ') : '\u0627\u0636\u063a\u0637 \u0639\u0644\u0649 \u0627\u0644\u0639\u0646\u0635\u0631 \u0627\u0644\u0635\u062d\u064a\u062d');
         }
       },
       onPhysicalPrompt: () => {
+        if (difficulty === 'hard') return;
         setPulseTargetId(currentTargetId);
-        window.setTimeout(() => setPulseTargetId(''), 3200);
+        window.setTimeout(() => setPulseTargetId(''), 2000);
       },
     });
 
     return () => registerAssistantActions({});
-  }, [currentTargetId, helpVoiceEnabled, items, registerAssistantActions, speak]);
+  }, [currentTargetId, difficulty, helpVoiceEnabled, items, registerAssistantActions, speak]);
 
+  useEffect(() => {
+    clearHintTimers();
+
+    if (showFeedback || !currentTargetId || difficulty === 'hard') {
+      return () => clearHintTimers();
+    }
+
+    const pulseDelay = difficulty === 'easy' ? 5000 : 9000;
+    hintTimersRef.current.push(
+      window.setTimeout(() => {
+        setPulseTargetId(currentTargetId);
+        window.setTimeout(() => setPulseTargetId(''), 1200);
+      }, pulseDelay),
+    );
+
+    if (difficulty === 'easy' && currentStepIndex > 0 && lastCompletedTargetId) {
+      hintTimersRef.current.push(
+        window.setTimeout(() => {
+          setTransitionState({
+            key: `hint-${lastCompletedTargetId}-${currentTargetId}-${Date.now()}`,
+            fromId: lastCompletedTargetId,
+            toId: currentTargetId,
+            hint: true,
+          });
+        }, 8000),
+      );
+    }
+
+    return () => clearHintTimers();
+  }, [attempts, currentStepIndex, currentTargetId, difficulty, lastCompletedTargetId, showFeedback]);
   const playInstruction = () => {
     if (questionAudio) {
       playAudioUrl(questionAudio);
@@ -198,6 +240,7 @@ export default function MultiStepCommandGame({
     setCurrentStepIndex(0);
     setCompletedTargets([]);
     setWrongTargetId('');
+    clearHintTimers();
     setPulseTargetId('');
     setTransitionState(null);
     setShowFeedback(false);
@@ -224,6 +267,7 @@ export default function MultiStepCommandGame({
   const handleItemSelect = (item) => {
     if (!currentStep || showFeedback) return;
 
+    clearHintTimers();
     onAssistantInteraction?.();
     setPulseTargetId('');
     const nextAttempts = attempts + 1;
@@ -259,7 +303,6 @@ export default function MultiStepCommandGame({
   const getItemState = (item) => {
     if (wrongTargetId === item.id) return 'wrong';
     if (completedTargets.includes(item.id)) return 'correct';
-    if (pulseTargetId === item.id || currentTargetId === item.id) return 'hint';
     return 'idle';
   };
 
@@ -291,6 +334,7 @@ export default function MultiStepCommandGame({
             const isCompleted = completedIndex >= 0;
             const isPreviousCompleted = isCompleted && completedIndex < completedTargets.length - 1;
             const state = getItemState(item);
+            const shouldPulse = pulseTargetId === item.id;
 
             return (
               <GameChoice
@@ -302,6 +346,10 @@ export default function MultiStepCommandGame({
                 state={state}
                 className={`min-h-[clamp(142px,20vw,190px)] w-full max-w-[220px] ${
                   state === 'wrong' ? 'animate-pulse' : ''
+                } ${
+                  shouldPulse
+                    ? 'animate-pulse ring-4 ring-[#8de8f7]/70 shadow-[0_0_0_6px_rgba(25,173,214,0.10),0_18px_35px_-20px_rgba(25,173,214,0.60)]'
+                    : ''
                 }`}
               >
                 {isCompleted && (
@@ -313,7 +361,7 @@ export default function MultiStepCommandGame({
                   alt={item.labelAr || item.textAr || `item-${index + 1}`}
                   className="flex-1"
                   fit="contain"
-                  emptyLabel="\u0635\u0648\u0631\u0629"
+                  emptyLabel="صورة"
                 />
 
                 {!!(item.labelAr || item.textAr) && (

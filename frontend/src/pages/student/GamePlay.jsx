@@ -28,6 +28,7 @@ const GamePlay = () => {
   const {
     currentStudent,
     studentSession,
+    adminSession,
     mapFrontendPromptToApi,
     saveSession,
   } = useTherapyStore();
@@ -78,7 +79,7 @@ const GamePlay = () => {
           return;
         }
 
-        const token = isFreePlay || isPublicPlay ? null : studentSession?.token;
+        const token = isPublicPlay ? (adminSession?.token || null) : isFreePlay ? null : studentSession?.token;
         const response = await gameService.getGame(token, gameId);
         setGame(normalizeGameForEngine(response));
       } catch {
@@ -96,7 +97,7 @@ const GamePlay = () => {
     };
 
     fetchGame();
-  }, [assignedGame, currentStudent, gameId, isFreePlay, isPublicPlay, studentSession?.token]);
+  }, [adminSession?.token, assignedGame, currentStudent, gameId, isFreePlay, isPublicPlay, studentSession?.token]);
 
   const introVideo = game?.config?.media?.introVideo || '';
   const introVideoVisible = showIntroVideo ?? Boolean(introVideo);

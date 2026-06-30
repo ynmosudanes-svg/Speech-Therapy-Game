@@ -1054,6 +1054,7 @@ export const buildActivityRuntimeGame = ({
         content: {
           instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
           questionAudio: activity?.instructionAudio || '',
+          difficulty: activity?.difficulty || 'easy',
           items,
           commandSteps,
         },

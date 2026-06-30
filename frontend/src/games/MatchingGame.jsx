@@ -243,7 +243,7 @@ const MatchingGame = ({
           alt={option.textAr || `option-${index + 1}`}
           className="flex-1"
           fit="contain"
-          emptyLabel="\u0635\u0648\u0631\u0629 \u0627\u0644\u0627\u062e\u062a\u064a\u0627\u0631"
+          emptyLabel="صورة الاختيار"
         />
         {!!option.textAr && (
           <div className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 md:text-sm">

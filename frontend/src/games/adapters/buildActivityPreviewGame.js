@@ -17,6 +17,7 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'eye_tracking.bird') return 'انظر إلى العصفور ليطير';
   if (type === 'grammar.adjectives') return 'اسحب الكلمة المناسبة لتكوين الجملة';
   if (type === 'spatial.concepts') return 'أين العنصر؟ اختر المفهوم المكاني الصحيح';
+  if (type === 'commands.multi_step') return 'اضغط على العناصر بالترتيب الصحيح';
   return 'اكتب السؤال هنا';
 };
 
@@ -258,6 +259,24 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       ],
       dragItem: { id: 'drag_1', image: '', labelAr: '' },
       dropZone: { x: 50, y: 20, width: 20, height: 20 },
+    };
+  }
+
+  if (type === 'commands.multi_step') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: getDefaultInstructionForType(type),
+      instructionAudio: '',
+      difficulty: 'easy',
+      items: [
+        { id: `cmd_${Date.now()}_1`, labelAr: 'المدرب', textAr: 'المدرب', image: '', stepOrder: 1 },
+        { id: `cmd_${Date.now()}_2`, labelAr: 'الكرة', textAr: 'الكرة', image: '', stepOrder: 2 },
+        { id: `cmd_${Date.now()}_3`, labelAr: 'البنت', textAr: 'البنت', image: '', stepOrder: null },
+        { id: `cmd_${Date.now()}_4`, labelAr: 'الكرسي', textAr: 'الكرسي', image: '', stepOrder: null },
+      ],
+      commandSteps: [],
     };
   }
 
@@ -1008,6 +1027,35 @@ export const buildActivityRuntimeGame = ({
           sentenceText: activity?.sentenceText || '',
           adjectives: Array.isArray(activity?.adjectives) ? activity.adjectives : [],
           nouns: Array.isArray(activity?.nouns) ? activity.nouns : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'commands.multi_step') {
+    const items = Array.isArray(activity?.items)
+      ? activity.items
+      : Array.isArray(activity?.options)
+        ? activity.options
+        : [];
+    const commandSteps = Array.isArray(activity?.commandSteps) ? activity.commandSteps : [];
+
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          questionAudio: activity?.instructionAudio || '',
+          items,
+          commandSteps,
         },
         feedback: {
           successSound: sharedMedia?.successSound || '',

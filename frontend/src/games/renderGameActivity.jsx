@@ -20,6 +20,7 @@ import GrammarAdjectivesGame from './GrammarAdjectivesGame';
 import SpatialConceptsGame from './SpatialConceptsGame';
 import TouchHandGame from './TouchHandGame';
 import ShakeImageGame from './ShakeImageGame';
+import MultiStepCommandGame from './MultiStepCommandGame';
 
 const renderGameActivity = ({
   game,
@@ -69,6 +70,10 @@ const renderGameActivity = ({
 
   if (game?.type === 'sequence.order') {
     return <SequenceGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'commands.multi_step') {
+    return <MultiStepCommandGame {...sharedProps} />;
   }
 
   if (game?.type === 'text.missing_word') {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RotateCcw, X } from 'lucide-react';
+import { ArrowRight, RotateCcw, X } from 'lucide-react';
 import Button from '../components/Button';
 import renderGameActivity from './renderGameActivity';
 import { buildActivityRuntimeGame } from './adapters/buildActivityPreviewGame';
@@ -13,6 +13,7 @@ const GameEngine = ({
   startLevel = 1,
   assistantOptions = {},
   assistantSuspended = false,
+  allowPreviousActivity = false,
   onExit,
 }) => {
   const [activityIndex, setActivityIndex] = useState(0);
@@ -113,13 +114,25 @@ const GameEngine = ({
     clearIdleTimer();
   }, [clearIdleTimer]);
 
-  const handleRestartActivity = () => {
+  const resetActivityRuntime = () => {
     assistantActionsRef.current = {};
     activityHelpUsedRef.current = false;
     activityHelpTypesRef.current = [];
     clearIdleTimer();
     startIdleTimer();
+  };
+
+  const handleRestartActivity = () => {
+    resetActivityRuntime();
     setActivityRunKey((current) => current + 1);
+  };
+
+  const handlePreviousActivity = () => {
+    if (activityIndex <= 0) return;
+
+    resetActivityRuntime();
+    setActivityRunKey(0);
+    setActivityIndex((current) => Math.max(0, current - 1));
   };
 
   const handleActivityComplete = (stats) => {
@@ -242,6 +255,19 @@ const GameEngine = ({
           },
         })}
       </div>
+
+      {allowPreviousActivity && activityIndex > 0 && (
+        <div className="fixed bottom-6 right-5 z-[80] md:bottom-8 md:right-8">
+          <button
+            type="button"
+            onClick={handlePreviousActivity}
+            className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/70 bg-[#1584C3] text-sm font-black text-white shadow-xl shadow-sky-900/15 backdrop-blur transition hover:-translate-y-0.5 hover:bg-[#0f76a8] active:scale-95 sm:w-auto sm:gap-2 sm:px-5"
+          >
+            <ArrowRight size={18} strokeWidth={2.6} />
+            <span className="hidden sm:inline">{'\u0627\u0644\u0646\u0634\u0627\u0637 \u0627\u0644\u0633\u0627\u0628\u0642'}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -90,6 +90,12 @@ const GAME_TYPE_CARDS = [
     accent: 'from-emerald-100 to-lime-100',
   },
   {
+    value: 'commands.multi_step',
+    title: 'تنفيذ الأوامر المركبة',
+    description: 'يعرض عناصر داخل كروت، والطفل يضغط عليها بالترتيب الصحيح لتنفيذ أمر من خطوة أو أكثر.',
+    accent: 'from-cyan-100 to-emerald-100',
+  },
+  {
     value: 'action.drag_to_target',
     title: 'السحب والإفلات',
     description: 'مشهد ثابت في المنتصف والعناصر تُسحب إلى المكان الصحيح داخل الصورة.',
@@ -1431,6 +1437,38 @@ const GameForm = ({ mode = 'create' }) => {
     });
   };
 
+  const addCommandItem = () => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      items: [
+        ...(activity.items || []),
+        {
+          id: `cmd_${Date.now()}`,
+          image: '',
+          labelAr: '',
+          textAr: '',
+          stepOrder: null,
+        },
+      ],
+    }));
+  };
+
+  const updateCommandItem = (itemIndex, field, value) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      items: (activity.items || []).map((item, index) => (
+        index === itemIndex ? { ...item, [field]: value } : item
+      )),
+    }));
+  };
+
+  const removeCommandItem = (itemIndex) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      items: (activity.items || []).filter((_, index) => index !== itemIndex),
+    }));
+  };
+
   const addStep = () => {
     updateCurrentActivity((activity) => ({
       ...activity,
@@ -1670,6 +1708,23 @@ const GameForm = ({ mode = 'create' }) => {
           }
           if ((activity.steps || []).some((step) => !step.image?.trim())) {
             return `كل خطوات الترتيب تحتاج صورة في المستوى ${level.levelNumber}.`;
+          }
+        }
+
+        if (activityType === 'commands.multi_step') {
+          const commandItems = activity.items || [];
+          const orderedItems = commandItems.filter((item) => Number(item.stepOrder) > 0);
+          if (commandItems.length < 2) {
+            return `أضف عنصرين على الأقل في لعبة الأوامر المركبة في المستوى ${level.levelNumber}.`;
+          }
+          if (orderedItems.length < 1) {
+            return `حدد ترتيب خطوة واحدة على الأقل في لعبة الأوامر المركبة في المستوى ${level.levelNumber}.`;
+          }
+          if (commandItems.some((item) => !item.image?.trim())) {
+            return `كل عناصر لعبة الأوامر المركبة تحتاج صورة في المستوى ${level.levelNumber}.`;
+          }
+          if (orderedItems.some((item) => !item.labelAr?.trim() && !item.textAr?.trim())) {
+            return `اكتب اسم كل عنصر مطلوب في لعبة الأوامر المركبة في المستوى ${level.levelNumber}.`;
           }
         }
 
@@ -3978,6 +4033,71 @@ const GameForm = ({ mode = 'create' }) => {
                         <p className="text-xs font-normal text-slate-500">
                           اختر نوع الخانة من الأعلى، ثم اضغط على المربعات لتحديد الجدار أو المسار أو نقطة البداية أو الهدف.
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {currentActivityType === 'commands.multi_step' && (
+                    <div className="space-y-6">
+                      <SectionTitle
+                        action={
+                          <Button type="button" variant="outline" onClick={addCommandItem} className="!py-2 !px-4">
+                            <Plus size={18} />
+                            <span>إضافة عنصر</span>
+                          </Button>
+                        }
+                      >
+                        عناصر الأمر المركب
+                      </SectionTitle>
+
+                      <div className="rounded-[1.8rem] border border-sky-100 bg-sky-50/60 px-4 py-3 text-sm font-bold text-slate-600">
+                        اكتب رقم الترتيب للعنصر المطلوب: 1 ثم 2 ثم 3. اتركه فارغاً أو 0 إذا كان العنصر مشتتاً.
+                      </div>
+
+                      <div className="grid gap-4">
+                        {(currentActivity.items || []).map((item, itemIndex) => (
+                          <div key={item.id || itemIndex} className="rounded-[1.8rem] border border-[#dbe7f3] bg-[#f8fbff] p-5 space-y-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <h4 className="font-black text-slate-800">عنصر {itemIndex + 1}</h4>
+                              {(currentActivity.items || []).length > 2 && (
+                                <button type="button" onClick={() => removeCommandItem(itemIndex)} className="text-red-500">
+                                  <Trash2 size={18} />
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <input
+                                type="text"
+                                value={item.labelAr || item.textAr || ''}
+                                onChange={(event) => {
+                                  updateCommandItem(itemIndex, 'labelAr', event.target.value);
+                                  updateCommandItem(itemIndex, 'textAr', event.target.value);
+                                }}
+                                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                                placeholder="اسم العنصر"
+                              />
+
+                              <input
+                                type="number"
+                                min={0}
+                                max={3}
+                                value={item.stepOrder ?? ''}
+                                onChange={(event) => updateCommandItem(itemIndex, 'stepOrder', event.target.value === '' ? null : Number(event.target.value))}
+                                className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                                placeholder="ترتيب الخطوة"
+                              />
+                            </div>
+
+                            <ImageAssetField
+                              label="صورة العنصر"
+                              value={item.image || ''}
+                              onSelect={(value) => updateCommandItem(itemIndex, 'image', value)}
+                              token={adminSession?.token}
+                              initialQuery={item.labelAr || item.textAr || 'therapy object white background'}
+                            />
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

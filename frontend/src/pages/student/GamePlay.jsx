@@ -21,6 +21,10 @@ const GamePlay = () => {
   const isPublicPlay = location.pathname.startsWith('/play/');
   const isFreeMode = new URLSearchParams(location.search).get('mode') === 'free';
   const isFreePlay = isPublicPlay || isFreeMode || location.state?.isFreePlay || false;
+  const fromLibraryId = location.state?.fromLibraryId || '';
+  const fromLibraryName = location.state?.fromLibraryName || '';
+  const freePlayFallbackPath = isPublicPlay ? '/library' : '/student/library';
+  const freePlayReturnPath = location.state?.returnPath || (fromLibraryId ? `${freePlayFallbackPath}?libraryId=${fromLibraryId}` : freePlayFallbackPath);
   const {
     currentStudent,
     studentSession,
@@ -45,6 +49,23 @@ const GamePlay = () => {
         : null,
     [currentStudent, gameId]
   );
+
+  const goBackFromFreePlay = () => {
+    stopGameAudio();
+    silenceSiteAudio({ resetTrackedAudio: false });
+
+    if (location.state?.returnPath || fromLibraryId) {
+      navigate(freePlayReturnPath);
+      return;
+    }
+
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(freePlayFallbackPath);
+  };
 
   useEffect(() => {
     const fetchGame = async () => {
@@ -174,7 +195,15 @@ const GamePlay = () => {
       if (isPublicPlay) {
         setCompletedSessionData(sessionData);
       } else {
-        navigate('/student/result', { state: { game, sessionData } });
+        navigate('/student/result', {
+          state: {
+            game,
+            sessionData,
+            fromLibraryId,
+            fromLibraryName,
+            returnPath: freePlayReturnPath,
+          },
+        });
       }
       return;
     }
@@ -229,8 +258,8 @@ const GamePlay = () => {
     return (
       <div className="bg-white rounded-[2.5rem] border border-[#eadfbe] p-10 text-center">
         <h2 className="text-3xl font-black text-slate-800 mb-4">{error || 'تعذر العثور على اللعبة'}</h2>
-        <Button variant="primary" onClick={() => navigate(isPublicPlay ? '/' : '/student/home')}>
-          العودة
+        <Button variant="primary" onClick={isFreePlay ? goBackFromFreePlay : () => navigate(isPublicPlay ? '/' : '/student/home')}>
+          {isFreePlay ? 'العودة للمكتبة' : 'العودة'}
         </Button>
       </div>
     );
@@ -251,8 +280,8 @@ const GamePlay = () => {
             <Button variant="primary" onClick={() => window.location.reload()}>
               العب مرة أخرى
             </Button>
-            <Button variant="outline" onClick={() => navigate('/')}>
-              العودة
+            <Button variant="outline" onClick={goBackFromFreePlay}>
+              العودة للمكتبة
             </Button>
           </div>
         </div>
@@ -264,7 +293,6 @@ const GamePlay = () => {
     <>
       <AnimatedBackground />
       <div className="space-y-5 relative z-10" dir="rtl">
-
 
       {error && (
         <div className="rounded-3xl bg-red-50 border border-red-100 px-5 py-4 text-red-600 font-bold">
@@ -293,8 +321,8 @@ const GamePlay = () => {
             <Button variant="primary" onClick={() => setShowIntroVideo(false)}>
               ابدأ اللعب
             </Button>
-            <Button variant="outline" onClick={() => navigate(isPublicPlay ? '/' : '/student/home')}>
-              العودة
+            <Button variant="outline" onClick={isFreePlay ? goBackFromFreePlay : () => navigate(isPublicPlay ? '/' : '/student/home')}>
+              {isFreePlay ? 'العودة للمكتبة' : 'العودة'}
             </Button>
           </div>
         </section>
@@ -318,9 +346,10 @@ const GamePlay = () => {
               onComplete={handleGameComplete}
               therapistControlsEnabled={false}
               therapistPromptLevel={'none'}
-              onUnsupported={() => navigate(isPublicPlay ? '/' : '/student/home')}
+              onUnsupported={isFreePlay ? goBackFromFreePlay : () => navigate(isPublicPlay ? '/' : '/student/home')}
               startLevel={currentLevel}
               assistantSuspended={showExitConfirm}
+              allowPreviousActivity={isFreePlay}
               assistantOptions={{
                 idleTime: Number(game?.config?.assistant?.idleTime || 15000),
                 hintLevel1: game?.config?.assistant?.hintLevel1 || undefined,
@@ -338,7 +367,11 @@ const GamePlay = () => {
             onClose={() => setShowExitConfirm(false)}
             onConfirm={() => {
               setShowExitConfirm(false);
-              navigate(isPublicPlay ? '/' : '/student/home');
+              if (isFreePlay) {
+                goBackFromFreePlay();
+              } else {
+                navigate(isPublicPlay ? '/' : '/student/home');
+              }
             }}
             title="الخروج من اللعبة"
             message="هل تود الخروج من اللعبة الآن؟ لن يتم حفظ أي تقدم في هذه الجلسة، ولن يؤثر ذلك على التقييم."

@@ -106,13 +106,13 @@ export const GameCard = React.forwardRef(function GameCard(
   );
 });
 
-export function GameChoice({
+export const GameChoice = React.forwardRef(function GameChoice({
   children,
   className = '',
   state = 'idle',
   style,
   ...props
-}) {
+}, ref) {
   const { onClick, ...buttonProps } = props;
   const { playTap } = useTherapySounds({ soundEnabled: true });
   const stateClassName =
@@ -126,6 +126,7 @@ export function GameChoice({
 
   return (
     <GameCard
+      ref={ref}
       as="button"
       type="button"
       interactive
@@ -149,7 +150,7 @@ export function GameChoice({
       {children}
     </GameCard>
   );
-}
+});
 
 export function GameImage({
   src,

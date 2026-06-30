@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, Home, Sparkles, Trophy } from 'lucide-react';
+import { CheckCircle2, Home, RotateCcw, Trophy } from 'lucide-react';
 import Button from '../../components/Button';
 import { useTherapySounds } from '../../hooks/useTherapySounds';
 import { stopGameAudio } from '../../utils/soundEffects';
@@ -9,8 +9,33 @@ import { stopGameAudio } from '../../utils/soundEffects';
 const Result = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { game, sessionData } = location.state || {};
+  const { game, sessionData, fromLibraryId, fromLibraryName, returnPath } = location.state || {};
   const { playLevelComplete } = useTherapySounds({ soundEnabled: true });
+  const isFreePlayResult = Boolean(sessionData?.isFreePlay);
+  const libraryReturnPath = returnPath || (fromLibraryId ? `/student/library?libraryId=${fromLibraryId}` : '/student/library');
+  const libraryReturnLabel = fromLibraryName ? `\u0627\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 ${fromLibraryName}` : '\u0627\u0644\u0639\u0648\u062f\u0629 \u0644\u0644\u0645\u0643\u062a\u0628\u0629';
+  const hasRealHelp = Number(sessionData?.helpCount || 0) > 0;
+  const promptSummaryItems = hasRealHelp
+    ? [...new Set((Array.isArray(sessionData?.promptSummary) ? sessionData.promptSummary : [])
+        .filter((prompt) => {
+          const value = String(prompt || '').trim();
+          return value && !value.includes('\u0628\u062f\u0648\u0646') && value.toLowerCase() !== 'none';
+        }))]
+    : [];
+  const visiblePromptSummary = promptSummaryItems.length ? promptSummaryItems : (hasRealHelp ? ['\u0645\u0633\u0627\u0639\u062f\u0629'] : []);
+
+  const replayFreeGame = () => {
+    if (!game?.id) return;
+
+    navigate(`/student/game/${game.id}?mode=free`, {
+      state: {
+        isFreePlay: true,
+        fromLibraryId: fromLibraryId || '',
+        fromLibraryName: fromLibraryName || '',
+        returnPath: libraryReturnPath,
+      },
+    });
+  };
 
   useEffect(() => {
     stopGameAudio();
@@ -57,31 +82,41 @@ const Result = () => {
             أنهيت لعبة <span className="font-black text-slate-900">{game?.titleAr || 'اللعبة'}</span> بنجاح.
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 md:justify-start">
-            {Array.from({ length: 5 }, (_, index) => (
-              <div
-                key={`result-star-${index}`}
-                className="grid h-11 w-11 place-items-center rounded-full bg-amber-50 text-amber-500 shadow-[0_10px_24px_-16px_rgba(245,158,11,0.55)]"
-              >
-                <Sparkles size={18} />
-              </div>
-            ))}
-          </div>
-
           <div className="mt-5 flex items-center gap-2 font-black text-emerald-700">
             <CheckCircle2 size={19} />
             <span>يمكنك بدء لعبة جديدة الآن</span>
           </div>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Button
-              variant="primary"
-              className="text-lg !rounded-[1.35rem] !py-3.5 px-8"
-              onClick={() => navigate('/student/home')}
-            >
-              <Home size={20} />
-              <span>ألعاب أخرى</span>
-            </Button>
+            {isFreePlayResult ? (
+              <>
+                <Button
+                  variant="primary"
+                  className="text-lg !rounded-[1.35rem] !py-3.5 px-8"
+                  onClick={replayFreeGame}
+                >
+                  <RotateCcw size={20} />
+                  <span>العب مرة أخرى</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="text-lg !rounded-[1.35rem] !py-3.5 px-8"
+                  onClick={() => navigate(libraryReturnPath)}
+                >
+                  <Home size={20} />
+                  <span>{libraryReturnLabel}</span>
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="primary"
+                className="text-lg !rounded-[1.35rem] !py-3.5 px-8"
+                onClick={() => navigate('/student/home')}
+              >
+                <Home size={20} />
+                <span>ألعاب أخرى</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -120,17 +155,16 @@ const Result = () => {
             </>
           ) : null}
 
-          {!sessionData?.isFreePlay && sessionData?.promptSummary?.length > 0 && (
-            <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50/90 p-4 text-right">
-              <div className="mb-3 flex items-center gap-2 font-black text-slate-900">
-                <Sparkles size={18} className="text-[#178bb6]" />
-                <span>مستوى المساعدة المستخدم</span>
+          {!sessionData?.isFreePlay && visiblePromptSummary.length > 0 && (
+            <div className="rounded-[1.35rem] border border-slate-200 bg-white/90 p-4 text-right">
+              <div className="mb-2 text-sm font-black text-slate-900">
+                {'\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u0645\u0633\u0627\u0639\u062f\u0629 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645'}
               </div>
               <div className="flex flex-wrap gap-2">
-                {sessionData.promptSummary.map((prompt, index) => (
+                {visiblePromptSummary.map((prompt, index) => (
                   <span
                     key={`${prompt}-${index}`}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-700"
+                    className="rounded-xl border border-sky-100 bg-sky-50 px-3 py-1.5 text-sm font-black text-[#1584C3]"
                   >
                     {prompt}
                   </span>

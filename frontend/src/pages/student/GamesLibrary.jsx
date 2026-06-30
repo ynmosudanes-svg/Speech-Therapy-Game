@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Gamepad2, Play, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import gameLibraryService from '../../services/gameLibraryService';
 import { useTherapyStore } from '../../hooks/useTherapyStore';
 
@@ -14,12 +14,15 @@ const normalizeList = (response) => (Array.isArray(response) ? response : respon
 
 const GamesLibrary = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentStudent } = useTherapyStore();
   const [libraries, setLibraries] = useState([]);
   const [selectedLibraryId, setSelectedLibraryId] = useState('');
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [loadError, setLoadError] = useState('');
+
+  const requestedLibraryId = useMemo(() => new URLSearchParams(location.search).get('libraryId') || '', [location.search]);
 
   useEffect(() => {
     let isMounted = true;
@@ -54,6 +57,14 @@ const GamesLibrary = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!requestedLibraryId || !libraries.length) return;
+
+    if (libraries.some((library) => String(library.id) === String(requestedLibraryId))) {
+      setSelectedLibraryId(String(requestedLibraryId));
+    }
+  }, [libraries, requestedLibraryId]);
+
   const selectedLibrary = useMemo(
     () => libraries.find((library) => String(library.id) === String(selectedLibraryId)) || null,
     [libraries, selectedLibraryId]
@@ -75,25 +86,36 @@ const GamesLibrary = () => {
     if (!query) return games;
 
     return games.filter((game) => {
-      const text = `${getGameTitle(game)} ${game.descriptionAr || ''} ${game.description || ''}`.toLowerCase();
+      const text = `${getGameTitle(game)} ${game?.gameCode || ''} ${game.descriptionAr || ''} ${game.description || ''}`.toLowerCase();
       return text.includes(query);
     });
   }, [filter, selectedLibrary]);
 
   const openGame = (gameId) => {
+    const baseLibraryPath = currentStudent ? '/student/library' : '/library';
+    const returnPath = selectedLibrary?.id ? `${baseLibraryPath}?libraryId=${selectedLibrary.id}` : baseLibraryPath;
+    const navigationState = {
+      isFreePlay: true,
+      fromLibraryId: selectedLibrary?.id || '',
+      fromLibraryName: selectedLibrary?.name || '',
+      returnPath,
+    };
+
     if (currentStudent) {
-      navigate(`/student/game/${gameId}?mode=free`, {
-        state: { isFreePlay: true, fromLibraryId: selectedLibrary?.id },
-      });
+      navigate(`/student/game/${gameId}?mode=free`, { state: navigationState });
       return;
     }
 
-    navigate(`/play/${gameId}`, { state: { isFreePlay: true, fromLibraryId: selectedLibrary?.id } });
+    navigate(`/play/${gameId}`, { state: navigationState });
   };
 
   const clearSelection = () => {
     setSelectedLibraryId('');
     setFilter('');
+
+    if (requestedLibraryId) {
+      navigate(location.pathname, { replace: true });
+    }
   };
 
   return (

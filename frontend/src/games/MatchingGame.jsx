@@ -213,12 +213,50 @@ const MatchingGame = ({
     ? 'mx-auto mt-8 w-full max-w-[40rem] justify-items-center sm:mt-8 md:mt-10'
     : 'mx-auto w-full max-w-3xl justify-items-center';
   const optionChoiceClassName = isFindMode
-    ? 'relative w-full max-w-[270px] min-h-[clamp(188px,60vw,248px)] sm:min-h-[clamp(168px,22vw,240px)] lg:max-w-[280px] lg:min-h-[220px]'
+    ? 'relative w-full max-w-[220px] min-h-[clamp(142px,42vw,220px)] sm:min-h-[clamp(168px,22vw,230px)] lg:max-w-[220px] lg:min-h-[210px]'
     : 'relative w-full max-w-[220px] min-h-[clamp(124px,16vw,176px)] lg:max-w-[210px] lg:min-h-[160px]';
   const containerMaxWidth = isFindMode
     ? 'min(100%, clamp(22.5rem, 52vw, 46rem))'
     : 'min(100%, clamp(20rem, 52vw, 46rem))';
   const heroImageSrc = !shadowRevealed && shadowHeroPreviewSrc ? shadowHeroPreviewSrc : heroImage;
+  const findGridColumnClassName = options.length >= 5 ? 'md:grid-cols-3' : 'md:grid-cols-2';
+  const optionCards = options.map((option, index) => {
+    const isHintedCorrect = (visualPulse || physicalHighlight) && option.isCorrect;
+    const state =
+      selectedOption?.id === option.id
+        ? isCorrect
+          ? 'correct'
+          : 'wrong'
+        : isHintedCorrect
+          ? 'hint'
+          : 'idle';
+
+    return (
+      <GameChoice
+        key={option.id || index}
+        onClick={() => handleOptionSelect(option)}
+        state={state}
+        className={optionChoiceClassName}
+      >
+        <GameImage
+          src={option.image}
+          alt={option.textAr || `option-${index + 1}`}
+          className="flex-1"
+          fit="contain"
+          emptyLabel="\u0635\u0648\u0631\u0629 \u0627\u0644\u0627\u062e\u062a\u064a\u0627\u0631"
+        />
+        {!!option.textAr && (
+          <div className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 md:text-sm">
+            {option.textAr}
+          </div>
+        )}
+
+        {gestureArrow && option.isCorrect && (
+          <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-3xl text-amber-500">{'\u2193'}</div>
+        )}
+      </GameChoice>
+    );
+  });
 
   return (
     <GameContainer
@@ -247,45 +285,17 @@ const MatchingGame = ({
         </GameSection>
       )}
 
-      <GameGrid className={optionGridClassName} minWidth={optionMinWidth} forceAutoFit={isFindMode}>
-        {options.map((option, index) => {
-          const isHintedCorrect = (visualPulse || physicalHighlight) && option.isCorrect;
-          const state =
-            selectedOption?.id === option.id
-              ? isCorrect
-                ? 'correct'
-                : 'wrong'
-              : isHintedCorrect
-                ? 'hint'
-                : 'idle';
-
-          return (
-            <GameChoice
-              key={option.id || index}
-              onClick={() => handleOptionSelect(option)}
-              state={state}
-              className={optionChoiceClassName}
-            >
-              <GameImage
-                src={option.image}
-                alt={option.textAr || `option-${index + 1}`}
-                className="flex-1"
-                fit="contain"
-                emptyLabel="صورة الاختيار"
-              />
-              {!!option.textAr && (
-                <div className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 md:text-sm">
-                  {option.textAr}
-                </div>
-              )}
-
-              {gestureArrow && option.isCorrect && (
-                <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-3xl text-amber-500">↓</div>
-              )}
-            </GameChoice>
-          );
-        })}
-      </GameGrid>
+      {isFindMode ? (
+        <div
+          className={`mx-auto mt-8 grid w-full max-w-[44rem] grid-cols-2 ${findGridColumnClassName} justify-items-center gap-[clamp(8px,1.2vw,16px)] sm:mt-8 md:mt-10`}
+        >
+          {optionCards}
+        </div>
+      ) : (
+        <GameGrid className={optionGridClassName} minWidth={optionMinWidth}>
+          {optionCards}
+        </GameGrid>
+      )}
 
       <FeedbackModal
         show={showFeedback}

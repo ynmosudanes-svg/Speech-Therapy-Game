@@ -43,24 +43,38 @@ const getFriendlyFilename = (filename) => String(filename || '').replace(/^\d+_[
 const getDisplayFilename = (file) => file?.displayName || getFriendlyFilename(file?.filename) || 'ملف';
 const normalizeId = (id) => (id ? String(id) : null);
 
-const readLastFolderId = () => {
+const getMediaFolderStorageKey = (adminSession) => {
+  const rawUserKey =
+    adminSession?.user?.id ||
+    adminSession?.user?.email ||
+    adminSession?.email ||
+    'anonymous';
+  const userKey = encodeURIComponent(String(rawUserKey).trim().toLowerCase());
+  return `${LAST_MEDIA_FOLDER_STORAGE_KEY}:${userKey}`;
+};
+
+const readLastFolderId = (storageKey) => {
   if (typeof window === 'undefined') return null;
   try {
-    return normalizeId(window.localStorage.getItem(LAST_MEDIA_FOLDER_STORAGE_KEY));
+    return normalizeId(
+      window.localStorage.getItem(storageKey) ||
+      window.localStorage.getItem(LAST_MEDIA_FOLDER_STORAGE_KEY)
+    );
   } catch {
     return null;
   }
 };
 
-const saveLastFolderId = (folderId) => {
+const saveLastFolderId = (folderId, storageKey) => {
   if (typeof window === 'undefined') return;
   try {
     const normalizedFolderId = normalizeId(folderId);
     if (normalizedFolderId) {
-      window.localStorage.setItem(LAST_MEDIA_FOLDER_STORAGE_KEY, normalizedFolderId);
+      window.localStorage.setItem(storageKey, normalizedFolderId);
     } else {
-      window.localStorage.removeItem(LAST_MEDIA_FOLDER_STORAGE_KEY);
+      window.localStorage.removeItem(storageKey);
     }
+    window.localStorage.removeItem(LAST_MEDIA_FOLDER_STORAGE_KEY);
   } catch {
     // Ignore storage errors; folder persistence is only a convenience.
   }
@@ -187,7 +201,9 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchScope, setSearchScope] = useState('current');
   const [selectedType, setSelectedType] = useState(initialType);
-  const [selectedFolderId, setSelectedFolderId] = useState(() => readLastFolderId());
+  const { adminSession } = useTherapyStore();
+  const mediaFolderStorageKey = useMemo(() => getMediaFolderStorageKey(adminSession), [adminSession]);
+  const [selectedFolderId, setSelectedFolderId] = useState(() => readLastFolderId(mediaFolderStorageKey));
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [isAddingFolder, setIsAddingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -198,7 +214,6 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [dialog, setDialog] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const fileInputRef = useRef(null);
-  const { adminSession } = useTherapyStore();
   const userRole = adminSession?.user?.role;
   const canDeleteMedia = hasPermission(userRole, PERMISSIONS.FILES_DELETE);
   const canOrganizeMedia = userRole !== 'DATA_ENTRY';
@@ -250,6 +265,12 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   }, [isOpen, adminSession?.token, selectedType, searchQuery, searchScope, selectedFolderId, refreshTrigger]);
 
   useEffect(() => {
+    if (!isOpen) return;
+    setSelectedFolderId(readLastFolderId(mediaFolderStorageKey));
+    setExpandedIds(new Set());
+  }, [isOpen, mediaFolderStorageKey]);
+
+  useEffect(() => {
     setSelectedKeys(new Set());
   }, [selectedFolderId, selectedType, searchQuery, searchScope]);
 
@@ -259,11 +280,11 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
     const normalizedFolderId = normalizeId(selectedFolderId);
     if (normalizedFolderId && !loading && !foldersById.has(normalizedFolderId)) {
       setSelectedFolderId(null);
-      saveLastFolderId(null);
+      saveLastFolderId(null, mediaFolderStorageKey);
       return;
     }
 
-    saveLastFolderId(normalizedFolderId);
+    saveLastFolderId(normalizedFolderId, mediaFolderStorageKey);
 
     if (normalizedFolderId) {
       const ancestorIds = getFolderAncestors(foldersById, normalizedFolderId)
@@ -271,7 +292,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
         .filter(Boolean);
       setExpandedIds((current) => new Set([...current, ...ancestorIds]));
     }
-  }, [foldersById, isOpen, loading, selectedFolderId]);
+  }, [foldersById, isOpen, loading, mediaFolderStorageKey, selectedFolderId]);
 
   if (!isOpen) return null;
 

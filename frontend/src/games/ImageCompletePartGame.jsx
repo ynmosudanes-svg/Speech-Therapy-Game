@@ -10,6 +10,7 @@ import {
 } from '../components/game/GameUI';
 import BirdHint from '../components/game/BirdHint';
 import { playAudioUrl } from '../utils/soundEffects';
+import { API_BASE_URL } from '../services/api';
 import ChildGameBackdrop from './ChildGameBackdrop';
 import {
   CHILD_GAME_BOARD_MAX_WIDTH,
@@ -26,6 +27,12 @@ const shuffleArray = (items) => {
   return next;
 };
 
+
+const getProxiedImageUrl = (src) => {
+  if (!/^https?:\/\//i.test(String(src || ''))) return '';
+  const apiBase = String(API_BASE_URL || '/api').replace(/\/+$/, '');
+  return `${apiBase}/images/proxy?url=${encodeURIComponent(src)}`;
+};
 const cropImageToDataUrl = (image, sx, sy, sw, sh) => {
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(sw));
@@ -102,6 +109,11 @@ const ImageCompletePartGame = ({
   const missingCellIds = configuredMissingCellIds
     .slice(0, missingPartCount)
     .filter((id) => Number(id) < totalCells);
+  const targetCellIds = useMemo(
+    () => (content.cropMode === 'free' ? ['free_crop_0'] : missingCellIds),
+    [content.cropMode, missingCellIds.join(',')],
+  );
+  const cropRectKey = JSON.stringify(content.cropRect || null);
   const avatarState = showFeedback ? (isCorrect ? 'celebration' : 'error') : 'learning';
 
   useEffect(() => {
@@ -114,7 +126,7 @@ const ImageCompletePartGame = ({
     setShowFeedback(false);
     setIsCorrect(false);
     setAttempts(0);
-  }, [game?.id, gridRows, gridCols, missingPartCount, configuredMissingCellIds.join(',')]);
+  }, [game?.id, gridRows, gridCols, missingPartCount, configuredMissingCellIds.join(','), content.cropMode]);
 
   useEffect(() => {
     if (!questionAudio || previewMode) return;
@@ -131,6 +143,8 @@ const ImageCompletePartGame = ({
 
     let cancelled = false;
     let objectUrl = null;
+    let hasTriedImageProxy = false;
+    const proxiedImageUrl = getProxiedImageUrl(image);
 
     const loadImg = async () => {
       let finalSrc = image;
@@ -152,75 +166,92 @@ const ImageCompletePartGame = ({
         sourceImage.crossOrigin = 'anonymous';
       }
 
+      const retryWithProxy = () => {
+        if (!proxiedImageUrl || hasTriedImageProxy || finalSrc === proxiedImageUrl || cancelled) return false;
+        hasTriedImageProxy = true;
+        finalSrc = proxiedImageUrl;
+        sourceImage.crossOrigin = 'anonymous';
+        sourceImage.src = finalSrc;
+        return true;
+      };
+
       sourceImage.onload = () => {
         if (cancelled) return;
 
-        setSourceAspectRatio(
-          sourceImage.naturalWidth > 0 && sourceImage.naturalHeight > 0
-            ? sourceImage.naturalWidth / sourceImage.naturalHeight
-            : 1,
-        );
+        try {
+          setSourceAspectRatio(
+            sourceImage.naturalWidth > 0 && sourceImage.naturalHeight > 0
+              ? sourceImage.naturalWidth / sourceImage.naturalHeight
+              : 1,
+          );
 
-        if (content.cropMode === 'free') {
-          const rect = content.cropRect || { x: 25, y: 25, width: 50, height: 50 };
-          const sx = (rect.x / 100) * sourceImage.naturalWidth;
-          const sy = (rect.y / 100) * sourceImage.naturalHeight;
-          const sw = (rect.width / 100) * sourceImage.naturalWidth;
-          const sh = (rect.height / 100) * sourceImage.naturalHeight;
+          if (content.cropMode === 'free') {
+            const rect = content.cropRect || { x: 25, y: 25, width: 50, height: 50 };
+            const sx = (rect.x / 100) * sourceImage.naturalWidth;
+            const sy = (rect.y / 100) * sourceImage.naturalHeight;
+            const sw = (rect.width / 100) * sourceImage.naturalWidth;
+            const sh = (rect.height / 100) * sourceImage.naturalHeight;
 
-          const croppedImage = cropImageToDataUrl(sourceImage, sx, sy, sw, sh);
+            const croppedImage = cropImageToDataUrl(sourceImage, sx, sy, sw, sh);
 
-          setBoardTiles([{ id: 'full', image: finalSrc }]);
+            setBoardTiles([{ id: 'full', image: finalSrc }]);
 
-          const correctTile = { id: 'free_crop_0', image: croppedImage };
-          
-          let nextOptions = manualOptions;
-          if (nextOptions.length === 0) {
-            nextOptions = Array.from({ length: distractorCount }, (_, i) => {
-              const rX = Math.random() * (sourceImage.naturalWidth - sw);
-              const rY = Math.random() * (sourceImage.naturalHeight - sh);
+            const correctTile = { id: 'free_crop_0', image: croppedImage };
+            
+            let nextOptions = manualOptions;
+            if (nextOptions.length === 0) {
+              nextOptions = Array.from({ length: distractorCount }, (_, i) => {
+                const rX = Math.random() * (sourceImage.naturalWidth - sw);
+                const rY = Math.random() * (sourceImage.naturalHeight - sh);
+                return {
+                  id: `distractor_${i}`,
+                  image: cropImageToDataUrl(sourceImage, rX, rY, sw, sh)
+                };
+              });
+            }
+            
+            setOptionTiles(shuffleArray([correctTile, ...nextOptions]));
+          } else {
+            const cellWidth = sourceImage.naturalWidth / gridCols;
+            const cellHeight = sourceImage.naturalHeight / gridRows;
+            const tiles = Array.from({ length: totalCells }, (_, index) => {
+              const row = Math.floor(index / gridCols);
+              const col = index % gridCols;
               return {
-                id: `distractor_${i}`,
-                image: cropImageToDataUrl(sourceImage, rX, rY, sw, sh)
+                id: String(index),
+                row,
+                col,
+                image: cropImageToDataUrl(
+                  sourceImage,
+                  col * cellWidth,
+                  row * cellHeight,
+                  cellWidth,
+                  cellHeight,
+                ),
               };
             });
+
+            setBoardTiles(tiles);
+
+            const missingSet = new Set(missingCellIds);
+            const correctTiles = tiles.filter((tile) => missingSet.has(tile.id));
+            const generatedDistractors = shuffleArray(
+              tiles.filter((tile) => !missingSet.has(tile.id)),
+            ).slice(0, distractorCount);
+
+            const nextOptions = manualOptions.length ? manualOptions : generatedDistractors;
+            setOptionTiles(shuffleArray([...correctTiles, ...nextOptions]));
           }
-          
-          setOptionTiles(shuffleArray([correctTile, ...nextOptions]));
-        } else {
-          const cellWidth = sourceImage.naturalWidth / gridCols;
-          const cellHeight = sourceImage.naturalHeight / gridRows;
-          const tiles = Array.from({ length: totalCells }, (_, index) => {
-            const row = Math.floor(index / gridCols);
-            const col = index % gridCols;
-            return {
-              id: String(index),
-              row,
-              col,
-              image: cropImageToDataUrl(
-                sourceImage,
-                col * cellWidth,
-                row * cellHeight,
-                cellWidth,
-                cellHeight,
-              ),
-            };
-          });
-
-          setBoardTiles(tiles);
-
-          const missingSet = new Set(missingCellIds);
-          const correctTiles = tiles.filter((tile) => missingSet.has(tile.id));
-          const generatedDistractors = shuffleArray(
-            tiles.filter((tile) => !missingSet.has(tile.id)),
-          ).slice(0, distractorCount);
-
-          const nextOptions = manualOptions.length ? manualOptions : generatedDistractors;
-          setOptionTiles(shuffleArray([...correctTiles, ...nextOptions]));
+        } catch (error) {
+          console.warn('Image canvas preparation failed; retrying through proxy if available.', error);
+          if (retryWithProxy()) return;
+          setBoardTiles([]);
+          setOptionTiles([]);
+          setSourceAspectRatio(1);
         }
       };
-
       sourceImage.onerror = () => {
+        if (retryWithProxy()) return;
         if (!cancelled) {
           setBoardTiles([]);
           setOptionTiles([]);
@@ -237,7 +268,7 @@ const ImageCompletePartGame = ({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [distractorCount, gridCols, gridRows, image, manualOptions, missingCellIds.join(','), totalCells]);
+  }, [content.cropMode, cropRectKey, distractorCount, gridCols, gridRows, image, manualOptions, missingCellIds.join(','), totalCells]);
 
   useEffect(() => {
     if (!registerAssistantActions) return undefined;
@@ -270,7 +301,7 @@ const ImageCompletePartGame = ({
       },
       onPhysicalPrompt: () => {
         setFilledCells(
-          missingCellIds.reduce((accumulator, id) => {
+          targetCellIds.reduce((accumulator, id) => {
             accumulator[id] = id;
             return accumulator;
           }, {}),
@@ -279,7 +310,7 @@ const ImageCompletePartGame = ({
     });
 
     return () => registerAssistantActions({});
-  }, [filledCells, helpVoiceEnabled, missingCellIds, registerAssistantActions]);
+  }, [content.cropMode, filledCells, helpVoiceEnabled, missingCellIds, registerAssistantActions, targetCellIds]);
 
   const boardAspectRatio = useMemo(() => {
     if (!Number.isFinite(sourceAspectRatio) || sourceAspectRatio <= 0) return '1 / 1';
@@ -299,7 +330,7 @@ const ImageCompletePartGame = ({
   }, [sourceAspectRatio]);
 
   const handleCellSelect = (cellId) => {
-    if (!missingCellIds.includes(cellId) || filledCells[cellId]) return;
+    if (!targetCellIds.includes(cellId) || filledCells[cellId]) return;
     onAssistantInteraction?.();
     setActiveCellId(cellId);
     setHintedTileId(null);
@@ -321,7 +352,7 @@ const ImageCompletePartGame = ({
   };
 
   const handleCellDragOver = (event, cellId) => {
-    if (!missingCellIds.includes(cellId) || filledCells[cellId]) return;
+    if (!targetCellIds.includes(cellId) || filledCells[cellId]) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     setDropTargetCellId(cellId);
@@ -346,7 +377,7 @@ const ImageCompletePartGame = ({
 
   const handleOptionSelect = (
     tile,
-    targetCellId = activeCellId || missingCellIds.find((id) => !filledCells[id]) || null,
+    targetCellId = activeCellId || targetCellIds.find((id) => !filledCells[id]) || null,
   ) => {
     if (!targetCellId) return;
 
@@ -363,7 +394,7 @@ const ImageCompletePartGame = ({
 
     const nextFilledCells = { ...filledCells, [targetCellId]: tile.id };
     setFilledCells(nextFilledCells);
-    const nextOpenCell = missingCellIds.find((id) => !nextFilledCells[id]) || null;
+    const nextOpenCell = targetCellIds.find((id) => !nextFilledCells[id]) || null;
     setActiveCellId(nextOpenCell);
 
     if (nextOpenCell) return;
@@ -374,7 +405,7 @@ const ImageCompletePartGame = ({
 
   const handleRestart = () => {
     setFilledCells({});
-    setActiveCellId(missingCellIds[0] || null);
+    setActiveCellId(content.cropMode === 'free' ? 'free_crop_0' : (missingCellIds[0] || null));
     setDraggedTileId(null);
     setDropTargetCellId(null);
     setHintedTileId(null);

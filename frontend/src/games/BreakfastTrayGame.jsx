@@ -63,9 +63,6 @@ function DraggableFoodCard({ item, disabled, matched }) {
           <div className="text-5xl flex items-center justify-center">{item.emoji || '\uD83C\uDF7D\uFE0F'}</div>
         )}
       </GameCard>
-      <div className="min-h-6 max-w-[7rem] px-1 text-center text-sm font-black leading-tight text-slate-700 drop-shadow-sm">
-        {item.labelAr}
-      </div>
     </div>
   );
 }

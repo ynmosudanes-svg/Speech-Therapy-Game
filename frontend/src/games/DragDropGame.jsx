@@ -47,7 +47,7 @@ function DraggableCard({ item, disabled, matched }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`relative flex min-h-[clamp(132px,22vw,176px)] flex-col justify-center ${
+      className={`relative flex min-h-[clamp(104px,18vw,140px)] flex-col justify-center ${
         disabled ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing'
       } ${
         matched
@@ -74,7 +74,7 @@ function DraggableTray({ title, items, feedback, matchedDraggableIds }) {
   return (
     <GameSection>
       <div className="mb-3 text-sm font-black text-slate-500">{title}</div>
-      <GameGrid minWidth="clamp(120px, 22vw, 160px)">
+      <GameGrid minWidth="clamp(96px, 18vw, 132px)">
         {items.map((item) => (
           <DraggableCard
             key={item.id}
@@ -102,7 +102,7 @@ function SceneDropZone({ sceneImage, isOverScene }) {
           alt="scene"
           ratio="4 / 3"
           fit="contain"
-          className="mx-auto w-full max-w-[clamp(220px,42vw,420px)]"
+          className="mx-auto w-full max-w-[clamp(180px,34vw,340px)]"
           emptyLabel="صورة المشهد"
         />
       </div>

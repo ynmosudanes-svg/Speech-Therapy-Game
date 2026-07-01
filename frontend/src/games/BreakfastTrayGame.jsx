@@ -45,13 +45,13 @@ function DraggableFoodCard({ item, disabled, matched }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`relative flex w-[5.5rem] shrink-0 flex-col items-center gap-1 sm:w-24 md:w-28 ${
+      className={`relative flex w-28 shrink-0 flex-col items-center gap-1 ${
         disabled ? 'cursor-not-allowed opacity-0 scale-0' : 'cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:scale-105'
       } transition-transform duration-150 ${isDragging ? 'z-[999] rotate-2 scale-105' : ''}`}
     >
       <GameCard
         as="div"
-        className={`flex h-[5.5rem] w-[5.5rem] items-center justify-center overflow-hidden sm:h-24 sm:w-24 md:h-28 md:w-28 ${
+        className={`flex h-28 w-28 items-center justify-center overflow-hidden ${
           item.highlighted ? GAME_ASSISTANT_HINT_CLASS : 'border-[#dbe7f3] bg-white/94'
         } ${isDragging ? 'shadow-xl' : ''}`}
       >

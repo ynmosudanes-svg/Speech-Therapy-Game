@@ -45,13 +45,13 @@ function DraggableFoodCard({ item, disabled, matched }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`relative flex w-28 shrink-0 flex-col items-center gap-2 ${
+      className={`relative flex w-20 shrink-0 flex-col items-center gap-1 sm:w-24 md:w-28 ${
         disabled ? 'cursor-not-allowed opacity-0 scale-0' : 'cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:scale-105'
       } transition-transform duration-150 ${isDragging ? 'z-[999] rotate-2 scale-105' : ''}`}
     >
       <GameCard
         as="div"
-        className={`flex h-28 w-28 items-center justify-center overflow-hidden ${
+        className={`flex h-20 w-20 items-center justify-center overflow-hidden sm:h-24 sm:w-24 md:h-28 md:w-28 ${
           item.highlighted ? GAME_ASSISTANT_HINT_CLASS : 'border-[#dbe7f3] bg-white/94'
         } ${isDragging ? 'shadow-xl' : ''}`}
       >
@@ -60,7 +60,7 @@ function DraggableFoodCard({ item, disabled, matched }) {
             <img src={item.image} alt={item.labelAr} className="max-w-full max-h-full object-contain" />
           </div>
         ) : (
-          <div className="text-5xl flex items-center justify-center">{item.emoji || '\uD83C\uDF7D\uFE0F'}</div>
+          <div className="flex items-center justify-center text-4xl sm:text-5xl">{item.emoji || '\uD83C\uDF7D\uFE0F'}</div>
         )}
       </GameCard>
     </div>
@@ -112,21 +112,21 @@ function TrayDropZone({ trayImage, isOverTray, droppedItems }) {
         )}
         
         {/* Dropped items area */}
-        <div className="absolute inset-0 p-8 flex flex-wrap gap-4 items-center justify-center content-center z-10">
+        <div className="absolute inset-0 z-10 flex flex-wrap content-center items-center justify-center gap-2 p-4 sm:gap-3 sm:p-6 md:gap-4 md:p-8">
           <AnimatePresence>
             {droppedItems.map((item, idx) => (
               <motion.div
                 key={`${item.id}-${idx}`}
                 initial={{ scale: 0, y: -20 }}
                 animate={{ scale: 1, y: 0 }}
-                className="w-24 h-24 bg-white/80 rounded-2xl shadow-lg flex flex-col items-center justify-center backdrop-blur-sm border-2 border-white"
+                className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border-2 border-white bg-white/80 shadow-lg backdrop-blur-sm sm:h-20 sm:w-20 sm:rounded-2xl md:h-24 md:w-24"
               >
                 {item.image ? (
                   <div className="w-full h-full p-2 flex items-center justify-center">
                     <img src={item.image} alt={item.labelAr} className="max-w-full max-h-full object-contain" />
                   </div>
                 ) : (
-                  <div className="text-5xl">{item.emoji || '🍽️'}</div>
+                  <div className="text-4xl sm:text-5xl">{item.emoji || '🍽️'}</div>
                 )}
               </motion.div>
             ))}
@@ -385,7 +385,7 @@ const BreakfastTrayGame = ({
           <TrayDropZone trayImage={trayImage} isOverTray={isOverTray} droppedItems={droppedItems} />
 
           <GameSection className="relative z-50 w-full bg-white/60">
-            <div className="flex flex-wrap gap-4 p-4 pb-6 items-center justify-center">
+            <div className="flex flex-wrap items-center justify-center gap-3 p-3 pb-4 sm:gap-4 sm:p-4 sm:pb-6">
               <AnimatePresence>
                 {decorateItems(availableItems).map((item) => (
                   <motion.div

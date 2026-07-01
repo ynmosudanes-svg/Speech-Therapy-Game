@@ -484,7 +484,7 @@ const ImageCompletePartGame = ({
                            ? 'bg-transparent'
                            : isActive
                              ? 'bg-sky-50/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.18)]'
-                             : 'bg-white/65'
+                             : 'bg-white'
                        }`}
                        style={{
                          left: `${rect.x}%`,
@@ -506,7 +506,7 @@ const ImageCompletePartGame = ({
                                ? 'border-emerald-300/90 bg-emerald-100/15'
                                : isHintedCell
                                  ? 'border-sky-300 bg-sky-50/70 ring-2 ring-sky-300/40'
-                               : 'border-sky-300/80 bg-white/55'
+                               : 'border-sky-300/80 bg-white'
                            }`}
                          />
                        )}
@@ -552,7 +552,7 @@ const ImageCompletePartGame = ({
                       {showTileImage ? (
                         <img src={tile.image} alt={`cell-${id}`} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="absolute inset-0 bg-white/65" />
+                        <div className="absolute inset-0 bg-white" />
                       )}
 
                       {isMissing && !isFilled ? (

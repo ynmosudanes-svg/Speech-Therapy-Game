@@ -45,13 +45,13 @@ function DraggableFoodCard({ item, disabled, matched }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`relative flex w-20 shrink-0 flex-col items-center gap-1 sm:w-24 md:w-28 ${
+      className={`relative flex w-[5.5rem] shrink-0 flex-col items-center gap-1 sm:w-24 md:w-28 ${
         disabled ? 'cursor-not-allowed opacity-0 scale-0' : 'cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:scale-105'
       } transition-transform duration-150 ${isDragging ? 'z-[999] rotate-2 scale-105' : ''}`}
     >
       <GameCard
         as="div"
-        className={`flex h-20 w-20 items-center justify-center overflow-hidden sm:h-24 sm:w-24 md:h-28 md:w-28 ${
+        className={`flex h-[5.5rem] w-[5.5rem] items-center justify-center overflow-hidden sm:h-24 sm:w-24 md:h-28 md:w-28 ${
           item.highlighted ? GAME_ASSISTANT_HINT_CLASS : 'border-[#dbe7f3] bg-white/94'
         } ${isDragging ? 'shadow-xl' : ''}`}
       >
@@ -112,17 +112,17 @@ function TrayDropZone({ trayImage, isOverTray, droppedItems }) {
         )}
         
         {/* Dropped items area */}
-        <div className="absolute inset-0 z-10 flex flex-wrap content-center items-center justify-center gap-2 p-4 sm:gap-3 sm:p-6 md:gap-4 md:p-8">
+        <div className="absolute inset-0 z-10 flex flex-wrap content-center items-center justify-center gap-1.5 p-3 sm:gap-2 sm:p-5 md:gap-4 md:p-8">
           <AnimatePresence>
             {droppedItems.map((item, idx) => (
               <motion.div
                 key={`${item.id}-${idx}`}
                 initial={{ scale: 0, y: -20 }}
                 animate={{ scale: 1, y: 0 }}
-                className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border-2 border-white bg-white/80 shadow-lg backdrop-blur-sm sm:h-20 sm:w-20 sm:rounded-2xl md:h-24 md:w-24"
+                className="flex h-12 w-12 flex-col items-center justify-center rounded-lg border-2 border-white bg-white/80 shadow-lg backdrop-blur-sm sm:h-16 sm:w-16 sm:rounded-xl md:h-20 md:w-20 md:rounded-2xl"
               >
                 {item.image ? (
-                  <div className="w-full h-full p-2 flex items-center justify-center">
+                  <div className="flex h-full w-full items-center justify-center p-1 sm:p-2">
                     <img src={item.image} alt={item.labelAr} className="max-w-full max-h-full object-contain" />
                   </div>
                 ) : (

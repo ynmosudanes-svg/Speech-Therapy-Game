@@ -1,20 +1,12 @@
-const express = require('express');
+﻿const express = require('express');
 const { body, param, query } = require('express-validator');
-const { proxyImage, searchImages, saveImage, getLibrary, deleteImage } = require('../controllers/image.controller');
+const { searchImages, saveImage, getLibrary, deleteImage } = require('../controllers/image.controller');
 const { authenticate, authorizePermission } = require('../middleware/auth.middleware');
 const { validateRequest } = require('../middleware/validate.middleware');
 const { PERMISSIONS } = require('../utils/permissions');
 
 const router = express.Router();
 
-router.get(
-  '/api/images/proxy',
-  [
-    query('url').trim().notEmpty().withMessage('Image url is required.'),
-    validateRequest,
-  ],
-  proxyImage
-);
 router.get(
   '/api/images/search',
   [

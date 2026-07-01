@@ -18,6 +18,7 @@ const getDefaultInstructionForType = (type) => {
   if (type === 'grammar.adjectives') return 'اسحب الكلمة المناسبة لتكوين الجملة';
   if (type === 'spatial.concepts') return 'أين العنصر؟ اختر المفهوم المكاني الصحيح';
   if (type === 'commands.multi_step') return 'اضغط على العناصر بالترتيب الصحيح';
+  if (type === 'action.breakfast_tray') return 'اسحب الأشياء الصحيحة إلى الصينية';
   return 'اكتب السؤال هنا';
 };
 
@@ -475,6 +476,28 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
         { id: `opt_${Date.now()}_1`, textAr: '', isCorrect: true },
         { id: `opt_${Date.now()}_2`, textAr: '', isCorrect: false },
       ],
+    };
+  }
+
+  if (type === 'action.breakfast_tray') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: 'ضع البيضة في الصينية',
+      instructionAudio: '',
+      difficulty: 'easy',
+      levelMode: 'multi',
+      trayImage: '',
+      items: [
+        { id: `item_${Date.now()}_1`, labelAr: 'بيض', image: '', emoji: '🥚', category: 'food', color: 'white', isTarget: true },
+        { id: `item_${Date.now()}_2`, labelAr: 'خبز', image: '', emoji: '🍞', category: 'food', color: 'brown', isTarget: false },
+        { id: `item_${Date.now()}_3`, labelAr: 'حليب', image: '', emoji: '🥛', category: 'drink', color: 'white', isTarget: false },
+      ],
+      orderedTargets: [],
+      targetCategory: '',
+      targetColor: '',
+      targetQuantity: 1,
     };
   }
 
@@ -1090,6 +1113,33 @@ export const buildActivityRuntimeGame = ({
           options: Array.isArray(activity?.options) ? activity.options : [],
           dragItem: activity?.dragItem || { id: 'drag_1', image: '', labelAr: '' },
           dropZone: activity?.dropZone || { x: 50, y: 20, width: 20, height: 20 },
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
+
+  if (templateType === 'action.breakfast_tray') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || getDefaultInstructionForType(templateType),
+          instructionAudio: activity?.instructionAudio || '',
+          levelMode: activity?.levelMode || 'multi',
+          trayImage: activity?.trayImage || '',
+          items: Array.isArray(activity?.items) ? activity.items : [],
+          orderedTargets: Array.isArray(activity?.orderedTargets) ? activity.orderedTargets : [],
+          targetCategory: activity?.targetCategory || '',
+          targetColor: activity?.targetColor || '',
+          targetQuantity: activity?.targetQuantity || 1,
         },
         feedback: {
           successSound: sharedMedia?.successSound || '',

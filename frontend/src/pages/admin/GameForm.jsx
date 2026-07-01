@@ -102,6 +102,12 @@ const GAME_TYPE_CARDS = [
     accent: 'from-rose-100 to-orange-100',
   },
   {
+    value: 'action.breakfast_tray',
+    title: 'جهز الفطور',
+    description: 'صينية فارغة وكروت طعام يسحبها الطفل. مستويات متعددة: عنصر واحد، متعدد، بالترتيب، بالفئة، باللون، بالعدد.',
+    accent: 'from-amber-100 to-yellow-100',
+  },
+  {
     value: 'touch.hand',
     title: 'المس باليد',
     description: 'تظهر يد كرتونية في أسفل الشاشة، ويسحبها الطفل حتى تلمس الصورة المطلوبة بدل الضغط المباشر على الإجابة.',
@@ -1178,6 +1184,21 @@ const GameForm = ({ mode = 'create' }) => {
       adjectives: [...(activity.adjectives || []), { id: `adj_${Date.now()}`, image: '', textAr: '', isCorrect: false }],
     }));
   };
+  const updateNoun = (index, field, value) => {
+    updateCurrentActivity((activity) => ({
+      ...activity,
+      nouns: (activity.nouns || []).map((opt, i) => (i === index ? { ...opt, [field]: value } : opt)),
+    }));
+  };
+
+  const updateItem = (itemIndex, field, value) => {
+    updateCurrentActivity((activity) => {
+      const items = [...(activity.items || [])];
+      items[itemIndex] = { ...items[itemIndex], [field]: value };
+      return { ...activity, items };
+    });
+  };
+
   const removeAdjective = (index) => {
     updateCurrentActivity((activity) => ({
       ...activity,
@@ -1185,12 +1206,6 @@ const GameForm = ({ mode = 'create' }) => {
     }));
   };
 
-  const updateNoun = (index, field, value) => {
-    updateCurrentActivity((activity) => ({
-      ...activity,
-      nouns: (activity.nouns || []).map((opt, i) => (i === index ? { ...opt, [field]: value } : opt)),
-    }));
-  };
   const selectCorrectNoun = (index) => {
     updateCurrentActivity((activity) => ({
       ...activity,
@@ -3745,6 +3760,181 @@ const GameForm = ({ mode = 'create' }) => {
                           ))}
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {currentActivityType === 'action.breakfast_tray' && (
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
+                      <div className="flex items-center gap-2 text-emerald-700 mb-4">
+                        <CheckCircle2 size={24} />
+                        <h3 className="text-xl font-black">إعدادات صينية الفطور</h3>
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <ImageAssetField
+                          label="صورة الصينية (اختياري)"
+                          value={currentActivity.trayImage || ''}
+                          onSelect={(value) => setActivityField('trayImage', value)}
+                          token={adminSession?.token}
+                          initialQuery="wooden serving tray top view"
+                        />
+                        
+                        <div>
+                          <label className="block text-slate-700 font-bold mb-2">نوع المستوى</label>
+                          <select
+                            value={currentActivity.levelMode || 'multi'}
+                            onChange={(event) => setActivityField('levelMode', event.target.value)}
+                            className="w-full px-4 py-3 rounded-2xl border border-gray-300 bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                          >
+                            <option value="single">عنصر واحد</option>
+                            <option value="multi">متعدد (يجب اختيار كلها)</option>
+                            <option value="ordered">بالترتيب</option>
+                            <option value="category">حسب الفئة</option>
+                            <option value="color">حسب اللون</option>
+                            <option value="quantity">حسب العدد</option>
+                          </select>
+                        </div>
+
+                        {(currentActivity.levelMode === 'category') && (
+                          <div>
+                            <label className="block text-slate-700 font-bold mb-2">الفئة المطلوبة (مثال: fruit)</label>
+                            <input
+                              type="text"
+                              value={currentActivity.targetCategory || ''}
+                              onChange={(event) => setActivityField('targetCategory', event.target.value)}
+                              className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                            />
+                          </div>
+                        )}
+                        {(currentActivity.levelMode === 'color') && (
+                          <div>
+                            <label className="block text-slate-700 font-bold mb-2">اللون المطلوب (مثال: red)</label>
+                            <input
+                              type="text"
+                              value={currentActivity.targetColor || ''}
+                              onChange={(event) => setActivityField('targetColor', event.target.value)}
+                              className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                            />
+                          </div>
+                        )}
+                        {(currentActivity.levelMode === 'quantity' || currentActivity.levelMode === 'category' || currentActivity.levelMode === 'color') && (
+                          <div>
+                            <label className="block text-slate-700 font-bold mb-2">العدد المطلوب</label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={currentActivity.targetQuantity || 1}
+                              onChange={(event) => setActivityField('targetQuantity', parseInt(event.target.value, 10))}
+                              className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between mt-8 mb-4 border-t pt-6">
+                        <div className="text-lg font-black text-slate-800">عناصر الطعام (الكروت)</div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const newItems = [...(currentActivity.items || []), { id: `item_${Date.now()}`, labelAr: 'جديد', image: '', emoji: '🍽️', category: '', color: '', isTarget: false }];
+                            setActivityField('items', newItems);
+                          }}
+                          className="!py-2 !px-4"
+                        >
+                          <Plus size={18} />
+                          <span>إضافة عنصر</span>
+                        </Button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {(currentActivity.items || []).map((item, idx) => (
+                          <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <div className="flex justify-between mb-3">
+                              <span className="font-bold text-slate-700">عنصر {idx + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newItems = [...currentActivity.items];
+                                  newItems.splice(idx, 1);
+                                  setActivityField('items', newItems);
+                                }}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+                              <input
+                                type="text"
+                                value={item.labelAr || ''}
+                                onChange={(e) => updateItem(idx, 'labelAr', e.target.value)}
+                                placeholder="الاسم (بيض)"
+                                className="px-3 py-2 rounded-xl border border-gray-300 outline-none"
+                              />
+                              <input
+                                type="text"
+                                value={item.emoji || ''}
+                                onChange={(e) => updateItem(idx, 'emoji', e.target.value)}
+                                placeholder="الإيموجي (🥚)"
+                                className="px-3 py-2 rounded-xl border border-gray-300 outline-none"
+                              />
+                              <input
+                                type="text"
+                                value={item.category || ''}
+                                onChange={(e) => updateItem(idx, 'category', e.target.value)}
+                                placeholder="الفئة (food)"
+                                className="px-3 py-2 rounded-xl border border-gray-300 outline-none"
+                              />
+                              <input
+                                type="text"
+                                value={item.color || ''}
+                                onChange={(e) => updateItem(idx, 'color', e.target.value)}
+                                placeholder="اللون (white)"
+                                className="px-3 py-2 rounded-xl border border-gray-300 outline-none"
+                              />
+                            </div>
+                            <div className="mt-4 flex flex-col gap-4">
+                              <ImageAssetField
+                                label="الصورة (اختياري)"
+                                value={item.image || ''}
+                                onSelect={(value) => updateItem(idx, 'image', value)}
+                                token={adminSession?.token}
+                                initialQuery={item.labelAr}
+                              />
+                              <div className="flex items-center gap-3 px-2 py-2 w-max">
+                                <input
+                                  id={`target-checkbox-${item.id || idx}`}
+                                  type="checkbox"
+                                  className="w-5 h-5 accent-emerald-600 cursor-pointer shrink-0"
+                                  checked={Boolean(item.isTarget)}
+                                  onChange={(e) => updateItem(idx, 'isTarget', e.target.checked)}
+                                />
+                                <label htmlFor={`target-checkbox-${item.id || idx}`} className="font-bold text-emerald-700 cursor-pointer text-base select-none hover:text-emerald-800">
+                                  عنصر مستهدف
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {currentActivity.levelMode === 'ordered' && (
+                        <div className="mt-6 pt-6 border-t border-emerald-100">
+                          <label className="block text-slate-700 font-bold mb-2">ترتيب العناصر المطلوبة (IDs)</label>
+                          <div className="text-sm text-slate-500 mb-2">أدخل الـ ID الخاص بكل عنصر مستهدف بالترتيب مفصولاً بفاصلة (مثال: item_1, item_2)</div>
+                          <input
+                            type="text"
+                            value={(currentActivity.orderedTargets || []).join(', ')}
+                            onChange={(e) => {
+                              const targets = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                              setActivityField('orderedTargets', targets);
+                            }}
+                            className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 outline-none dir-ltr"
+                            placeholder="item_1, item_2..."
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 

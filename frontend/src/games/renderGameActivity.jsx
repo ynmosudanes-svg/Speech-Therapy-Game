@@ -21,7 +21,7 @@ import SpatialConceptsGame from './SpatialConceptsGame';
 import TouchHandGame from './TouchHandGame';
 import ShakeImageGame from './ShakeImageGame';
 import MultiStepCommandGame from './MultiStepCommandGame';
-
+import BreakfastTrayGame from './BreakfastTrayGame';
 const renderGameActivity = ({
   game,
   onComplete,
@@ -50,6 +50,10 @@ const renderGameActivity = ({
 
   if (game?.type === 'action.drag_to_target') {
     return <DragDropGame {...sharedProps} />;
+  }
+
+  if (game?.type === 'action.breakfast_tray') {
+    return <BreakfastTrayGame {...sharedProps} />;
   }
 
   if (game?.type === 'touch.hand') {

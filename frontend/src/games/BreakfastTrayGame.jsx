@@ -40,29 +40,33 @@ function DraggableFoodCard({ item, disabled, matched }) {
     : undefined;
 
   return (
-    <GameCard
-      as="div"
+    <div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      className={`relative flex h-32 w-28 flex-col items-center justify-center shrink-0 ${
+      className={`relative flex w-28 shrink-0 flex-col items-center gap-2 ${
         disabled ? 'cursor-not-allowed opacity-0 scale-0' : 'cursor-grab active:cursor-grabbing hover:-translate-y-1 hover:scale-105'
-      } ${
-        item.highlighted
-          ? GAME_ASSISTANT_HINT_CLASS
-          : 'border-[#dbe7f3] bg-white/94'
-      } transition-all duration-300 ${isDragging ? 'shadow-xl rotate-3 scale-110' : ''}`}
+      } transition-transform duration-150 ${isDragging ? 'z-[999] rotate-2 scale-105' : ''}`}
     >
-      {item.image ? (
-        <div className="flex-1 w-full p-2 flex items-center justify-center">
-          <img src={item.image} alt={item.labelAr} className="max-w-full max-h-full object-contain" />
-        </div>
-      ) : (
-        <div className="text-5xl flex-1 flex items-center justify-center">{item.emoji || '🍽️'}</div>
-      )}
-      <div className="text-sm font-black text-slate-700 z-10 pb-2">{item.labelAr}</div>
-    </GameCard>
+      <GameCard
+        as="div"
+        className={`flex h-28 w-28 items-center justify-center overflow-hidden ${
+          item.highlighted ? GAME_ASSISTANT_HINT_CLASS : 'border-[#dbe7f3] bg-white/94'
+        } ${isDragging ? 'shadow-xl' : ''}`}
+      >
+        {item.image ? (
+          <div className="h-full w-full p-2 flex items-center justify-center">
+            <img src={item.image} alt={item.labelAr} className="max-w-full max-h-full object-contain" />
+          </div>
+        ) : (
+          <div className="text-5xl flex items-center justify-center">{item.emoji || '\uD83C\uDF7D\uFE0F'}</div>
+        )}
+      </GameCard>
+      <div className="min-h-6 max-w-[7rem] px-1 text-center text-sm font-black leading-tight text-slate-700 drop-shadow-sm">
+        {item.labelAr}
+      </div>
+    </div>
   );
 }
 
@@ -173,8 +177,8 @@ const BreakfastTrayGame = ({
 
   const avatarState = showModal ? (feedback === 'success' ? 'celebration' : 'error') : 'learning';
 
-  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 8 } });
-  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 5 } });
+  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 2 } });
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { distance: 2 } });
   const sensors = useSensors(mouseSensor, touchSensor);
 
   const availableItems = items.filter(item => !droppedItems.some(dropped => dropped.id === item.id));

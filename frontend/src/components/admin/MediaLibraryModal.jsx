@@ -23,6 +23,7 @@ import gameService from '../../services/gameService';
 import { PERMISSIONS, hasPermission } from '../../utils/permissions';
 
 const GENERAL_FOLDER_ID = '__general__';
+const LAST_MEDIA_FOLDER_STORAGE_KEY = 'speech_media_library_last_folder_id';
 const GENERAL_FOLDER = {
   id: null,
   name: 'عام',
@@ -41,6 +42,29 @@ const TYPE_OPTIONS = [
 const getFriendlyFilename = (filename) => String(filename || '').replace(/^\d+_[0-9a-f-]{36}_/i, '');
 const getDisplayFilename = (file) => file?.displayName || getFriendlyFilename(file?.filename) || 'ملف';
 const normalizeId = (id) => (id ? String(id) : null);
+
+const readLastFolderId = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return normalizeId(window.localStorage.getItem(LAST_MEDIA_FOLDER_STORAGE_KEY));
+  } catch {
+    return null;
+  }
+};
+
+const saveLastFolderId = (folderId) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const normalizedFolderId = normalizeId(folderId);
+    if (normalizedFolderId) {
+      window.localStorage.setItem(LAST_MEDIA_FOLDER_STORAGE_KEY, normalizedFolderId);
+    } else {
+      window.localStorage.removeItem(LAST_MEDIA_FOLDER_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage errors; folder persistence is only a convenience.
+  }
+};
 
 function buildTree(folders) {
   const nodes = new Map();
@@ -88,15 +112,30 @@ function getFolderAncestors(foldersById, folderId) {
   return ancestors;
 }
 
+const FolderStateIcon = ({ isSelected, isExpanded }) => {
+  if (isSelected || isExpanded) {
+    return (
+      <span className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${isExpanded ? 'bg-sky-50 text-sky-500 ring-1 ring-sky-100' : 'text-blue-500'}`}>
+        <FolderOpen size={17} />
+      </span>
+    );
+  }
+
+  return <Folder size={17} className="shrink-0 text-slate-400" />;
+};
+
 const FolderTreeNode = ({ folder, selectedFolderId, expandedIds, onToggle, onSelect, onDelete, depth = 0 }) => {
   const hasChildren = (folder.children || []).length > 0;
   const isExpanded = expandedIds.has(folder.id);
   const isSelected = selectedFolderId === folder.id;
+  const rowStateClassName = isSelected
+    ? 'bg-blue-50 text-blue-700'
+    : 'text-slate-700 hover:bg-slate-100';
 
   return (
     <div>
       <div
-        className={`group flex items-center gap-1 rounded-xl px-2 py-2 text-sm transition-colors ${isSelected ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100'}`}
+        className={`group flex items-center gap-1 rounded-xl px-2 py-2 text-sm transition-colors ${rowStateClassName}`}
         style={{ paddingInlineStart: `${8 + depth * 14}px` }}
       >
         <button
@@ -107,7 +146,7 @@ const FolderTreeNode = ({ folder, selectedFolderId, expandedIds, onToggle, onSel
           {hasChildren ? (isExpanded ? <ChevronDown size={16} /> : <ChevronLeft size={16} />) : <span className="h-4 w-4" />}
         </button>
         <button type="button" onClick={() => onSelect(folder.id)} className="flex min-w-0 flex-1 items-center gap-2 text-right font-black">
-          {isSelected ? <FolderOpen size={17} className="shrink-0 text-blue-500" /> : <Folder size={17} className="shrink-0 text-slate-400" />}
+          <FolderStateIcon isSelected={isSelected} isExpanded={hasChildren && isExpanded} />
           <span className="truncate">{folder.name}</span>
         </button>
         {onDelete && (
@@ -148,7 +187,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchScope, setSearchScope] = useState('current');
   const [selectedType, setSelectedType] = useState(initialType);
-  const [selectedFolderId, setSelectedFolderId] = useState(null);
+  const [selectedFolderId, setSelectedFolderId] = useState(() => readLastFolderId());
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [isAddingFolder, setIsAddingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -213,6 +252,26 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   useEffect(() => {
     setSelectedKeys(new Set());
   }, [selectedFolderId, selectedType, searchQuery, searchScope]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const normalizedFolderId = normalizeId(selectedFolderId);
+    if (normalizedFolderId && !loading && !foldersById.has(normalizedFolderId)) {
+      setSelectedFolderId(null);
+      saveLastFolderId(null);
+      return;
+    }
+
+    saveLastFolderId(normalizedFolderId);
+
+    if (normalizedFolderId) {
+      const ancestorIds = getFolderAncestors(foldersById, normalizedFolderId)
+        .map((folder) => folder.id)
+        .filter(Boolean);
+      setExpandedIds((current) => new Set([...current, ...ancestorIds]));
+    }
+  }, [foldersById, isOpen, loading, selectedFolderId]);
 
   if (!isOpen) return null;
 

@@ -102,29 +102,31 @@ const TrueFalseGame = ({
         )}
       </GameSection>
 
-      <div className="mx-auto mt-6 max-w-sm grid grid-cols-2 gap-4 sm:gap-6 px-4">
+      <div className="mx-auto mt-6 grid w-full max-w-[18rem] grid-cols-2 gap-5 px-4 sm:max-w-xs sm:gap-6">
         <button
+          type="button"
           onClick={() => handleSelect(true)}
-          className={`relative group flex flex-col items-center justify-center py-4 px-3 rounded-[1.5rem] border-b-[6px] transition-all focus:outline-none focus:ring-4 focus:ring-emerald-300
-            ${visualPulse && content?.correctAnswer === true ? 'animate-pulse ring-4 ring-emerald-300' : ''}
-            bg-emerald-500 border-emerald-700 hover:bg-emerald-400 hover:-translate-y-1 active:translate-y-1 active:border-b-0`}
+          className={`group relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-full border-[3px] border-white/80 bg-[linear-gradient(145deg,#20B7B5,#0B7FBD)] p-3 text-white shadow-[0_18px_34px_rgba(32,183,181,0.26)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_42px_rgba(11,127,189,0.34)] active:translate-y-0 active:scale-95 focus:outline-none focus:ring-4 focus:ring-[#20B7B5]/30
+            ${visualPulse && content?.correctAnswer === true ? 'animate-pulse ring-4 ring-[#20B7B5]/35' : ''}`}
         >
-          <div className="bg-white/20 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
-            <CheckCircle2 size={36} className="text-white drop-shadow-sm" />
+          <span className="pointer-events-none absolute inset-2 rounded-full border border-white/24 bg-white/10" />
+          <div className="relative mb-2 rounded-full bg-white/24 p-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)] transition-transform group-hover:scale-110">
+            <CheckCircle2 size={34} className="drop-shadow-sm" />
           </div>
-          <span className="text-xl sm:text-2xl font-black text-white drop-shadow-md">صح</span>
+          <span className="relative text-xl font-black leading-none drop-shadow-md sm:text-2xl">صح</span>
         </button>
 
         <button
+          type="button"
           onClick={() => handleSelect(false)}
-          className={`relative group flex flex-col items-center justify-center py-4 px-3 rounded-[1.5rem] border-b-[6px] transition-all focus:outline-none focus:ring-4 focus:ring-red-300
-            ${visualPulse && content?.correctAnswer === false ? 'animate-pulse ring-4 ring-red-300' : ''}
-            bg-red-500 border-red-700 hover:bg-red-400 hover:-translate-y-1 active:translate-y-1 active:border-b-0`}
+          className={`group relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-full border-[3px] border-white/80 bg-[linear-gradient(145deg,#0B7FBD,#20B7B5)] p-3 text-white shadow-[0_18px_34px_rgba(11,127,189,0.26)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_42px_rgba(32,183,181,0.32)] active:translate-y-0 active:scale-95 focus:outline-none focus:ring-4 focus:ring-[#0B7FBD]/28
+            ${visualPulse && content?.correctAnswer === false ? 'animate-pulse ring-4 ring-[#0B7FBD]/35' : ''}`}
         >
-          <div className="bg-white/20 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
-            <XCircle size={36} className="text-white drop-shadow-sm" />
+          <span className="pointer-events-none absolute inset-2 rounded-full border border-white/24 bg-white/10" />
+          <div className="relative mb-2 rounded-full bg-white/24 p-2.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)] transition-transform group-hover:scale-110">
+            <XCircle size={34} className="drop-shadow-sm" />
           </div>
-          <span className="text-xl sm:text-2xl font-black text-white drop-shadow-md">خطأ</span>
+          <span className="relative text-xl font-black leading-none drop-shadow-md sm:text-2xl">خطأ</span>
         </button>
       </div>
 

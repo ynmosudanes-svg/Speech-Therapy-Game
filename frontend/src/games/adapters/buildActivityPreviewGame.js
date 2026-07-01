@@ -334,6 +334,8 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       missingPartCount: 1,
       missingCellIds: ['0'],
       distractorCount: 3,
+      cropMode: 'grid',
+      cropRect: null,
       options: [
         { id: `opt_${Date.now()}_1`, textAr: '', image: '', isCorrect: false },
         { id: `opt_${Date.now()}_2`, textAr: '', image: '', isCorrect: false },
@@ -739,6 +741,8 @@ export const buildActivityRuntimeGame = ({
           missingPartCount: Number(activity?.missingPartCount ?? 1),
           missingCellIds: Array.isArray(activity?.missingCellIds) ? activity.missingCellIds : ['0'],
           distractorCount: Number(activity?.distractorCount ?? 3),
+          cropMode: activity?.cropMode || 'grid',
+          cropRect: activity?.cropRect || null,
           options: Array.isArray(activity?.options) ? activity.options : [],
         },
         feedback: {
@@ -963,6 +967,8 @@ export const buildActivityRuntimeGame = ({
             missingPartCount: 1,
             missingCellIds: [String(missingSlotIndex)],
             distractorCount: 3,
+            cropMode: 'grid',
+            cropRect: null,
             options: Array.isArray(activity?.options) ? activity.options : [],
           },
           feedback: {

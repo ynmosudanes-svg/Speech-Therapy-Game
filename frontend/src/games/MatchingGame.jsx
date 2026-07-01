@@ -244,8 +244,16 @@ const MatchingGame = ({
     setShadowRevealed(false);
   };
 
+  const isFindLargeChoiceLayout = isFindMode && (options.length === 2 || options.length === 3);
+  const findGridMobileColumnClassName = options.length <= 3 ? 'grid-cols-1' : 'grid-cols-2';
+  const findGridColumnClassName = options.length === 3 ? 'md:grid-cols-3' : options.length >= 5 ? 'md:grid-cols-3' : 'md:grid-cols-2';
+  const findGridMaxWidthClassName = options.length === 2 ? 'max-w-[42rem]' : options.length === 3 ? 'max-w-[58rem]' : 'max-w-[44rem]';
+  const findGridGapClassName = isFindLargeChoiceLayout ? 'gap-[clamp(10px,1.4vw,22px)]' : 'gap-[clamp(8px,1.2vw,16px)]';
+
   const optionMinWidth = isFindMode
-    ? 'clamp(200px, 66vw, 270px)'
+    ? isFindLargeChoiceLayout
+      ? 'clamp(230px, 42vw, 300px)'
+      : 'clamp(200px, 66vw, 270px)'
     : isDifferentMode
       ? 'clamp(132px, 26vw, 200px)'
       : 'clamp(120px, 18vw, 184px)';
@@ -255,18 +263,21 @@ const MatchingGame = ({
       ? 'mx-auto w-full max-w-2xl justify-items-center'
       : 'mx-auto w-full max-w-3xl justify-items-center';
   const optionChoiceClassName = isFindMode
-    ? 'relative w-full max-w-[220px] min-h-[clamp(142px,42vw,220px)] sm:min-h-[clamp(168px,22vw,230px)] lg:max-w-[220px] lg:min-h-[210px]'
+    ? isFindLargeChoiceLayout
+      ? 'relative w-full max-w-[270px] min-h-[clamp(160px,44vw,230px)] sm:min-h-[clamp(190px,28vw,260px)] lg:max-w-[300px] lg:min-h-[270px]'
+      : 'relative w-full max-w-[220px] min-h-[clamp(142px,42vw,220px)] sm:min-h-[clamp(168px,22vw,230px)] lg:max-w-[220px] lg:min-h-[210px]'
     : isDifferentMode
       ? 'relative w-full max-w-[230px] min-h-[clamp(136px,30vw,190px)] sm:min-h-[clamp(150px,21vw,200px)] lg:min-h-[170px]'
       : 'relative w-full max-w-[220px] min-h-[clamp(124px,16vw,176px)] lg:max-w-[210px] lg:min-h-[160px]';
   const containerMaxWidth = isFindMode
-    ? 'min(100%, clamp(22.5rem, 52vw, 46rem))'
+    ? isFindLargeChoiceLayout
+      ? 'min(100%, clamp(28rem, 74vw, 62rem))'
+      : 'min(100%, clamp(22.5rem, 52vw, 46rem))'
     : isDifferentMode
       ? 'min(100%, clamp(22rem, 54vw, 44rem))'
       : 'min(100%, clamp(20rem, 52vw, 46rem))';
   const heroImageSrc = !shadowRevealed && shadowHeroPreviewSrc ? shadowHeroPreviewSrc : heroImage;
   const shouldShowHeroImage = !isFindMode && (!isDifferentMode || hasHeroImage);
-  const findGridColumnClassName = options.length >= 5 ? 'md:grid-cols-3' : 'md:grid-cols-2';
   const optionCards = options.map((option, index) => {
     const optionKey = getOptionKey(option, index);
     const isSelectedInMultiChoice = isDifferentMode && selectedOptionIds.includes(optionKey);
@@ -342,7 +353,7 @@ const MatchingGame = ({
 
       {isFindMode ? (
         <div
-          className={`mx-auto mt-8 grid w-full max-w-[44rem] grid-cols-2 ${findGridColumnClassName} justify-items-center gap-[clamp(8px,1.2vw,16px)] sm:mt-8 md:mt-10`}
+          className={`mx-auto mt-8 grid w-full ${findGridMaxWidthClassName} ${findGridMobileColumnClassName} ${findGridColumnClassName} justify-items-center ${findGridGapClassName} sm:mt-8 md:mt-10`}
         >
           {optionCards}
         </div>

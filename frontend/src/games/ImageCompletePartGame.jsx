@@ -106,7 +106,7 @@ const ImageCompletePartGame = ({
 
   useEffect(() => {
     setFilledCells({});
-    setActiveCellId(missingCellIds[0] || null);
+    setActiveCellId(content.cropMode === 'free' ? 'free_crop_0' : (missingCellIds[0] || null));
     setDraggedTileId(null);
     setDropTargetCellId(null);
     setHintedTileId(null);
@@ -130,61 +130,112 @@ const ImageCompletePartGame = ({
     }
 
     let cancelled = false;
-    const sourceImage = new window.Image();
-    sourceImage.crossOrigin = 'anonymous';
+    let objectUrl = null;
 
-    sourceImage.onload = () => {
+    const loadImg = async () => {
+      let finalSrc = image;
+      try {
+        const res = await fetch(image);
+        if (res.ok) {
+          const blob = await res.blob();
+          objectUrl = URL.createObjectURL(blob);
+          finalSrc = objectUrl;
+        }
+      } catch (e) {
+        console.warn('Image fetch fallback failed', e);
+      }
+
       if (cancelled) return;
 
-      setSourceAspectRatio(
-        sourceImage.naturalWidth > 0 && sourceImage.naturalHeight > 0
-          ? sourceImage.naturalWidth / sourceImage.naturalHeight
-          : 1,
-      );
-
-      const cellWidth = sourceImage.naturalWidth / gridCols;
-      const cellHeight = sourceImage.naturalHeight / gridRows;
-      const tiles = Array.from({ length: totalCells }, (_, index) => {
-        const row = Math.floor(index / gridCols);
-        const col = index % gridCols;
-        return {
-          id: String(index),
-          row,
-          col,
-          image: cropImageToDataUrl(
-            sourceImage,
-            col * cellWidth,
-            row * cellHeight,
-            cellWidth,
-            cellHeight,
-          ),
-        };
-      });
-
-      setBoardTiles(tiles);
-
-      const missingSet = new Set(missingCellIds);
-      const correctTiles = tiles.filter((tile) => missingSet.has(tile.id));
-      const generatedDistractors = shuffleArray(
-        tiles.filter((tile) => !missingSet.has(tile.id)),
-      ).slice(0, distractorCount);
-
-      const nextOptions = manualOptions.length ? manualOptions : generatedDistractors;
-      setOptionTiles(shuffleArray([...correctTiles, ...nextOptions]));
-    };
-
-    sourceImage.onerror = () => {
-      if (!cancelled) {
-        setBoardTiles([]);
-        setOptionTiles([]);
-        setSourceAspectRatio(1);
+      const sourceImage = new window.Image();
+      if (finalSrc.startsWith('http')) {
+        sourceImage.crossOrigin = 'anonymous';
       }
+
+      sourceImage.onload = () => {
+        if (cancelled) return;
+
+        setSourceAspectRatio(
+          sourceImage.naturalWidth > 0 && sourceImage.naturalHeight > 0
+            ? sourceImage.naturalWidth / sourceImage.naturalHeight
+            : 1,
+        );
+
+        if (content.cropMode === 'free') {
+          const rect = content.cropRect || { x: 25, y: 25, width: 50, height: 50 };
+          const sx = (rect.x / 100) * sourceImage.naturalWidth;
+          const sy = (rect.y / 100) * sourceImage.naturalHeight;
+          const sw = (rect.width / 100) * sourceImage.naturalWidth;
+          const sh = (rect.height / 100) * sourceImage.naturalHeight;
+
+          const croppedImage = cropImageToDataUrl(sourceImage, sx, sy, sw, sh);
+
+          setBoardTiles([{ id: 'full', image: finalSrc }]);
+
+          const correctTile = { id: 'free_crop_0', image: croppedImage };
+          
+          let nextOptions = manualOptions;
+          if (nextOptions.length === 0) {
+            nextOptions = Array.from({ length: distractorCount }, (_, i) => {
+              const rX = Math.random() * (sourceImage.naturalWidth - sw);
+              const rY = Math.random() * (sourceImage.naturalHeight - sh);
+              return {
+                id: `distractor_${i}`,
+                image: cropImageToDataUrl(sourceImage, rX, rY, sw, sh)
+              };
+            });
+          }
+          
+          setOptionTiles(shuffleArray([correctTile, ...nextOptions]));
+        } else {
+          const cellWidth = sourceImage.naturalWidth / gridCols;
+          const cellHeight = sourceImage.naturalHeight / gridRows;
+          const tiles = Array.from({ length: totalCells }, (_, index) => {
+            const row = Math.floor(index / gridCols);
+            const col = index % gridCols;
+            return {
+              id: String(index),
+              row,
+              col,
+              image: cropImageToDataUrl(
+                sourceImage,
+                col * cellWidth,
+                row * cellHeight,
+                cellWidth,
+                cellHeight,
+              ),
+            };
+          });
+
+          setBoardTiles(tiles);
+
+          const missingSet = new Set(missingCellIds);
+          const correctTiles = tiles.filter((tile) => missingSet.has(tile.id));
+          const generatedDistractors = shuffleArray(
+            tiles.filter((tile) => !missingSet.has(tile.id)),
+          ).slice(0, distractorCount);
+
+          const nextOptions = manualOptions.length ? manualOptions : generatedDistractors;
+          setOptionTiles(shuffleArray([...correctTiles, ...nextOptions]));
+        }
+      };
+
+      sourceImage.onerror = () => {
+        if (!cancelled) {
+          setBoardTiles([]);
+          setOptionTiles([]);
+          setSourceAspectRatio(1);
+        }
+      };
+
+      sourceImage.src = finalSrc;
     };
 
-    sourceImage.src = image;
+    loadImg();
 
     return () => {
       cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [distractorCount, gridCols, gridRows, image, manualOptions, missingCellIds.join(','), totalCells]);
 
@@ -192,7 +243,12 @@ const ImageCompletePartGame = ({
     if (!registerAssistantActions) return undefined;
 
     const showMissingPieceHint = ({ gesture = false } = {}) => {
-      const firstOpenCell = missingCellIds.find((id) => !filledCells[id]);
+      let firstOpenCell = null;
+      if (content.cropMode === 'free') {
+         firstOpenCell = filledCells['free_crop_0'] ? null : 'free_crop_0';
+      } else {
+         firstOpenCell = missingCellIds.find((id) => !filledCells[id]);
+      }
       if (!firstOpenCell) return;
 
       setActiveCellId(firstOpenCell);
@@ -385,6 +441,54 @@ const ImageCompletePartGame = ({
             {boardTiles.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-sm font-black text-slate-500">
                 جاري تجهيز الصورة...
+              </div>
+            ) : content.cropMode === 'free' ? (
+              <div className="absolute inset-0">
+                 <img src={boardTiles[0].image} alt="board" className="absolute inset-0 w-full h-full object-cover" />
+                 {(() => {
+                   const isFilled = Boolean(filledCells['free_crop_0']);
+                   const isActive = activeCellId === 'free_crop_0' && !isFilled;
+                   const isHintedCell = hintedTileId === 'free_crop_0' && !isFilled;
+                   const rect = content.cropRect || { x: 25, y: 25, width: 50, height: 50 };
+                   
+                   return (
+                     <button
+                       type="button"
+                       onClick={() => handleCellSelect('free_crop_0')}
+                       className={`absolute transition-all ${
+                         isFilled
+                           ? 'bg-transparent'
+                           : isActive
+                             ? 'bg-sky-50/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.18)]'
+                             : 'bg-white/65'
+                       }`}
+                       style={{
+                         left: `${rect.x}%`,
+                         top: `${rect.y}%`,
+                         width: `${rect.width}%`,
+                         height: `${rect.height}%`,
+                       }}
+                       onDragOver={(event) => handleCellDragOver(event, 'free_crop_0')}
+                       onDragEnter={(event) => handleCellDragOver(event, 'free_crop_0')}
+                       onDragLeave={() => handleCellDragLeave('free_crop_0')}
+                       onDrop={(event) => handleCellDrop(event, 'free_crop_0')}
+                     >
+                       {isFilled ? (
+                         <img src={optionTiles.find(t => t.id === 'free_crop_0')?.image} alt="filled" className="w-full h-full object-cover" />
+                       ) : (
+                         <div
+                           className={`absolute inset-[8%] rounded-[clamp(8px,1vw,12px)] border-2 border-dashed transition-all ${
+                             dropTargetCellId === 'free_crop_0'
+                               ? 'border-emerald-300/90 bg-emerald-100/15'
+                               : isHintedCell
+                                 ? 'border-sky-300 bg-sky-50/70 ring-2 ring-sky-300/40'
+                               : 'border-sky-300/80 bg-white/55'
+                           }`}
+                         />
+                       )}
+                     </button>
+                   );
+                 })()}
               </div>
             ) : (
               <div

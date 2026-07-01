@@ -22,7 +22,8 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'eye_tracking.bird',
   'true_false',
   'eye_tracking.choose',
-  'grammar.adjectives'
+  'grammar.adjectives',
+  'action.breakfast_tray'
 ];
 
 function createEmptyLevel(levelNumber) {
@@ -96,6 +97,18 @@ function normalizeDragItem(item, index) {
     labelAr: item?.labelAr || '',
     startPosition: item?.startPosition || 'bottom',
     isCorrect: Boolean(item?.isCorrect),
+  };
+}
+
+function normalizeBreakfastTrayItem(item, index) {
+  return {
+    id: String(item?.id || `item_${index + 1}`),
+    labelAr: item?.labelAr || item?.label || '',
+    image: item?.image || '',
+    emoji: item?.emoji || '',
+    category: item?.category || '',
+    color: item?.color || '',
+    isTarget: Boolean(item?.isTarget),
   };
 }
 
@@ -227,6 +240,21 @@ function normalizeActivity(activity, type, index) {
       sceneImage: activity?.sceneImage || '',
       promptLevel: activity?.promptLevel || '',
       draggables: Array.isArray(activity?.draggables) ? activity.draggables.map(normalizeDragItem) : [],
+    };
+  }
+
+  if (activityType === 'action.breakfast_tray') {
+    return {
+      ...baseActivity,
+      levelMode: activity?.levelMode || 'multi',
+      trayImage: activity?.trayImage || activity?.sceneImage || '',
+      items: Array.isArray(activity?.items) ? activity.items.map(normalizeBreakfastTrayItem) : [],
+      orderedTargets: Array.isArray(activity?.orderedTargets)
+        ? activity.orderedTargets.map((targetId) => String(targetId))
+        : [],
+      targetCategory: activity?.targetCategory || '',
+      targetColor: activity?.targetColor || '',
+      targetQuantity: Math.max(1, Number(activity?.targetQuantity || 1) || 1),
     };
   }
 

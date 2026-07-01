@@ -204,6 +204,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   const { adminSession } = useTherapyStore();
   const mediaFolderStorageKey = useMemo(() => getMediaFolderStorageKey(adminSession), [adminSession]);
   const [selectedFolderId, setSelectedFolderId] = useState(() => readLastFolderId(mediaFolderStorageKey));
+  const [hasLoadedPersistedFolder, setHasLoadedPersistedFolder] = useState(false);
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [isAddingFolder, setIsAddingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -265,9 +266,14 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   }, [isOpen, adminSession?.token, selectedType, searchQuery, searchScope, selectedFolderId, refreshTrigger]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setHasLoadedPersistedFolder(false);
+      return;
+    }
+
     setSelectedFolderId(readLastFolderId(mediaFolderStorageKey));
     setExpandedIds(new Set());
+    setHasLoadedPersistedFolder(true);
   }, [isOpen, mediaFolderStorageKey]);
 
   useEffect(() => {
@@ -275,7 +281,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
   }, [selectedFolderId, selectedType, searchQuery, searchScope]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !hasLoadedPersistedFolder) return;
 
     const normalizedFolderId = normalizeId(selectedFolderId);
     if (normalizedFolderId && !loading && !foldersById.has(normalizedFolderId)) {
@@ -292,7 +298,7 @@ const MediaLibraryModal = ({ isOpen, onClose, onSelect, initialType = '' }) => {
         .filter(Boolean);
       setExpandedIds((current) => new Set([...current, ...ancestorIds]));
     }
-  }, [foldersById, isOpen, loading, mediaFolderStorageKey, selectedFolderId]);
+  }, [foldersById, hasLoadedPersistedFolder, isOpen, loading, mediaFolderStorageKey, selectedFolderId]);
 
   if (!isOpen) return null;
 

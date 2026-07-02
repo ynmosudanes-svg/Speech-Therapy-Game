@@ -22,6 +22,7 @@ import TouchHandGame from './TouchHandGame';
 import ShakeImageGame from './ShakeImageGame';
 import MultiStepCommandGame from './MultiStepCommandGame';
 import BreakfastTrayGame from './BreakfastTrayGame';
+import SoundMatchGame from './SoundMatchGame';
 const renderGameActivity = ({
   game,
   onComplete,
@@ -88,6 +89,9 @@ const renderGameActivity = ({
     return <AudioCardsGame {...sharedProps} />;
   }
 
+  if (game?.type === 'audio.sound_match') {
+    return <SoundMatchGame {...sharedProps} />;
+  }
   if (game?.type === 'memory.cards') {
     return <MemoryCardsGame {...sharedProps} />;
   }

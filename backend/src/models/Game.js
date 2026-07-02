@@ -59,6 +59,7 @@ const gameSchema = new mongoose.Schema(
         'navigation.maze',
         'text.missing_word',
         'cards.audio_flashcards',
+        'audio.sound_match',
         'memory.cards',
         'memory.grid',
         'puzzle.jigsaw',

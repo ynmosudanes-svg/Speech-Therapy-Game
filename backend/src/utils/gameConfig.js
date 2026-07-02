@@ -14,6 +14,7 @@ const SUPPORTED_TEMPLATE_TYPES = [
   'navigation.maze',
   'text.missing_word',
   'cards.audio_flashcards',
+  'audio.sound_match',
   'memory.cards',
   'memory.grid',
   'puzzle.jigsaw',
@@ -312,6 +313,13 @@ function normalizeActivity(activity, type, index) {
     };
   }
 
+  if (activityType === 'audio.sound_match') {
+    return {
+      ...baseActivity,
+      targetAudio: activity?.targetAudio || '',
+      options: Array.isArray(activity?.options) ? activity.options.map(normalizeOption) : [],
+    };
+  }
   if (activityType === 'cards.audio_flashcards') {
     return {
       ...baseActivity,

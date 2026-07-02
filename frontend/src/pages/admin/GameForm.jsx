@@ -136,16 +136,16 @@ const GAME_TYPE_CARDS = [
     accent: 'from-indigo-100 to-cyan-100',
   },
   {
+    value: 'audio.sound_match',
+    title: 'مين الحيوان؟',
+    description: 'سؤال صوتي يشتغل أولا، ثم صوت الحيوان، والطفل يختار الصورة الصحيحة.',
+    accent: 'from-sky-100 to-emerald-100',
+  },
+  {
     value: 'cards.audio_flashcards',
     title: 'الكروت الصوتية',
     description: 'كروت تعليمية بالصور والكلمات لتشغيل النطق التلقائي عند الضغط عليها.',
     accent: 'from-fuchsia-100 to-purple-100',
-  },
-  {
-    value: 'memory.cards',
-    title: 'لعبة الذاكرة',
-    description: 'كروت مقلوبة يظهر كل عنصر مرتين. يتذكر الطفل أماكن الصور ويطابق الأزواج مع نطق اسم كل عنصر.',
-    accent: 'from-sky-100 to-cyan-100',
   },
   {
     value: 'memory.grid',
@@ -900,6 +900,38 @@ const GameForm = ({ mode = 'create' }) => {
     }));
   };
 
+  useEffect(() => {
+    if (currentActivityType !== 'memory.cards' || !currentActivity) {
+      return;
+    }
+
+    const replacementType = 'memory.grid';
+    const defaults = getDefaultActivityForType(replacementType, selectedActivity);
+
+    updateCurrentActivity((activity) => ({
+      ...defaults,
+      id: activity.id || defaults.id,
+      titleAr: activity.titleAr || defaults.titleAr,
+      difficulty: activity.difficulty || defaults.difficulty,
+      type: replacementType,
+    }));
+
+    setBuilderState((current) => {
+      if (current.type !== 'memory.cards') {
+        return current;
+      }
+
+      return {
+        ...current,
+        type: replacementType,
+        config: {
+          ...current.config,
+          templateType: replacementType,
+        },
+      };
+    });
+  }, [currentActivity, currentActivityType, selectedActivity]);
+
   const addActivity = () => {
     const newActivityType = builderState.type || currentActivityType;
     if (!newActivityType) return;
@@ -1228,7 +1260,7 @@ const GameForm = ({ mode = 'create' }) => {
   // Auto-initialize options if empty
   useEffect(() => {
     if (
-      ['text.missing_word', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'touch.hand', 'picture.reveal', 'image.complete_part', 'emotion.faces', 'true_false', 'eye_tracking.bird', 'spatial.concepts'].includes(currentActivityType) &&
+      ['text.missing_word', 'audio.sound_match', 'matching.similar', 'matching.different', 'matching.find', 'matching.shadow', 'touch.hand', 'picture.reveal', 'image.complete_part', 'emotion.faces', 'true_false', 'eye_tracking.bird', 'spatial.concepts'].includes(currentActivityType) &&
       currentActivity
     ) {
       if (!currentActivity.options || currentActivity.options.length === 0) {
@@ -2520,7 +2552,8 @@ const GameForm = ({ mode = 'create' }) => {
                         </div>
                       </div>
                     )}
-                    {currentActivityType === 'matching.similar' && (
+
+                  {currentActivityType === 'matching.similar' && (
                       <div className="pt-2">
                         <ImageAssetField
                           label="الصورة الرئيسية الكبيرة"
@@ -2996,6 +3029,86 @@ const GameForm = ({ mode = 'create' }) => {
                     </div>
                   )}
 
+                  {currentActivityType === 'audio.sound_match' && (
+                    <div className="bg-sky-50/50 border border-sky-100 rounded-[2rem] p-6 space-y-6 mt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 text-sky-700">
+                          <Volume2 size={24} />
+                          <h3 className="text-xl font-black">إعدادات لعبة صوت الحيوان</h3>
+                        </div>
+                        <Button type="button" variant="outline" onClick={addOption} className="!py-2 !px-4 !border-emerald-200 !text-emerald-700 hover:!bg-emerald-100">
+                          <Plus size={18} />
+                          <span>إضافة حيوان</span>
+                        </Button>
+                      </div>
+
+                      <div className="rounded-2xl bg-amber-50/80 border border-amber-100/80 px-4 py-3 text-sm font-bold text-amber-700/90">
+                        ارفع صوت السؤال في الأعلى، ثم ارفع صوت الحيوان هنا. الاختيارات ستفتح تلقائيا بعد انتهاء الصوت.
+                      </div>
+
+                      <FileUploadField
+                        label={
+                          <div className="flex items-center gap-2">
+                            <Volume2 size={18} className="text-sky-600" />
+                            <span>صوت الحيوان أو الشيء المطلوب</span>
+                          </div>
+                        }
+                        value={currentActivity.targetAudio || ''}
+                        onUploaded={(value) => setActivityField('targetAudio', value)}
+                        uploadAsset={uploadAsset}
+                        accept="audio/*"
+                        previewType="audio"
+                      />
+
+                      <div className="grid gap-4">
+                        {(currentActivity.options || []).map((option, optionIndex) => (
+                          <div key={option.id} className="rounded-[1.8rem] border border-[#dbe7f3] bg-[#f8fbff] p-5 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-black text-slate-800">اختيار {optionIndex + 1}</h4>
+                              <button
+                                type="button"
+                                onClick={() => removeOption(optionIndex)}
+                                disabled={(currentActivity.options || []).length <= 2}
+                                className={`inline-flex items-center justify-center rounded-xl border p-2 transition-colors ${
+                                  (currentActivity.options || []).length <= 2
+                                    ? 'text-slate-400 border-slate-200 bg-slate-100 cursor-not-allowed'
+                                    : 'text-red-500 border-red-200 bg-red-50 hover:text-red-600 hover:bg-red-100'
+                                }`}
+                                title={(currentActivity.options || []).length <= 2 ? 'الحد الأدنى اختياران' : 'حذف الاختيار'}
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+
+                            <input
+                              type="text"
+                              value={option.textAr || ''}
+                              onChange={(event) => updateOption(optionIndex, 'textAr', event.target.value)}
+                              className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none"
+                              placeholder="اسم الحيوان بالعربية"
+                            />
+
+                            <ImageAssetField
+                              label="صورة الحيوان"
+                              value={option.image || ''}
+                              onSelect={(value) => updateOption(optionIndex, 'image', value)}
+                              token={adminSession?.token}
+                              initialQuery={option.textAr || 'cartoon animal white background'}
+                            />
+
+                            <label className="flex items-center gap-2 font-bold text-emerald-800">
+                              <input
+                                type="radio"
+                                checked={Boolean(option.isCorrect)}
+                                onChange={() => selectCorrectOption(optionIndex)}
+                              />
+                              <span>هذا هو الحيوان الصحيح</span>
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {currentActivityType === 'matching.similar' && (
                     <div className="bg-emerald-50/40 border border-emerald-100 rounded-[2rem] p-6 space-y-6 mt-6">
                       <div className="flex items-center justify-between mb-4">

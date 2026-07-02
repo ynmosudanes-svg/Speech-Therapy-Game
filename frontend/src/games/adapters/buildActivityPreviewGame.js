@@ -92,6 +92,22 @@ export const getDefaultActivityForType = (type, activityIndex = 0) => {
       ],
     };
   }
+  if (type === 'audio.sound_match') {
+    return {
+      type,
+      id: `activity_${Date.now()}`,
+      titleAr: getDefaultActivityTitle(activityIndex),
+      questionAr: 'اسمع الصوت واختر الحيوان الصحيح',
+      instructionAudio: '',
+      targetAudio: '',
+      difficulty: 'easy',
+      options: [
+        { id: `animal_${Date.now()}_1`, image: '', textAr: 'قطة', isCorrect: true },
+        { id: `animal_${Date.now()}_2`, image: '', textAr: 'كلب', isCorrect: false },
+        { id: `animal_${Date.now()}_3`, image: '', textAr: 'بقرة', isCorrect: false },
+      ],
+    };
+  }
   if (type === 'memory.cards') {
     return {
       type,
@@ -918,6 +934,27 @@ export const buildActivityRuntimeGame = ({
     };
   }
 
+  if (templateType === 'audio.sound_match') {
+    return {
+      id: gameId,
+      type: templateType,
+      titleAr,
+      config: {
+        gameType: templateType,
+        titleAr,
+        content: {
+          instructionAr: activity?.questionAr || 'اسمع الصوت واختر الحيوان الصحيح',
+          questionAudio: activity?.instructionAudio || '',
+          targetAudio: activity?.targetAudio || '',
+          options: Array.isArray(activity?.options) ? activity.options : [],
+        },
+        feedback: {
+          successSound: sharedMedia?.successSound || '',
+          failSound: sharedMedia?.failSound || '',
+        },
+      },
+    };
+  }
   if (templateType === 'memory.cards') {
     return {
       id: gameId,
